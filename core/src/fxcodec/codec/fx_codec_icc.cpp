@@ -6,12 +6,12 @@
 
 #include "../../../include/fxcodec/fx_codec.h"
 #include "codec_int.h"
-#include "../lcms2/include/fx_lcms2.h"
-const FX_DWORD N_COMPONENT_LAB = 3;
-const FX_DWORD N_COMPONENT_GRAY = 1;
-const FX_DWORD N_COMPONENT_RGB = 3;
-const FX_DWORD N_COMPONENT_CMYK = 4;
-const FX_DWORD N_COMPONENT_DEFAULT = 3;
+
+#ifdef USE_SYTEM_LCMS2
+  #include <lcms2.h>
+#else
+  #include "../lcms2/include/fx_lcms2.h"
+#endif
 
 FX_BOOL MD5ComputeID( FX_LPCVOID buf, FX_DWORD dwSize, FX_BYTE ID[16] )
 {

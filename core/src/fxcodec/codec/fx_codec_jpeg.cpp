@@ -26,7 +26,13 @@ extern "C" {
 };
 extern "C" {
 #undef FAR
-#include "../../fx_jpeglib.h"
+  
+#ifdef USE_SYSTEM_JPEG
+  #include <jpeglib.h>
+#else  
+  #include "../../fx_jpeglib.h"
+#endif  
+
 }
 extern "C" {
     static void _src_do_nothing(struct jpeg_decompress_struct* cinfo) {}

@@ -4,7 +4,11 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../fx_zlib.h"
+#ifdef USE_SYSTEM_ZLIB
+    #include <zlib.h>
+#else
+    #include "../../fx_zlib.h"
+#endif
 #include "../../../include/fxcodec/fx_codec.h"
 #include "codec_int.h"
 extern "C"

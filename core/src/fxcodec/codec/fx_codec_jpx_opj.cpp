@@ -6,8 +6,17 @@
 
 #include "../../../include/fxcodec/fx_codec.h"
 #include "codec_int.h"
-#include "../fx_libopenjpeg/libopenjpeg20/openjpeg.h"
-#include "../lcms2/include/fx_lcms2.h"
+#ifdef USE_SYSTEM_OPENJPEG
+  #include <openjpeg-2.0/openjpeg.h>
+#else
+  #include "../fx_libopenjpeg/libopenjpeg20/openjpeg.h"
+#endif
+#ifdef USE_SYSTEM_LCMS2
+  #include <lcms2.h>
+#else
+  #include "../lcms2/include/fx_lcms2.h"
+#endif  
+  
 static void fx_error_callback(const char *msg, void *client_data)
 {
     (void)client_data;

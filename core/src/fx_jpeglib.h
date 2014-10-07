@@ -6,5 +6,9 @@
 
 #ifndef _FX_SRC_JPEGLIB_H_
 #define _FX_SRC_JPEGLIB_H_
-#include "./fxcodec/libjpeg/jpeglib.h"
+#ifdef USE_SYSTEM_JPEG
+    #include <jpeglib.h>
+#else
+    #include "./fxcodec/libjpeg/jpeglib.h"
+#endif
 #endif
