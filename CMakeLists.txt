@@ -7,6 +7,8 @@ message(STATUS "Processor: " ${CMAKE_HOST_SYSTEM_PROCESSOR})
 message(STATUS "CMake generates: " ${CMAKE_GENERATOR})
 message(STATUS "Build type:" ${CMAKE_BUILD_TYPE})
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wc++0x-compat")
+
 #3dparty libraries
 set(USE_SYSTEM_JPEG OFF CACHE BOOL "use system libjpeg")
 set(USE_SYSTEM_ZLIB OFF CACHE BOOL "use system zlib")
@@ -80,11 +82,12 @@ add_definitions(
   -D_FXFT_VERSION_=2501 
   -D_FPDFSDK_LIB
   -D_NO_GDIPLUS_ # workaround text rendering issues on Windows
+  -DOPJ_STATIC
   )
 
-# x86 only!!!  
+# amd64 only!!!  
 add_definitions(
-  -D_FX_CPU_=_FX_X86_
+  -D_FX_CPU_=_FX_X64_
 )
 
 ######################## FDRM #############################################
