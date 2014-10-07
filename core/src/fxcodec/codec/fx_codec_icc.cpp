@@ -13,6 +13,12 @@
   #include "../lcms2/include/fx_lcms2.h"
 #endif
 
+const FX_DWORD N_COMPONENT_LAB = 3;
+const FX_DWORD N_COMPONENT_GRAY = 1;
+const FX_DWORD N_COMPONENT_RGB = 3;
+const FX_DWORD N_COMPONENT_CMYK = 4;
+const FX_DWORD N_COMPONENT_DEFAULT = 3;
+
 FX_BOOL MD5ComputeID( FX_LPCVOID buf, FX_DWORD dwSize, FX_BYTE ID[16] )
 {
     return cmsMD5computeIDExt(buf, dwSize, ID);

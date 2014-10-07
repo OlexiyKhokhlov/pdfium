@@ -8,11 +8,11 @@
 #define _FX_SRC_FREETYPE_H_
 #ifdef USE_SYSTEM_FREETYPE
     #include <ft2build.h>
-    #include <freetype/freetype.h>
-    #include <freetype/ftoutln.h>
-    #include <freetype/ftmm.h>
-    //#include <freetype/ftobjs.h>
-    #include <freetype/tttables.h>
+    #include <freetype.h>
+    #include <ftoutln.h>
+    #include <ftmm.h>
+    //#include <ftobjs.h>
+    #include <tttables.h>
 #else
     #include "./fxge/fx_freetype/fxft2.5.01/include/ft2build.h"
     #include "./fxge/fx_freetype/fxft2.5.01/include/freetype/freetype.h"
