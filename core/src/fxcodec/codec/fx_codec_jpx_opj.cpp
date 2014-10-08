@@ -6,8 +6,9 @@
 
 #include "../../../include/fxcodec/fx_codec.h"
 #include "codec_int.h"
+
 #ifdef USE_SYSTEM_OPENJPEG
-  #include <openjpeg-2.0/openjpeg.h>
+  #include <openjpeg.h>
 #else
   #include "../fx_libopenjpeg/libopenjpeg20/openjpeg.h"
 #endif

@@ -1,5 +1,7 @@
 /build/Debug
+/build/debug
 /build/Release
+/build/release
 /build/gyp
 /out
 /v8

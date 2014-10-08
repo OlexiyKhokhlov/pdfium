@@ -214,8 +214,9 @@ FX_SYSTEMTIME CFX_SystemHandler::GetLocalTime()
 
 CJS_RuntimeFactory* GetJSRuntimeFactory()
 {
-	static CJS_RuntimeFactory s_JSRuntimeFactory;
-	return &s_JSRuntimeFactory;
+// 	static CJS_RuntimeFactory s_JSRuntimeFactory;
+// 	return &s_JSRuntimeFactory;
+  return nullptr;
 }
 
 CPDFDoc_Environment::CPDFDoc_Environment(CPDF_Document* pDoc) :
@@ -233,8 +234,8 @@ CPDFDoc_Environment::CPDFDoc_Environment(CPDF_Document* pDoc) :
 
 	
 	m_pJSRuntimeFactory = NULL;
-	m_pJSRuntimeFactory = GetJSRuntimeFactory();
-	m_pJSRuntimeFactory->AddRef();
+// 	m_pJSRuntimeFactory = GetJSRuntimeFactory();
+// 	m_pJSRuntimeFactory->AddRef();
 }
 
 CPDFDoc_Environment::~CPDFDoc_Environment()
@@ -245,9 +246,9 @@ CPDFDoc_Environment::~CPDFDoc_Environment()
 		delete m_pIFormFiller;
 		m_pIFormFiller = NULL;
 	}
-	if(m_pJSRuntime && m_pJSRuntimeFactory)
-		m_pJSRuntimeFactory->DeleteJSRuntime(m_pJSRuntime);
-	m_pJSRuntimeFactory->Release();
+// 	if(m_pJSRuntime && m_pJSRuntimeFactory)
+// 		m_pJSRuntimeFactory->DeleteJSRuntime(m_pJSRuntime);
+// 	m_pJSRuntimeFactory->Release();
 
 	if(m_pSysHandler)
 	{
@@ -265,8 +266,6 @@ CPDFDoc_Environment::~CPDFDoc_Environment()
 		delete m_pActionHandler;
 		m_pActionHandler = NULL;
 	}
-
-
 }
 
 
@@ -275,8 +274,8 @@ IFXJS_Runtime* CPDFDoc_Environment::GetJSRuntime()
 	if(!IsJSInitiated())
 		return NULL;
 	assert(m_pJSRuntimeFactory);
-	if(!m_pJSRuntime)
-		m_pJSRuntime = m_pJSRuntimeFactory->NewJSRuntime(this);
+// 	if(!m_pJSRuntime)
+// 		m_pJSRuntime = m_pJSRuntimeFactory->NewJSRuntime(this);
 	return m_pJSRuntime;
 }
 
