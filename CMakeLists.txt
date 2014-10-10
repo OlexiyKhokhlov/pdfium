@@ -11,11 +11,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
 
 #3dparty libraries
-set(USE_SYSTEM_JPEG OFF CACHE BOOL "use system libjpeg")
-set(USE_SYSTEM_ZLIB OFF CACHE BOOL "use system zlib")
-set(USE_SYSTEM_LCMS2 OFF CACHE BOOL "use system lcms2")
-set(USE_SYSTEM_OPENJPEG OFF CACHE BOOL "use system openjpeg (NOTE: pdfium has wery fresh openjpeg version)")
-set(USE_SYSTEM_FREETYPE OFF CACHE BOOL "use system freetype")
+set(USE_SYSTEM_JPEG ON CACHE BOOL "use system libjpeg")
+set(USE_SYSTEM_ZLIB ON CACHE BOOL "use system zlib")
+set(USE_SYSTEM_LCMS2 ON CACHE BOOL "use system lcms2")
+set(USE_SYSTEM_OPENJPEG ON CACHE BOOL "use system openjpeg" )
+set(USE_SYSTEM_FREETYPE ON CACHE BOOL "use system freetype")
 
 # #hieroglyphs support
 # set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
@@ -586,7 +586,7 @@ set(FPDFSDK_SOURCES
 )
 
 
-add_library(fpdfsdk STATIC 
+add_library(pdfium SHARED 
   ${FDRM_HEDAERS} ${FDRM_SOURCES}
   ${FPDFDOC_HEDAERS} ${FPDFDOC_SOURCES}  
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
@@ -601,7 +601,7 @@ add_library(fpdfsdk STATIC
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
 )
 
-target_link_libraries(fpdfsdk 
+target_link_libraries(pdfium 
   ${JPEG_LIBRARIES} 
   ${ZLIB_LIBRARIES} 
   ${LCMS2_LIBRARIES} 
@@ -609,12 +609,18 @@ target_link_libraries(fpdfsdk
   ${OPENJPEG_LIBRARIES} 
   ${FREETYPE_LIBRARY})
 
-add_executable(test samples/pdfium_test.cc)
-target_link_libraries(test fpdfsdk 
+add_executable(pdfium_test samples/pdfium_test.cc)
+target_link_libraries(pdfium_test pdfium 
   ${JPEG_LIBRARIES} 
   ${ZLIB_LIBRARIES} 
   ${LCMS2_LIBRARIES} 
   ${JBIG2DEC_LIBRARIES}
   ${OPENJPEG_LIBRARIES} 
   ${FREETYPE_LIBRARY})
+  
 include_directories(./fpdfsdk/include)
+
+#Install
+file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/fpdfsdk/include/*.h)
+install(FILES ${INSTALL_HEADERS} DESTINATION include/pdfium)
+install (TARGETS pdfium DESTINATION lib)
