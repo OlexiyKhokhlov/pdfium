@@ -22,7 +22,9 @@ set(USE_SYSTEM_JPEG ON CACHE BOOL "use system libjpeg")
 set(USE_SYSTEM_ZLIB ON CACHE BOOL "use system zlib")
 set(USE_SYSTEM_LCMS2 ON CACHE BOOL "use system lcms2")
 set(USE_SYSTEM_OPENJPEG ON CACHE BOOL "use system openjpeg" )
-set(USE_SYSTEM_FREETYPE ON CACHE BOOL "use system freetype")
+
+#Don't enble!!! pdfium uses internal  things for freetype!
+set(USE_SYSTEM_FREETYPE OFF CACHE BOOL "use system freetype")
 
 #hieroglyphs support
 set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
@@ -248,8 +250,6 @@ set(FPDFAPI_HEDAERS
   core/src/fpdfapi/fpdf_cmaps/cmap_int.h
 )
 
-
-
 set(FPDFAPI_SOURCES
   core/src/fpdfapi/fpdf_basic_module.cpp
   core/src/fpdfapi/fpdf_cmaps/fpdf_cmaps.cpp
@@ -392,8 +392,8 @@ set(FXGE_HEDAERS
   core/include/fxge/fx_font.h
   core/include/fxge/fx_freetype.h
   core/include/fxge/fx_ge.h
-  core/include/fxge/fx_ge_apple.h
-  core/include/fxge/fx_ge_win32.h
+#  core/include/fxge/fx_ge_apple.h
+#  core/include/fxge/fx_ge_win32.h
   core/src/fxge/agg/include/fxfx_agg_basics.h
   core/src/fxge/agg/include/fxfx_agg_clip_liang_barsky.h
   core/src/fxge/agg/include/fxfx_agg_conv_dash.h
@@ -410,7 +410,7 @@ set(FXGE_HEDAERS
 #   core/src/fxge/android/fpf_skiamodule.h
 #   core/src/fxge/android/fx_android_font.h
 #   core/src/fxge/android/fx_fpf.h
-  core/src/fxge/apple/apple_int.h
+#  core/src/fxge/apple/apple_int.h
   core/src/fxge/dib/dib_int.h
   core/src/fxge/ge/text_int.h
 )
@@ -427,9 +427,9 @@ set(FXGE_SOURCES
 #   core/src/fxge/android/fpf_skiamodule.cpp        
 #   core/src/fxge/android/fx_android_font.cpp
 #   core/src/fxge/android/fx_android_imp.cpp
-  core/src/fxge/apple/fx_apple_platform.cpp
-  core/src/fxge/apple/fx_mac_imp.cpp
-  core/src/fxge/apple/fx_quartz_device.cpp
+#  core/src/fxge/apple/fx_apple_platform.cpp
+#  core/src/fxge/apple/fx_mac_imp.cpp
+#  core/src/fxge/apple/fx_quartz_device.cpp
   core/src/fxge/dib/fx_dib_composite.cpp
   core/src/fxge/dib/fx_dib_convert.cpp
   core/src/fxge/dib/fx_dib_engine.cpp
@@ -475,7 +475,7 @@ set(FXGE_SOURCES
   core/src/fxge/fx_freetype/src/fxft_smooth.c
   core/src/fxge/fx_freetype/src/fxft_truetype.c
   core/src/fxge/fx_freetype/src/fxft_type1.c
-  core/src/fxge/fx_freetype/src/fxft_type1cid.c  
+  core/src/fxge/fx_freetype/src/fxft_type1cid.c
 )
 
 #add_library(fxge STATIC ${FXGE_HEDAERS} ${FXGE_SOURCES})
@@ -575,7 +575,7 @@ set(FORMFILLER_SOURCES
 
 #add_library(formfiller STATIC ${FORMFILLER_HEDAERS} ${FORMFILLER_SOURCES})
 
-######################## FPDFSDK #############################################
+######################### FPDFSDK #############################################
 set(FPDFSDK_HEDAERS
   fpdfsdk/include/fpdfdoc.h
   fpdfsdk/include/fpdfedit.h
@@ -620,7 +620,7 @@ set(FPDFSDK_SOURCES
   fpdfsdk/src/fsdk_baseform.cpp
   fpdfsdk/src/fsdk_mgr.cpp
   fpdfsdk/src/fsdk_rendercontext.cpp
-  fpdfsdk/src/fpdf_transformpage.cpp        
+  fpdfsdk/src/fpdf_transformpage.cpp
 )
 
 
