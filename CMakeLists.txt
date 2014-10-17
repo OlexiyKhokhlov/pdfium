@@ -7,8 +7,15 @@ message(STATUS "Processor: " ${CMAKE_HOST_SYSTEM_PROCESSOR})
 message(STATUS "CMake generates: " ${CMAKE_GENERATOR})
 message(STATUS "Build type:" ${CMAKE_BUILD_TYPE})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat")
+include(TargetArch.cmake)
+target_architecture(TARGET_ARCH)
+message(STATUS "Target: " ${TARGET_ARCH})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+
+set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2 -pipe -fomit-frame-pointer -march=native -mtune=native -flto")
+set(CMAKE_LINKER_FLAGS_RELEASE "-flto -s")
 
 #3dparty libraries
 set(USE_SYSTEM_JPEG ON CACHE BOOL "use system libjpeg")
@@ -86,10 +93,17 @@ add_definitions(
   -DOPJ_STATIC
   )
 
-# amd64 only!!!  
-add_definitions(
-  -D_FX_CPU_=_FX_X64_
-)
+if(TARGET_ARCH STREQUAL "x86_64")
+    add_definitions(
+	-D_FX_CPU_=_FX_X64_
+    )
+elseif(TARGET_ARCH STREQUAL "i386")
+    add_definitions(
+	-D_FX_CPU_=_FX_X86_
+    )
+else(TARGET_ARCH STREQUAL "x86_64")
+    message(ERROR "Target: " ${TARGET_ARCH} "isn't supported yet")
+endif(TARGET_ARCH STREQUAL "x86_64")
 
 ######################## FDRM #############################################
 set(FDRM_HEDAERS
