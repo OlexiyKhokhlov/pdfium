@@ -12,7 +12,7 @@ target_architecture(TARGET_ARCH)
 message(STATUS "Target: " ${TARGET_ARCH})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread")
-set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
 
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2 -pipe -fomit-frame-pointer -march=native -mtune=native -flto")
 set(CMAKE_LINKER_FLAGS_RELEASE "-flto -s")
@@ -24,16 +24,101 @@ set(USE_SYSTEM_LCMS2 ON CACHE BOOL "use system lcms2")
 set(USE_SYSTEM_OPENJPEG ON CACHE BOOL "use system openjpeg" )
 set(USE_SYSTEM_FREETYPE ON CACHE BOOL "use system freetype")
 
-# #hieroglyphs support
-# set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
-# set(USE_GB1_MAPS_4 OFF CACHE BOOL "use GB1-4 maps")
-# set(USE_CNS1_MAPS OFF CACHE BOOL "use CNS1 maps")
-# set(USE_JAPAN1_MAPS OFF CACHE BOOL "use JAPAN1 maps")
-# set(USE_GB1_MAPS_6 OFF CACHE BOOL "use JAPAN1-6 maps")
-# set(USE_KOREA_MAPS OFF CACHE BOOL "use KOREA maps")
+#hieroglyphs support
+set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
+set(USE_CNS1_MAPS OFF CACHE BOOL "use CNS1 maps")
+set(USE_JAPAN1_MAPS OFF CACHE BOOL "use JAPAN1 maps")
+set(USE_KOREA_MAPS OFF CACHE BOOL "use KOREA maps")
 # set(USE_JPX_DECODER OFF CACHE BOOL "use jpx-decoder")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
+if(USE_GB1_MAPS)
+  add_definitions(-DUSE_GB1_MAPS)
+  set(FPDFAPI_GB1_SOURCES
+   core/src/fpdfapi/fpdf_cmaps/GB1/Adobe-GB1-UCS2_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/cmaps_gb1.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GB-EUC-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GB-EUC-V_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBK-EUC-H_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBK-EUC-V_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBK2K-H_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBK2K-V_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBKp-EUC-H_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBKp-EUC-V_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBpc-EUC-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/GBpc-EUC-V_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/UniGB-UCS2-H_4.cpp
+   core/src/fpdfapi/fpdf_cmaps/GB1/UniGB-UCS2-V_4.cpp
+  )
+endif(USE_GB1_MAPS)
+
+if(USE_CNS1_MAPS)
+  add_definitions(-DUSE_CNS1_MAPS)
+  set(FPDFAPI_CNS1_SOURCES
+   core/src/fpdfapi/fpdf_cmaps/CNS1/Adobe-CNS1-UCS2_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/B5pc-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/B5pc-V_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/cmaps_cns1.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/CNS-EUC-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/CNS-EUC-V_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/ETen-B5-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/ETen-B5-V_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/ETenms-B5-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/ETenms-B5-V_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/HKscs-B5-H_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/HKscs-B5-V_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/UniCNS-UCS2-H_3.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/UniCNS-UCS2-V_3.cpp
+   core/src/fpdfapi/fpdf_cmaps/CNS1/UniCNS-UTF16-H_0.cpp
+  )
+endif(USE_CNS1_MAPS)
+
+if(USE_JAPAN1_MAPS)
+  set(FPDFAPI_JAPAN1_SOURCES
+   core/src/fpdfapi/fpdf_cmaps/Japan1/83pv-RKSJ-H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/90ms-RKSJ-H_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/90ms-RKSJ-V_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/90msp-RKSJ-H_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/90msp-RKSJ-V_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/90pv-RKSJ-H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/Add-RKSJ-H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/Add-RKSJ-V_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/Adobe-Japan1-UCS2_4.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/cmaps_japan1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/EUC-H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/EUC-V_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/Ext-RKSJ-H_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/Ext-RKSJ-V_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-HW-H_4.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-HW-V_4.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-H_4.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-V_4.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-H_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-V_5.cpp
+   core/src/fpdfapi/fpdf_cmaps/Japan1/V_1.cpp
+  )
+  add_definitions(-DUSE_JAPAN1_MAPS)
+endif(USE_JAPAN1_MAPS)
+
+if(USE_KOREA_MAPS)
+  add_definitions(-DUSE_KOREA_MAPS)
+  set(FPDFAPI_KOREA_SOURCES
+   core/src/fpdfapi/fpdf_cmaps/Korea1/Adobe-Korea1-UCS2_2.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/cmaps_korea1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/KSC-EUC-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/KSC-EUC-V_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-HW-H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-HW-V_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-V_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCpc-EUC-H_0.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/UniKS-UCS2-H_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/UniKS-UCS2-V_1.cpp
+   core/src/fpdfapi/fpdf_cmaps/Korea1/UniKS-UTF16-H_0.cpp
+  )
+endif(USE_KOREA_MAPS)
 
 if(USE_SYSTEM_JPEG)
   find_package(JPEG REQUIRED)
@@ -163,72 +248,11 @@ set(FPDFAPI_HEDAERS
   core/src/fpdfapi/fpdf_cmaps/cmap_int.h
 )
 
+
+
 set(FPDFAPI_SOURCES
   core/src/fpdfapi/fpdf_basic_module.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/Adobe-CNS1-UCS2_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/B5pc-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/B5pc-V_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/cmaps_cns1.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/CNS-EUC-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/CNS-EUC-V_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/ETen-B5-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/ETen-B5-V_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/ETenms-B5-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/ETenms-B5-V_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/HKscs-B5-H_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/HKscs-B5-V_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/UniCNS-UCS2-H_3.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/UniCNS-UCS2-V_3.cpp
-   core/src/fpdfapi/fpdf_cmaps/CNS1/UniCNS-UTF16-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/fpdf_cmaps.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/Adobe-GB1-UCS2_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/cmaps_gb1.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GB-EUC-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GB-EUC-V_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBK-EUC-H_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBK-EUC-V_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBK2K-H_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBK2K-V_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBKp-EUC-H_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBKp-EUC-V_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBpc-EUC-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/GBpc-EUC-V_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/UniGB-UCS2-H_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/GB1/UniGB-UCS2-V_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/83pv-RKSJ-H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/90ms-RKSJ-H_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/90ms-RKSJ-V_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/90msp-RKSJ-H_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/90msp-RKSJ-V_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/90pv-RKSJ-H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/Add-RKSJ-H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/Add-RKSJ-V_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/Adobe-Japan1-UCS2_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/cmaps_japan1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/EUC-H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/EUC-V_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/Ext-RKSJ-H_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/Ext-RKSJ-V_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-HW-H_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-HW-V_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-H_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-V_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-H_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-V_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/V_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/Adobe-Korea1-UCS2_2.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/cmaps_korea1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/KSC-EUC-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/KSC-EUC-V_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-HW-H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-HW-V_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCms-UHC-V_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/KSCpc-EUC-H_0.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/UniKS-UCS2-H_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/UniKS-UCS2-V_1.cpp
-   core/src/fpdfapi/fpdf_cmaps/Korea1/UniKS-UTF16-H_0.cpp
+  core/src/fpdfapi/fpdf_cmaps/fpdf_cmaps.cpp
   core/src/fpdfapi/fpdf_edit/editint.h
   core/src/fpdfapi/fpdf_edit/fpdf_edit_content.cpp
   core/src/fpdfapi/fpdf_edit/fpdf_edit_create.cpp
@@ -604,7 +628,7 @@ add_library(pdfium SHARED
   ${FDRM_HEDAERS} ${FDRM_SOURCES}
   ${FPDFDOC_HEDAERS} ${FPDFDOC_SOURCES}  
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
-  ${FPDFAPI_HEDAERS} ${FPDFAPI_SOURCES}
+  ${FPDFAPI_HEDAERS} ${FPDFAPI_SOURCES} ${FPDFAPI_GB1_SOURCES} ${FPDFAPI_CNS1_SOURCES} ${FPDFAPI_JAPAN1_SOURCES} ${FPDFAPI_KOREA_SOURCES}
   ${FPDFTEXT_HEDAERS} ${FPDFTEXT_SOURCES}
   ${FXCODEC_HEDAERS} ${FXCODEC_SOURCES}
   ${FXC_HEDAERS} ${FXCRT_SOURCES}

@@ -153,10 +153,18 @@ DLLEXPORT void STDCALL FPDF_InitLibrary(FX_LPVOID hInstance)
 	CPDF_ModuleMgr * pModuleMgr = CPDF_ModuleMgr::Get();
 	if ( pModuleMgr )
 	{
+#ifdef USE_GB1_MAPS
 		pModuleMgr->LoadEmbeddedGB1CMaps();
+#endif
+#ifdef USE_JAPAN1_MAPS
 		pModuleMgr->LoadEmbeddedJapan1CMaps();
+#endif
+#ifdef USE_CNS1_MAPS
 		pModuleMgr->LoadEmbeddedCNS1CMaps();
+#endif
+#ifdef USE_KOREA_MAPS
 		pModuleMgr->LoadEmbeddedKorea1CMaps();
+#endif
 	}
 #endif 
 #endif
