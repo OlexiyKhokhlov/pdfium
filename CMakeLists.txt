@@ -12,6 +12,7 @@ target_architecture(TARGET_ARCH)
 message(STATUS "Target: " ${TARGET_ARCH})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
 
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2 -pipe -fomit-frame-pointer -march=native -mtune=native -flto")
