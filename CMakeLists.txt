@@ -17,6 +17,8 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2 -pipe -fomit-frame-pointer -march=native -mtune=native -flto")
 set(CMAKE_LINKER_FLAGS_RELEASE "-flto -s")
 
+set(USE_STATIC_LIBRARY ON CACHE BOOL "build as static library. Otherwise - shared")
+
 #3dparty libraries
 set(USE_SYSTEM_JPEG ON CACHE BOOL "use system libjpeg")
 set(USE_SYSTEM_ZLIB ON CACHE BOOL "use system zlib")
@@ -168,8 +170,42 @@ else(USE_SYSTEM_FREETYPE)
 endif(USE_SYSTEM_FREETYPE)
 
 #Use own jbig2 in anytime
-add_subdirectory(core/src/fxcodec/jbig2)
-set(JBIG2DEC_LIBRARIES jbig2)
+#add_subdirectory(core/src/fxcodec/jbig2)
+#set(JBIG2DEC_LIBRARIES jbig2)
+
+set(jbig2_HEADERS
+  core/src/fxcodec/jbig2/JBig2_ArithDecoder.h
+  core/src/fxcodec/jbig2/JBig2_ArithIntDecoder.h
+  core/src/fxcodec/jbig2/JBig2_ArithQe.h
+  core/src/fxcodec/jbig2/JBig2_BitStream.h
+  core/src/fxcodec/jbig2/JBig2_Context.h
+  core/src/fxcodec/jbig2/JBig2_Define.h
+  core/src/fxcodec/jbig2/JBig2_GeneralDecoder.h
+  core/src/fxcodec/jbig2/JBig2_HuffmanDecoder.h
+  core/src/fxcodec/jbig2/JBig2_HuffmanTable.h
+  core/src/fxcodec/jbig2/JBig2_HuffmanTable_Standard.h
+  core/src/fxcodec/jbig2/JBig2_Image.h
+  core/src/fxcodec/jbig2/JBig2_List.h
+  core/src/fxcodec/jbig2/JBig2_Module.h
+  core/src/fxcodec/jbig2/JBig2_Object.h
+  core/src/fxcodec/jbig2/JBig2_Page.h
+  core/src/fxcodec/jbig2/JBig2_PatternDict.h
+  core/src/fxcodec/jbig2/JBig2_Segment.h
+  core/src/fxcodec/jbig2/JBig2_SymbolDict.h
+)
+
+set(jbig2_SOURCES
+  core/src/fxcodec/jbig2/JBig2_ArithIntDecoder.cpp
+  core/src/fxcodec/jbig2/JBig2_Context.cpp
+  core/src/fxcodec/jbig2/JBig2_GeneralDecoder.cpp
+  core/src/fxcodec/jbig2/JBig2_HuffmanDecoder.cpp
+  core/src/fxcodec/jbig2/JBig2_HuffmanTable.cpp
+  core/src/fxcodec/jbig2/JBig2_Image.cpp
+  core/src/fxcodec/jbig2/JBig2_Object.cpp
+  core/src/fxcodec/jbig2/JBig2_PatternDict.cpp
+  core/src/fxcodec/jbig2/JBig2_Segment.cpp
+  core/src/fxcodec/jbig2/JBig2_SymbolDict.cpp
+)
 
 
 add_definitions(
@@ -624,9 +660,9 @@ set(FPDFSDK_SOURCES
 )
 
 
-add_library(pdfium SHARED 
+set(ALL_SOURCES
   ${FDRM_HEDAERS} ${FDRM_SOURCES}
-  ${FPDFDOC_HEDAERS} ${FPDFDOC_SOURCES}  
+  ${FPDFDOC_HEDAERS} ${FPDFDOC_SOURCES}
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
   ${FPDFAPI_HEDAERS} ${FPDFAPI_SOURCES} ${FPDFAPI_GB1_SOURCES} ${FPDFAPI_CNS1_SOURCES} ${FPDFAPI_JAPAN1_SOURCES} ${FPDFAPI_KOREA_SOURCES}
   ${FPDFTEXT_HEDAERS} ${FPDFTEXT_SOURCES}
@@ -637,7 +673,18 @@ add_library(pdfium SHARED
   ${PDFWINDOW_HEDAERS} ${PDFWINDOW_SOURCES}
   ${FORMFILLER_HEDAERS} ${FORMFILLER_SOURCES}
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
+  ${jbig2_HEADERS} ${jbig2_SOURCES}
 )
+
+if(USE_STATIC_LIBRARY)
+    add_library(pdfium STATIC
+        ${ALL_SOURCES}
+    )
+else(USE_STATIC_LIBRARY)
+    add_library(pdfium SHARED
+        ${ALL_SOURCES}
+    )
+endif(USE_STATIC_LIBRARY)
 
 target_link_libraries(pdfium 
   ${JPEG_LIBRARIES} 
