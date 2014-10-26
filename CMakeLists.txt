@@ -157,8 +157,33 @@ if(USE_SYSTEM_OPENJPEG)
   include_directories(${OPENJPEG_INCLUDE_DIR})
   add_definitions(-DUSE_SYSTEM_OPENJPEG)
 else(USE_SYSTEM_OPENJPEG)
-  add_subdirectory(core/src/fxcodec/fx_libopenjpeg)
-  set(OPENJPEG_LIBRARIES openjpeg)
+    set(openjpeg_HEADERS
+	core/src/fxcodec/fx_libopenjpeg/include/fx_openjpeg.h
+    )
+    set(openjpeg_SOURCES
+    core/src/fxcodec/fx_libopenjpeg/src/fx_bio.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_cio.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_dwt.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_event.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_function_list.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_image.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_invert.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_j2k.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_j2k_lib.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_jpt.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_mct.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_mqc.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_openjpeg.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_openjpeg_jp2.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_opj_clock.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_pi.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_raw.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_t1.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_t1_generate_luts.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_t2.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_tcd.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_tgt.c
+    )
 endif(USE_SYSTEM_OPENJPEG)
 
 if(USE_SYSTEM_FREETYPE)
@@ -710,6 +735,7 @@ set(ALL_SOURCES
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
   ${jbig2_HEADERS} ${jbig2_SOURCES}
   ${freetype_HEADERS} ${freetype_SOURCES}
+  ${openjpeg_HEADERS} ${openjpeg_SOURCES}
 )
 
 if(USE_STATIC_LIBRARY)
