@@ -11,8 +11,8 @@ include(TargetArch.cmake)
 target_architecture(TARGET_ARCH)
 message(STATUS "Target: " ${TARGET_ARCH})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread -fvisibility=hidden")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread -fvisibility=hidden")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
 
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2 -pipe -fomit-frame-pointer -march=native -mtune=native -flto")
@@ -157,17 +157,76 @@ if(USE_SYSTEM_OPENJPEG)
   include_directories(${OPENJPEG_INCLUDE_DIR})
   add_definitions(-DUSE_SYSTEM_OPENJPEG)
 else(USE_SYSTEM_OPENJPEG)
-  add_subdirectory(core/src/fxcodec/fx_libopenjpeg)
-  set(OPENJPEG_LIBRARIES openjpeg)
+    set(openjpeg_HEADERS
+	core/src/fxcodec/fx_libopenjpeg/include/fx_openjpeg.h
+    )
+    set(openjpeg_SOURCES
+    core/src/fxcodec/fx_libopenjpeg/src/fx_bio.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_cio.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_dwt.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_event.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_function_list.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_image.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_invert.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_j2k.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_j2k_lib.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_jpt.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_mct.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_mqc.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_openjpeg.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_openjpeg_jp2.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_opj_clock.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_pi.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_raw.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_t1.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_t1_generate_luts.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_t2.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_tcd.c
+    core/src/fxcodec/fx_libopenjpeg/src/fx_tgt.c
+    )
 endif(USE_SYSTEM_OPENJPEG)
 
 if(USE_SYSTEM_FREETYPE)
+  message(ERROR "Unable to use external freetype")
   find_package(Freetype REQUIRED)
   include_directories(${FREETYPE_INCLUDE_DIR_freetype2})
   add_definitions(-DUSE_SYSTEM_FREETYPE)
 else(USE_SYSTEM_FREETYPE)
-  add_subdirectory(core/src/fxge/fx_freetype)
-  set(FREETYPE_LIBRARY freetype)
+#  add_subdirectory(core/src/fxge/fx_freetype)
+#  set(FREETYPE_LIBRARY freetype)
+set(freetype_HEADERS
+  core/src/fxge/fx_freetype/include/fxft_cffobjs.h
+  core/src/fxge/fx_freetype/include/fxft_cfftypes.h
+  core/src/fxge/fx_freetype/include/fxft_freetype.h
+  core/src/fxge/fx_freetype/include/fxft_ft2build.h
+  core/src/fxge/fx_freetype/include/fxft_ftmm.h
+  core/src/fxge/fx_freetype/include/fxft_ftobjs.h
+  core/src/fxge/fx_freetype/include/fxft_ftotval.h
+  core/src/fxge/fx_freetype/include/fxft_ftoutln.h
+  core/src/fxge/fx_freetype/include/fxft_ftstream.h
+  core/src/fxge/fx_freetype/include/fxft_tttables.h
+  core/src/fxge/fx_freetype/include/fxft_tttypes.h
+)
+
+set(freetype_SOURCES
+  core/src/fxge/fx_freetype/src/fxft_cff.c
+  core/src/fxge/fx_freetype/src/fxft_ftbase.c
+  core/src/fxge/fx_freetype/src/fxft_ftbitmap.c
+  core/src/fxge/fx_freetype/src/fxft_ftglyph.c
+  core/src/fxge/fx_freetype/src/fxft_ftinit.c
+  core/src/fxge/fx_freetype/src/fxft_ftlcdfil.c
+  core/src/fxge/fx_freetype/src/fxft_ftmm.c
+  core/src/fxge/fx_freetype/src/fxft_ftsystem.c
+  core/src/fxge/fx_freetype/src/fxft_psaux.c
+  core/src/fxge/fx_freetype/src/fxft_pshinter.c
+  core/src/fxge/fx_freetype/src/fxft_psmodule.c
+  core/src/fxge/fx_freetype/src/fxft_raster.c
+  core/src/fxge/fx_freetype/src/fxft_sfnt.c
+  core/src/fxge/fx_freetype/src/fxft_smooth.c
+  core/src/fxge/fx_freetype/src/fxft_truetype.c
+  core/src/fxge/fx_freetype/src/fxft_type1.c
+  core/src/fxge/fx_freetype/src/fxft_type1cid.c
+)
 endif(USE_SYSTEM_FREETYPE)
 
 #Use own jbig2 in anytime
@@ -675,6 +734,8 @@ set(ALL_SOURCES
   ${FORMFILLER_HEDAERS} ${FORMFILLER_SOURCES}
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
   ${jbig2_HEADERS} ${jbig2_SOURCES}
+  ${freetype_HEADERS} ${freetype_SOURCES}
+  ${openjpeg_HEADERS} ${openjpeg_SOURCES}
 )
 
 if(USE_STATIC_LIBRARY)
