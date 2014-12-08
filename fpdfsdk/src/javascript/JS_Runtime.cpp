@@ -330,7 +330,7 @@ v8::Handle<v8::Context>	CJS_Runtime::NewJSContext()
 CFX_WideString ChangeObjName(const CFX_WideString& str)
 {
 	CFX_WideString sRet = str;
-	sRet.Replace((FX_LPCWSTR)L"_", (FX_LPCWSTR)L".");
+	sRet.Replace(L"_", L".");
 	return sRet;
 }
 
@@ -349,7 +349,7 @@ void CJS_Runtime::GetObjectNames(CFX_WideStringArray& array)
 	array.Add(CJS_Zoomtype::m_pClassName);
 
 	array.Add(CJS_App::m_pClassName);
-	array.Add((FX_LPCWSTR)"this"); 
+	array.Add(L"this");
 	array.Add(CJS_Event::m_pClassName);	
 
 	array.Add(CJS_Global::m_pClassName);	

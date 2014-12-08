@@ -28,10 +28,6 @@ FX_BOOL IsSignatureDict(const CPDF_Dictionary* pDict)
     }
     return FALSE;
 }
-static FX_INT32 _CompareDWord(const void* p1, const void* p2)
-{
-    return (*(FX_DWORD*)p1) - (*(FX_DWORD*)p2);
-}
 static int _CompareFileSize(const void* p1, const void* p2)
 {
     FX_FILESIZE ret = (*(FX_FILESIZE*)p1) - (*(FX_FILESIZE*)p2);
@@ -2192,9 +2188,7 @@ CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWO
             if (pObj == NULL) {
                 continue;
             }
-            if (key.GetLength() == 1) {
-                pDict->SetAt(CFX_ByteStringC(((FX_LPCSTR)key) + 1, key.GetLength() - 1), pObj);
-            } else {
+            if (key.GetLength() >= 1) {
                 if (nKeys < 32) {
                     pDict->SetAt(CFX_ByteStringC(((FX_LPCSTR)key) + 1, key.GetLength() - 1), pObj);
                 } else {
@@ -2435,16 +2429,13 @@ CPDF_Stream* CPDF_SyntaxParser::ReadStream(CPDF_Dictionary* pDict, PARSE_CONTEXT
         pContext->m_DataStart = m_Pos;
     }
 
-    base::CheckedNumeric<FX_FILESIZE> pos = m_Pos;
-    pos += len;
-    if (pos.IsValid() && pos.ValueOrDie() < m_FileLen) {
-        m_Pos = pos.ValueOrDie();
-    } else {
-        return NULL;
-    }
-
     CPDF_CryptoHandler* pCryptoHandler = objnum == (FX_DWORD)m_MetadataObjnum ? NULL : m_pCryptoHandler;
     if (pCryptoHandler == NULL) {
+        base::CheckedNumeric<FX_FILESIZE> pos = m_Pos;
+        pos += len;
+        if (pos.IsValid() && pos.ValueOrDie() < m_FileLen) {
+            m_Pos = pos.ValueOrDie();
+        }
         GetNextWord();
         if (m_WordSize < 9 || FXSYS_memcmp32(m_WordBuffer, "endstream", 9)) {
             m_Pos = StreamStartPos;
@@ -2475,8 +2466,8 @@ CPDF_Stream* CPDF_SyntaxParser::ReadStream(CPDF_Dictionary* pDict, PARSE_CONTEXT
                 }
             }
         }
+        m_Pos = StreamStartPos;
     }
-    m_Pos = StreamStartPos;
     CPDF_Stream* pStream;
 #if defined(_FPDFAPI_MINI_) && !defined(_FXCORE_FEATURE_ALL_)
     pStream = FX_NEW CPDF_Stream(m_pFileAccess, pCryptoHandler, m_HeaderOffset + m_Pos, len, pDict, gennum);
@@ -2538,7 +2529,7 @@ FX_BOOL CPDF_SyntaxParser::IsWholeWord(FX_FILESIZE startpos, FX_FILESIZE limit, 
     FX_BYTE type = _PDF_CharType[tag[0]];
     FX_BOOL bCheckLeft = type != 'D' && type != 'W';
     type = _PDF_CharType[tag[taglen - 1]];
-    FX_BOOL bCheckRight = type != 'D' || type != 'W';
+    FX_BOOL bCheckRight = type != 'D' && type != 'W';
     FX_BYTE ch;
     if (bCheckRight && startpos + (FX_INT32)taglen <= limit && GetCharAt(startpos + (FX_INT32)taglen, ch)) {
         FX_BYTE type = _PDF_CharType[ch];
