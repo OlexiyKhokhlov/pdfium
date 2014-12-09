@@ -1554,7 +1554,7 @@ FX_BOOL CJS_PublicMethods::AFDate_FormatEx(OBJ_METHOD_PARAMS)
 	if (JS_PortIsNan(dDate))
 	{
 		CFX_WideString swMsg;
-		swMsg.Format(JSGetStringFromID(pContext, IDS_STRING_JSPARSEDATE), (FX_LPCWSTR)sFormat);
+		swMsg.Format(JSGetStringFromID(pContext, IDS_STRING_JSPARSEDATE), sFormat.c_str());
 		Alert(pContext, swMsg);
 		return FALSE;
 	}
@@ -1652,7 +1652,7 @@ FX_BOOL CJS_PublicMethods::AFDate_KeystrokeEx(OBJ_METHOD_PARAMS)
 		if (bWrongFormat || JS_PortIsNan(dRet))
 		{
 			CFX_WideString swMsg;
-			swMsg.Format(JSGetStringFromID(pContext, IDS_STRING_JSPARSEDATE), (FX_LPCWSTR)sFormat);
+			swMsg.Format(JSGetStringFromID(pContext, IDS_STRING_JSPARSEDATE), sFormat.c_str());
 			Alert(pContext, swMsg);
 			pEvent->Rc() = FALSE;
 			return TRUE;
@@ -1679,11 +1679,11 @@ FX_BOOL CJS_PublicMethods::AFDate_Format(OBJ_METHOD_PARAMS)
 		L"yy-mm-dd", L"mmm-yy", L"mmmm-yy", L"mmm d, yyyy", L"mmmm d, yyyy",
 		L"m/d/yy h:MM tt", L"m/d/yy HH:MM" };
 
-	ASSERT(iIndex < sizeof(cFormats)/sizeof(FX_LPCWSTR));
+	ASSERT(iIndex < FX_ArraySize(cFormats));
 
 	if (iIndex < 0)
 		iIndex = 0;
-	if (iIndex >= sizeof(cFormats)/sizeof(FX_LPCWSTR))
+	if (iIndex >= FX_ArraySize(cFormats))
 		iIndex = 0;
 	CJS_Parameters newParams;
 	CJS_Value val(isolate,cFormats[iIndex]);
@@ -1710,11 +1710,11 @@ FX_BOOL CJS_PublicMethods::AFDate_Keystroke(OBJ_METHOD_PARAMS)
 		L"yy-mm-dd", L"mmm-yy", L"mmmm-yy", L"mmm d, yyyy", L"mmmm d, yyyy",
 		L"m/d/yy h:MM tt", L"m/d/yy HH:MM" };
 
-	ASSERT(iIndex<sizeof(cFormats)/sizeof(FX_LPCWSTR));
+	ASSERT(iIndex<FX_ArraySize(cFormats));
 
 	if (iIndex < 0)
 		iIndex = 0;
-	if (iIndex >= sizeof(cFormats)/sizeof(FX_LPCWSTR))
+	if (iIndex >= FX_ArraySize(cFormats))
 		iIndex = 0;
 	CJS_Parameters newParams;
 	CJS_Value val(isolate,cFormats[iIndex]);
@@ -1738,11 +1738,11 @@ FX_BOOL CJS_PublicMethods::AFTime_Format(OBJ_METHOD_PARAMS)
 	int iIndex = params[0];
 	FX_LPCWSTR cFormats[] = {L"HH:MM", L"h:MM tt", L"HH:MM:ss", L"h:MM:ss tt"};
 
-	ASSERT(iIndex<sizeof(cFormats)/sizeof(FX_LPCWSTR));
+	ASSERT(iIndex<FX_ArraySize(cFormats));
 
 	if (iIndex < 0)
 		iIndex = 0;
-	if (iIndex >= sizeof(cFormats)/sizeof(FX_LPCWSTR))
+	if (iIndex >= FX_ArraySize(cFormats))
 		iIndex = 0;
 	CJS_Parameters newParams;
 	CJS_Value val(isolate,cFormats[iIndex]);
@@ -1764,11 +1764,11 @@ FX_BOOL CJS_PublicMethods::AFTime_Keystroke(OBJ_METHOD_PARAMS)
 	int iIndex = params[0];
 	FX_LPCWSTR cFormats[] = {L"HH:MM", L"h:MM tt", L"HH:MM:ss", L"h:MM:ss tt"};
 
-	ASSERT(iIndex<sizeof(cFormats)/sizeof(FX_LPCWSTR));
+	ASSERT(iIndex<FX_ArraySize(cFormats));
 
 	if (iIndex < 0)
 		iIndex = 0;
-	if (iIndex >= sizeof(cFormats)/sizeof(FX_LPCWSTR))
+	if (iIndex >= FX_ArraySize(cFormats))
 		iIndex = 0;
 	CJS_Parameters newParams;
 	CJS_Value val(isolate,cFormats[iIndex]);
@@ -2059,7 +2059,7 @@ FX_BOOL CJS_PublicMethods::AFParseDateEx(OBJ_METHOD_PARAMS)
 	if (JS_PortIsNan(dDate))
 	{
 		CFX_WideString swMsg;
-		swMsg.Format(JSGetStringFromID(pContext, IDS_STRING_JSPARSEDATE), (FX_LPCWSTR)sFormat);
+		swMsg.Format(JSGetStringFromID(pContext, IDS_STRING_JSPARSEDATE), sFormat.c_str());
 		Alert((CJS_Context *)cc, swMsg);
 		return FALSE;
 	}
@@ -2304,7 +2304,7 @@ FX_BOOL CJS_PublicMethods::AFExtractNums(OBJ_METHOD_PARAMS)
 		{
 			if (sPart.GetLength() > 0)
 			{
-				nums.SetElement(nIndex,CJS_Value(isolate,(FX_LPCWSTR)sPart));
+				nums.SetElement(nIndex,CJS_Value(isolate,sPart.c_str()));
 				sPart = L"";
 				nIndex ++;
 			}
@@ -2313,7 +2313,7 @@ FX_BOOL CJS_PublicMethods::AFExtractNums(OBJ_METHOD_PARAMS)
 
 	if (sPart.GetLength() > 0)
 	{
-		nums.SetElement(nIndex,CJS_Value(isolate,(FX_LPCWSTR)sPart));	
+		nums.SetElement(nIndex,CJS_Value(isolate,sPart.c_str()));	
 	}
 
 	if (nums.GetLength() > 0)
