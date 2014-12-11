@@ -583,6 +583,10 @@ int CPDF_DIBSource::CreateDecoder()
                 if (m_nComponents != comps) {
                     FX_Free(m_pCompData);
                     m_nComponents = comps;
+                    if (m_Family == PDFCS_LAB && m_nComponents != 3) {
+                        m_pCompData = NULL;
+                        return 0;
+                    }
                     m_pCompData = GetDecodeAndMaskArray(m_bDefaultDecode, m_bColorKey);
                     if (m_pCompData == NULL) {
                         return 0;
@@ -942,8 +946,9 @@ void CPDF_DIBSource::ValidateDictParam()
                 m_bpc = 1;
                 m_nComponents = 1;
             }
-            if (pArray->GetString(pArray->GetCount() - 1) == FX_BSTRC("RunLengthDecode") ||
-                    pArray->GetString(pArray->GetCount() - 1) == FX_BSTRC("DCTDecode")) {
+            if (pArray->GetString(pArray->GetCount() - 1) == FX_BSTRC("DCTDecode")) {
+                // Previously, pArray->GetString(pArray->GetCount() - 1) == FX_BSTRC("RunLengthDecode") was checked in the "if" statement as well,
+                // but too many documents don't conform to it.
                 m_bpc = 8;
             }
         }
