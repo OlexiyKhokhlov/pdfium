@@ -756,14 +756,14 @@ target_link_libraries(pdfium
   ${OPENJPEG_LIBRARIES} 
   ${FREETYPE_LIBRARY})
 
-add_executable(pdfium_test samples/pdfium_test.cc)
-target_link_libraries(pdfium_test pdfium 
-  ${JPEG_LIBRARIES} 
-  ${ZLIB_LIBRARIES} 
-  ${LCMS2_LIBRARIES} 
-  ${JBIG2DEC_LIBRARIES}
-  ${OPENJPEG_LIBRARIES} 
-  ${FREETYPE_LIBRARY})
+#add_executable(pdfium_test samples/pdfium_test.cc)
+#target_link_libraries(pdfium_test pdfium 
+#  ${JPEG_LIBRARIES} 
+#  ${ZLIB_LIBRARIES} 
+#  ${LCMS2_LIBRARIES} 
+#  ${JBIG2DEC_LIBRARIES}
+#  ${OPENJPEG_LIBRARIES} 
+#  ${FREETYPE_LIBRARY})
   
 include_directories(./fpdfsdk/include)
 
