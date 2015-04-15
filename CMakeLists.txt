@@ -15,9 +15,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exc
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread -fvisibility=hidden")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
 
-set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2 -pipe -fomit-frame-pointer -march=native -mtune=native -flto")
-set(CMAKE_LINKER_FLAGS_RELEASE "-flto -s")
-
 set(USE_STATIC_LIBRARY ON CACHE BOOL "build as static library. Otherwise - shared")
 
 #3dparty libraries
@@ -187,10 +184,10 @@ else(USE_SYSTEM_OPENJPEG)
 endif(USE_SYSTEM_OPENJPEG)
 
 if(USE_SYSTEM_FREETYPE)
-  message(ERROR "Unable to use external freetype")
-  find_package(Freetype REQUIRED)
-  include_directories(${FREETYPE_INCLUDE_DIR_freetype2})
-  add_definitions(-DUSE_SYSTEM_FREETYPE)
+  message(ERROR ": Unable to use external freetype")
+#  find_package(Freetype REQUIRED)
+#  include_directories(${FREETYPE_INCLUDE_DIR_freetype2})
+#  add_definitions(-DUSE_SYSTEM_FREETYPE)
 else(USE_SYSTEM_FREETYPE)
 #  add_subdirectory(core/src/fxge/fx_freetype)
 #  set(FREETYPE_LIBRARY freetype)
@@ -285,7 +282,7 @@ elseif(TARGET_ARCH STREQUAL "i386")
 	-D_FX_CPU_=_FX_X86_
     )
 else(TARGET_ARCH STREQUAL "x86_64")
-    message(ERROR "Target: " ${TARGET_ARCH} "isn't supported yet")
+    message(STATUS "Target: " ${TARGET_ARCH} " isn't supported yet")
 endif(TARGET_ARCH STREQUAL "x86_64")
 
 ######################## FDRM #############################################
