@@ -23,8 +23,8 @@ set(USE_SYSTEM_ZLIB ON CACHE BOOL "use system zlib")
 set(USE_SYSTEM_LCMS2 ON CACHE BOOL "use system lcms2")
 set(USE_SYSTEM_OPENJPEG ON CACHE BOOL "use system openjpeg" )
 
-#Don't enble!!! pdfium uses internal  things for freetype!
-set(USE_SYSTEM_FREETYPE OFF CACHE BOOL "use system freetype")
+#Don't enable!!! pdfium uses internal  things for freetype!
+#set(USE_SYSTEM_FREETYPE OFF CACHE BOOL "use system freetype")
 
 #hieroglyphs support
 set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
@@ -126,69 +126,38 @@ if(USE_SYSTEM_JPEG)
   find_package(JPEG REQUIRED)
   include_directories(${JPEG_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_JPEG)
+  add_library(jpeg OBJECT empty.c)
 else(USE_SYSTEM_JPEG)
   add_subdirectory(core/src/fxcodec/libjpeg)
-  set(JPEG_LIBRARIES jpeg)
 endif(USE_SYSTEM_JPEG)
 
 if(USE_SYSTEM_ZLIB)
   find_package(ZLIB REQUIRED)
   include_directories(${ZLIB_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_ZLIB)
+  add_library(zlib OBJECT empty.c)
 else(USE_SYSTEM_ZLIB)
   add_subdirectory(core/src/fxcodec/fx_zlib)
-  set(ZLIB_LIBRARIES zlib)
 endif(USE_SYSTEM_ZLIB)
 
 if(USE_SYSTEM_LCMS2)
   find_package(LCMS2 REQUIRED)
   include_directories(${LCMS2_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_LCMS2)
+  add_library(lcms2 OBJECT empty.c)
 else(USE_SYSTEM_LCMS2)
   add_subdirectory(core/src/fxcodec/lcms2)
-  set(LCMS2_LIBRARIES lcms2)
 endif(USE_SYSTEM_LCMS2)
 
 if(USE_SYSTEM_OPENJPEG)
   find_package(OpenJpeg REQUIRED)
   include_directories(${OPENJPEG_INCLUDE_DIR})
   add_definitions(-DUSE_SYSTEM_OPENJPEG)
+  add_library(openjpeg OBJECT empty.c)
 else(USE_SYSTEM_OPENJPEG)
-    set(openjpeg_HEADERS
-	core/src/fxcodec/fx_libopenjpeg/include/fx_openjpeg.h
-    )
-    set(openjpeg_SOURCES
-    core/src/fxcodec/fx_libopenjpeg/src/fx_bio.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_cio.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_dwt.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_event.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_function_list.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_image.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_invert.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_j2k.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_j2k_lib.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_jpt.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_mct.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_mqc.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_openjpeg.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_openjpeg_jp2.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_opj_clock.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_pi.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_raw.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_t1.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_t1_generate_luts.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_t2.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_tcd.c
-    core/src/fxcodec/fx_libopenjpeg/src/fx_tgt.c
-    )
+  add_subdirectory(core/src/fxcodec/fx_libopenjpeg)
 endif(USE_SYSTEM_OPENJPEG)
 
-if(USE_SYSTEM_FREETYPE)
-  message(ERROR ": Unable to use external freetype")
-#  find_package(Freetype REQUIRED)
-#  include_directories(${FREETYPE_INCLUDE_DIR_freetype2})
-#  add_definitions(-DUSE_SYSTEM_FREETYPE)
-else(USE_SYSTEM_FREETYPE)
 #  add_subdirectory(core/src/fxge/fx_freetype)
 #  set(FREETYPE_LIBRARY freetype)
 set(freetype_HEADERS
@@ -224,7 +193,6 @@ set(freetype_SOURCES
   core/src/fxge/fx_freetype/src/fxft_type1.c
   core/src/fxge/fx_freetype/src/fxft_type1cid.c
 )
-endif(USE_SYSTEM_FREETYPE)
 
 #Use own jbig2 in anytime
 #add_subdirectory(core/src/fxcodec/jbig2)
@@ -424,7 +392,7 @@ set(FXCODEC_SOURCES
   core/src/fxcodec/codec/fx_codec_jbig_enc.cpp
   core/src/fxcodec/codec/fx_codec_jpeg.cpp
   core/src/fxcodec/codec/fx_codec_jpx_opj.cpp
-  core/src/fxcodec/lcms2/src/fx_cmsmd5.c  
+  core/src/fxcodec/lcms2/src/fx_cmsmd5.c
 )
 
 #add_library(fxcodec STATIC ${FXCODEC_HEDAERS} ${FXCODEC_SOURCES})
@@ -732,35 +700,35 @@ set(ALL_SOURCES
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
   ${jbig2_HEADERS} ${jbig2_SOURCES}
   ${freetype_HEADERS} ${freetype_SOURCES}
-  ${openjpeg_HEADERS} ${openjpeg_SOURCES}
 )
 
 if(USE_STATIC_LIBRARY)
     add_library(pdfium STATIC
         ${ALL_SOURCES}
+$<TARGET_OBJECTS:jpeg>
+$<TARGET_OBJECTS:zlib>
+$<TARGET_OBJECTS:lcms2>
+$<TARGET_OBJECTS:openjpeg>
     )
 else(USE_STATIC_LIBRARY)
     add_library(pdfium SHARED
         ${ALL_SOURCES}
+$<TARGET_OBJECTS:jpeg>
+$<TARGET_OBJECTS:zlib>
+$<TARGET_OBJECTS:lcms2>
+$<TARGET_OBJECTS:openjpeg>
     )
 endif(USE_STATIC_LIBRARY)
 
-target_link_libraries(pdfium 
-  ${JPEG_LIBRARIES} 
-  ${ZLIB_LIBRARIES} 
-  ${LCMS2_LIBRARIES} 
-  ${JBIG2DEC_LIBRARIES}
-  ${OPENJPEG_LIBRARIES} 
-  ${FREETYPE_LIBRARY})
+target_link_libraries(pdfium
+  ${JPEG_LIBRARY}
+  ${LCMS2_LIBRARY}
+  ${ZLIB_LIBRARY}
+  ${OPENJPEG_LIBRARY}
+)
 
 #add_executable(pdfium_test samples/pdfium_test.cc)
-#target_link_libraries(pdfium_test pdfium 
-#  ${JPEG_LIBRARIES} 
-#  ${ZLIB_LIBRARIES} 
-#  ${LCMS2_LIBRARIES} 
-#  ${JBIG2DEC_LIBRARIES}
-#  ${OPENJPEG_LIBRARIES} 
-#  ${FREETYPE_LIBRARY})
+#target_link_libraries(pdfium_test pdfium )
   
 include_directories(./fpdfsdk/include)
 

@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 set(openjpeg_HEADERS
   include/fx_openjpeg.h
@@ -31,4 +31,4 @@ set(openjpeg_SOURCES
   src/fx_tgt.c
 )
 
-add_library(openjpeg STATIC ${openjpeg_HEADERS} ${openjpeg_SOURCES})
+add_library(openjpeg OBJECT ${openjpeg_HEADERS} ${openjpeg_SOURCES})

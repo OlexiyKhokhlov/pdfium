@@ -1,6 +1,7 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
+enable_language(C)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 set(libjpeg_HEADERS
   cderror.h
@@ -63,4 +64,4 @@ set(libjpeg_SOURCES
   fpdfapi_jutils.c
 )
 
-add_library(jpeg STATIC ${libjpeg_HEADERS} ${libjpeg_SOURCES})
+add_library(jpeg OBJECT  ${libjpeg_SOURCES} )

@@ -1,6 +1,5 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 set(lcms2_HEADERS
@@ -18,7 +17,6 @@ set(lcms2_SOURCES
   src/fx_cmsio0.c
   src/fx_cmsio1.c
   src/fx_cmslut.c
-  src/fx_cmsmd5.c
   src/fx_cmsmtrx.c
   src/fx_cmsnamed.c
   src/fx_cmsopt.c
@@ -32,6 +30,7 @@ set(lcms2_SOURCES
   src/fx_cmsvirt.c
   src/fx_cmswtpnt.c
   src/fx_cmsxform.c
+#  src/fx_cmsmd5.c
 )
 
-add_library(lcms2 STATIC ${lcms2_HEADERS} ${lcms2_SOURCES})
+add_library(lcms2 OBJECT ${lcms2_HEADERS} ${lcms2_SOURCES})

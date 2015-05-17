@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 set(zlib_HEADERS
  include/fx_zlib.h
@@ -24,4 +24,4 @@ set(zlib_SOURCES
   src/fx_zlib_zutil.c
 )
 
-add_library(zlib STATIC ${zlib_HEADERS} ${zlib_SOURCES})
+add_library(zlib OBJECT ${zlib_HEADERS} ${zlib_SOURCES})
