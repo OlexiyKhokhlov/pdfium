@@ -705,18 +705,18 @@ set(ALL_SOURCES
 if(USE_STATIC_LIBRARY)
     add_library(pdfium STATIC
         ${ALL_SOURCES}
-$<TARGET_OBJECTS:jpeg>
-$<TARGET_OBJECTS:zlib>
-$<TARGET_OBJECTS:lcms2>
-$<TARGET_OBJECTS:openjpeg>
+	$<TARGET_OBJECTS:jpeg>
+	$<TARGET_OBJECTS:zlib>
+	$<TARGET_OBJECTS:lcms2>
+	$<TARGET_OBJECTS:openjpeg>
     )
 else(USE_STATIC_LIBRARY)
     add_library(pdfium SHARED
         ${ALL_SOURCES}
-$<TARGET_OBJECTS:jpeg>
-$<TARGET_OBJECTS:zlib>
-$<TARGET_OBJECTS:lcms2>
-$<TARGET_OBJECTS:openjpeg>
+	$<TARGET_OBJECTS:jpeg>
+	$<TARGET_OBJECTS:zlib>
+	$<TARGET_OBJECTS:lcms2>
+	$<TARGET_OBJECTS:openjpeg>
     )
 endif(USE_STATIC_LIBRARY)
 
@@ -735,4 +735,6 @@ include_directories(./fpdfsdk/include)
 #Install
 file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/fpdfsdk/include/*.h)
 install(FILES ${INSTALL_HEADERS} DESTINATION include/pdfium)
+file(GLOB FPDFDOC_INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/fpdfsdk/include/fpdfdoc/*.h)
+install(FILES ${FPDFDOC_INSTALL_HEADERS} DESTINATION include/pdfium/fpdfdoc)
 install (TARGETS pdfium DESTINATION lib)
