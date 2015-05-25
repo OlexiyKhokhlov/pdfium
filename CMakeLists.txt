@@ -644,7 +644,7 @@ target_link_libraries(pdfium
 include_directories(./fpdfsdk/include)
 
 #Install
-file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/fpdfsdk/include/*.h)
+file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/public/*)
 install(FILES ${INSTALL_HEADERS} DESTINATION include/pdfium)
 
 install (TARGETS pdfium DESTINATION lib)
