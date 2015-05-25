@@ -13,7 +13,7 @@ struct PSGlyph {
     FX_BOOL			m_bGlyphAdjust;
     FX_FLOAT		m_AdjustMatrix[4];
 };
-class CPSFont : public CFX_Object
+class CPSFont 
 {
 public:
     PSGlyph			m_Glyphs[256];
@@ -349,9 +349,6 @@ FX_BOOL CFX_PSRenderer::DrawDIBits(const CFX_DIBSource* pSource, FX_DWORD color,
         int pitch = (width + 7) / 8;
         FX_DWORD src_size = height * pitch;
         FX_LPBYTE src_buf = FX_Alloc(FX_BYTE, src_size);
-        if (!src_buf) {
-            return FALSE;
-        }
         for (int row = 0; row < height; row ++) {
             FX_LPCBYTE src_scan = pSource->GetScanline(row);
             FXSYS_memcpy32(src_buf + row * pitch, src_scan, pitch);
@@ -425,13 +422,6 @@ FX_BOOL CFX_PSRenderer::DrawDIBits(const CFX_DIBSource* pSource, FX_DWORD color,
             int src_pitch = width * Bpp;
             output_size = height * src_pitch;
             output_buf = FX_Alloc(FX_BYTE, output_size);
-            if (!output_buf) {
-                if (pConverted != pSource) {
-                    delete pConverted;
-                    pConverted = NULL;
-                }
-                return FALSE;
-            }
             for (int row = 0; row < height; row ++) {
                 FX_LPCBYTE src_scan = pConverted->GetScanline(row);
                 FX_LPBYTE dest_scan = output_buf + row * src_pitch;
@@ -526,10 +516,7 @@ void CFX_PSRenderer::FindPSFontGlyph(CFX_FaceCache* pFaceCache, CFX_Font* pFont,
             }
     }
     if (m_PSFontList.GetSize() == 0 || m_PSFontList[m_PSFontList.GetSize() - 1]->m_nGlyphs == 256) {
-        CPSFont* pPSFont = FX_NEW CPSFont;
-        if (!pPSFont) {
-            return;
-        }
+        CPSFont* pPSFont = new CPSFont;
         pPSFont->m_nGlyphs = 0;
         m_PSFontList.Add(pPSFont);
         CFX_ByteTextBuf buf;

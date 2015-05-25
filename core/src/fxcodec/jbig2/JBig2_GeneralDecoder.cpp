@@ -10,6 +10,59 @@
 #include "JBig2_HuffmanDecoder.h"
 #include "JBig2_HuffmanTable.h"
 #include "JBig2_PatternDict.h"
+
+extern const JBig2ArithQe QeTable[] = {
+    { 0x5601,  1,  1, 1 },
+    { 0x3401,  2,  6, 0 },
+    { 0x1801,  3,  9, 0 },
+    { 0x0AC1,  4, 12, 0 },
+    { 0x0521,  5, 29, 0 },
+    { 0x0221, 38, 33, 0 },
+    { 0x5601,  7,  6, 1 },
+    { 0x5401,  8, 14, 0 },
+    { 0x4801,  9, 14, 0 },
+    { 0x3801, 10, 14, 0 },
+    { 0x3001, 11, 17, 0 },
+    { 0x2401, 12, 18, 0 },
+    { 0x1C01, 13, 20, 0 },
+    { 0x1601, 29, 21, 0 },
+    { 0x5601, 15, 14, 1 },
+    { 0x5401, 16, 14, 0 },
+    { 0x5101, 17, 15, 0 },
+    { 0x4801, 18, 16, 0 },
+    { 0x3801, 19, 17, 0 },
+    { 0x3401, 20, 18, 0 },
+    { 0x3001, 21, 19, 0 },
+    { 0x2801, 22, 19, 0 },
+    { 0x2401, 23, 20, 0 },
+    { 0x2201, 24, 21, 0 },
+    { 0x1C01, 25, 22, 0 },
+    { 0x1801, 26, 23, 0 },
+    { 0x1601, 27, 24, 0 },
+    { 0x1401, 28, 25, 0 },
+    { 0x1201, 29, 26, 0 },
+    { 0x1101, 30, 27, 0 },
+    { 0x0AC1, 31, 28, 0 },
+    { 0x09C1, 32, 29, 0 },
+    { 0x08A1, 33, 30, 0 },
+    { 0x0521, 34, 31, 0 },
+    { 0x0441, 35, 32, 0 },
+    { 0x02A1, 36, 33, 0 },
+    { 0x0221, 37, 34, 0 },
+    { 0x0141, 38, 35, 0 },
+    { 0x0111, 39, 36, 0 },
+    { 0x0085, 40, 37, 0 },
+    { 0x0049, 41, 38, 0 },
+    { 0x0025, 42, 39, 0 },
+    { 0x0015, 43, 40, 0 },
+    { 0x0009, 44, 41, 0 },
+    { 0x0005, 45, 42, 0 },
+    { 0x0001, 45, 43, 0 },
+    { 0x5601, 46, 46, 0 }
+};
+
+extern const unsigned int JBIG2_QE_NUM = sizeof(QeTable) / sizeof(JBig2ArithQe);
+
 CJBig2_Image *CJBig2_GRDProc::decode_Arith(CJBig2_ArithDecoder *pArithDecoder, JBig2ArithCtx *gbContext)
 {
     if (GBW == 0 || GBH == 0) {
@@ -835,7 +888,7 @@ CJBig2_Image *CJBig2_GRDProc::decode_Arith_Template3_opt2(CJBig2_ArithDecoder *p
     CJBig2_Image *GBREG;
     FX_DWORD line1;
     FX_BYTE *pLine, cVal;
-    FX_INTPTR nStride, nStride2;
+    FX_INTPTR nStride;
     FX_INT32 nBits, k;
     LTP = 0;
     JBIG2_ALLOC(GBREG, CJBig2_Image(GBW, GBH));
@@ -846,7 +899,6 @@ CJBig2_Image *CJBig2_GRDProc::decode_Arith_Template3_opt2(CJBig2_ArithDecoder *p
     }
     pLine = GBREG->m_pData;
     nStride = GBREG->m_nStride;
-    nStride2 = nStride << 1;
     for(FX_DWORD h = 0; h < GBH; h++) {
         if(TPGDON) {
             SLTP = pArithDecoder->DECODE(&gbContext[0x0195]);
@@ -2282,7 +2334,7 @@ CJBig2_SymbolDict *CJBig2_SDDProc::decode_Arith(CJBig2_ArithDecoder *pArithDecod
     CJBig2_Image **SDNEWSYMS;
     FX_DWORD HCHEIGHT, NSYMSDECODED;
     FX_INT32 HCDH;
-    FX_DWORD SYMWIDTH, TOTWIDTH, HCFIRSTSYM;
+    FX_DWORD SYMWIDTH, TOTWIDTH;
     FX_INT32 DW;
     CJBig2_Image *BS;
     FX_DWORD I, J, REFAGGNINST;
@@ -2292,7 +2344,6 @@ CJBig2_SymbolDict *CJBig2_SDDProc::decode_Arith(CJBig2_ArithDecoder *pArithDecod
     FX_DWORD EXRUNLENGTH;
     FX_INT32 nVal;
     FX_DWORD nTmp;
-    FX_BOOL SBHUFF;
     FX_DWORD SBNUMSYMS;
     FX_BYTE SBSYMCODELEN;
     FX_DWORD IDI;
@@ -2341,7 +2392,6 @@ CJBig2_SymbolDict *CJBig2_SDDProc::decode_Arith(CJBig2_ArithDecoder *pArithDecod
         }
         SYMWIDTH = 0;
         TOTWIDTH = 0;
-        HCFIRSTSYM = NSYMSDECODED;
         for(;;) {
             nVal = IADW->decode(pArithDecoder, &DW);
             if(nVal == JBIG2_OOB) {
@@ -2484,7 +2534,6 @@ CJBig2_SymbolDict *CJBig2_SDDProc::decode_Arith(CJBig2_ArithDecoder *pArithDecod
                     delete SBHUFFRSIZE;
                     delete pDecoder;
                 } else if(REFAGGNINST == 1) {
-                    SBHUFF = SDHUFF;
                     SBNUMSYMS = SDNUMINSYMS + NSYMSDECODED;
                     if(IAID->decode(pArithDecoder, (int*)&IDI) == -1) {
                         m_pModule->JBig2_Error("symbol dictionary decoding procedure (arith): too short.");
@@ -2633,7 +2682,6 @@ CJBig2_SymbolDict *CJBig2_SDDProc::decode_Huffman(CJBig2_BitStream *pStream,
     FX_DWORD EXRUNLENGTH;
     FX_INT32 nVal, nBits;
     FX_DWORD nTmp;
-    FX_BOOL SBHUFF;
     FX_DWORD SBNUMSYMS;
     FX_BYTE SBSYMCODELEN;
     JBig2HuffmanCode *SBSYMCODES;
@@ -2790,7 +2838,6 @@ CJBig2_SymbolDict *CJBig2_SDDProc::decode_Huffman(CJBig2_BitStream *pStream,
                     delete SBHUFFRSIZE;
                     delete pDecoder;
                 } else if(REFAGGNINST == 1) {
-                    SBHUFF = SDHUFF;
                     SBNUMSYMS = SDNUMINSYMS + SDNUMNEWSYMS;
                     nTmp = 1;
                     while((FX_DWORD)(1 << nTmp) < SBNUMSYMS) {

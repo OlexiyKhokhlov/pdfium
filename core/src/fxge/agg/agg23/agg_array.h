@@ -18,7 +18,7 @@
 #include "agg_basics.h"
 namespace agg
 {
-template<class T> class pod_array : public CFX_Object
+template<class T> class pod_array 
 {
 public:
     typedef T value_type;
@@ -111,12 +111,8 @@ void pod_array<T>::capacity(unsigned cap, unsigned extra_tail)
         m_capacity = 0;
     } else if(full_cap > m_capacity) {
         FX_Free(m_array);
-        m_array = 0;
-        m_capacity = 0;
         m_array = FX_Alloc(T, full_cap);
-        if (m_array) {
-            m_capacity = full_cap;
-        }
+        m_capacity = full_cap;
     }
 }
 template<class T>
@@ -157,7 +153,7 @@ pod_array<T>::operator = (const pod_array<T>&v)
     }
     return *this;
 }
-template<class T, unsigned S = 6> class pod_deque : public CFX_Object
+template<class T, unsigned S = 6> class pod_deque 
 {
 public:
     enum block_scale_e {
@@ -409,7 +405,7 @@ unsigned pod_deque<T, S>::byte_size() const
 {
     return m_size * sizeof(T);
 }
-class pod_allocator : public CFX_Object
+class pod_allocator 
 {
 public:
     void remove_all()

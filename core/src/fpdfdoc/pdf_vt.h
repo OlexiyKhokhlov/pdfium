@@ -106,14 +106,14 @@ struct CPVT_SectionInfo {
             if (pSecProps) {
                 *pSecProps = *other.pSecProps;
             } else {
-                pSecProps = FX_NEW CPVT_SecProps(*other.pSecProps);
+                pSecProps = new CPVT_SecProps(*other.pSecProps);
             }
         }
         if (other.pWordProps) {
             if (pWordProps) {
                 *pWordProps = *other.pWordProps;
             } else {
-                pWordProps = FX_NEW CPVT_WordProps(*other.pWordProps);
+                pWordProps = new CPVT_WordProps(*other.pWordProps);
             }
         }
     }
@@ -136,7 +136,7 @@ struct CPVT_LineInfo {
     FX_FLOAT					fLineAscent;
     FX_FLOAT					fLineDescent;
 };
-struct CPVT_WordInfo : public CFX_Object {
+struct CPVT_WordInfo  {
     CPVT_WordInfo() : Word(0), nCharset(0),
         fWordX(0.0f), fWordY(0.0f), fWordTail(0.0f), nFontIndex(-1), pWordProps(NULL)
     {
@@ -169,7 +169,7 @@ struct CPVT_WordInfo : public CFX_Object {
             if (pWordProps) {
                 *pWordProps = *word.pWordProps;
             } else {
-                pWordProps = FX_NEW CPVT_WordProps(*word.pWordProps);
+                pWordProps = new CPVT_WordProps(*word.pWordProps);
             }
         }
     }
@@ -215,7 +215,7 @@ public:
         }
     }
 };
-class CLine : public CFX_Object
+class CLine 
 {
 public:
     CLine();
@@ -258,18 +258,13 @@ public:
     FX_INT32								Add(const CPVT_LineInfo & lineinfo)
     {
         if (m_nTotal >= GetSize()) {
-            if (CLine * pLine = FX_NEW CLine) {
-                pLine->m_LineInfo = lineinfo;
-                m_Lines.Add(pLine);
-                return m_nTotal++;
-            }
-            return m_nTotal;
-        } else {
-            if (CLine * pLine = GetAt(m_nTotal)) {
-                pLine->m_LineInfo = lineinfo;
-            }
-            return m_nTotal++;
+            CLine* pLine = new CLine;
+            pLine->m_LineInfo = lineinfo;
+            m_Lines.Add(pLine);
+        } else if (CLine* pLine = GetAt(m_nTotal)) {
+            pLine->m_LineInfo = lineinfo;
         }
+        return m_nTotal++;
     }
     void									Clear()
     {
@@ -282,7 +277,7 @@ private:
     CPVT_ArrayTemplate<CLine*>				m_Lines;
     FX_INT32								m_nTotal;
 };
-class CSection : public CFX_Object
+class CSection 
 {
     friend class CTypeset;
 public:
@@ -400,7 +395,7 @@ private:
     CPDF_Rect								m_rcPlate;
     CPVT_FloatRect							m_rcContent;
 };
-class CPDF_VariableText : public IPDF_VariableText, public CFX_Object, private CPDF_EditContainer
+class CPDF_VariableText : public IPDF_VariableText, private CPDF_EditContainer
 {
     friend class CTypeset;
     friend class CSection;
@@ -613,7 +608,7 @@ private:
     IPDF_VariableText_Provider *			m_pVTProvider;
     CPDF_VariableText_Iterator *			m_pVTIterator;
 };
-class CPDF_VariableText_Iterator : public IPDF_VariableText_Iterator, public CFX_Object
+class CPDF_VariableText_Iterator : public IPDF_VariableText_Iterator
 {
 public:
     CPDF_VariableText_Iterator(CPDF_VariableText * pVT);

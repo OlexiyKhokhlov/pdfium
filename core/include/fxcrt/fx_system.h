@@ -6,14 +6,17 @@
 
 #ifndef _FX_SYSTEM_H_
 #define _FX_SYSTEM_H_
+
 #define _FX_WIN32_DESKTOP_		1
 #define _FX_LINUX_DESKTOP_		4
 #define _FX_MACOSX_				7
 #define _FX_ANDROID_			12
+
 #define _FXM_PLATFORM_WINDOWS_		1
 #define _FXM_PLATFORM_LINUX_		2
 #define _FXM_PLATFORM_APPLE_		3
 #define _FXM_PLATFORM_ANDROID_		4
+
 #ifndef _FX_OS_
 #if defined(__ANDROID__)
 #define _FX_OS_ _FX_ANDROID_
@@ -29,13 +32,16 @@
 #define _FXM_PLATFORM_ _FXM_PLATFORM_APPLE_
 #endif
 #endif
+
 #if !defined(_FX_OS_) || _FX_OS_ == 0
 #error Sorry, can not figure out what OS you are targeting to. Please specify _FX_OS_ macro.
 #endif
+
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
 #define _CRT_SECURE_NO_WARNINGS
+#include <sal.h>
 #include <windows.h>
-#endif
+#endif  // _FXM_PLATFORM_WINDOWS_
 #define _FX_W32_		1
 #define _FX_W64_		2
 #ifndef _FX_WORDSIZE_
@@ -45,6 +51,7 @@
 #define _FX_WORDSIZE_	_FX_W32_
 #endif
 #endif
+
 #include <stddef.h>
 #include <stdarg.h>
 #include <setjmp.h>
@@ -53,6 +60,7 @@
 #include <string.h>
 #include <assert.h>
 #include <wchar.h>
+
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_APPLE_
 #include <libkern/OSAtomic.h>
 #if _FX_OS_ == _FX_MACOSX_
@@ -62,6 +70,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 #endif
 #endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -88,6 +97,7 @@ typedef int						FX_ERR;
 typedef char					FX_CHAR;
 typedef char*					FX_LPSTR;
 typedef char const*				FX_LPCSTR;
+#define FX_DWORD_MAX UINT_MAX
 typedef unsigned int		FX_DWORD;
 typedef unsigned int*		FX_LPDWORD;
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
@@ -109,7 +119,12 @@ typedef wchar_t*				FX_LPWSTR;
 typedef wchar_t const*			FX_LPCWSTR;
 typedef FX_DWORD				FX_UINT32;
 typedef FX_UINT64				FX_QWORD;
-#define FX_DEFINEHANDLE(name)	typedef struct _##name {FX_LPVOID pData;} * name;
+
+// PDFium string sizes are limited to 2^31-1, and the value is signed to
+// allow -1 as a placeholder for "unknown".
+// TODO(palmer): it should be a |size_t|, or at least unsigned.
+typedef int FX_STRSIZE;
+
 #if defined(DEBUG) && !defined(_DEBUG)
 #define _DEBUG
 #endif
@@ -137,15 +152,21 @@ typedef FX_UINT64				FX_QWORD;
 #define FX_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define FX_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define FX_PI	3.1415926535897932384626433832795f
-#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-#define FXSYS_snprintf	_snprintf
+
+// NOTE: prevent use of the return value from snprintf() since some platforms
+// have different return values (e.g. windows _vsnprintf()), and provide
+// versions that always NUL-terminate.
+#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_ && _MSC_VER < 1900
+void FXSYS_snprintf(char *str, size_t size, _Printf_format_string_ const char* fmt, ...);
+void FXSYS_vsnprintf(char *str, size_t size, const char* fmt, va_list ap);
 #else
-#define FXSYS_snprintf	snprintf
+#define FXSYS_snprintf	(void) snprintf
+#define FXSYS_vsnprintf	(void) vsnprintf
 #endif
-#define FXSYS_sprintf	sprintf
-#define FXSYS_vsprintf	vsprintf
+
+#define FXSYS_sprintf	DO_NOT_USE_SPRINTF_DIE_DIE_DIE
+#define FXSYS_vsprintf	DO_NOT_USE_VSPRINTF_DIE_DIE_DIE
 #define FXSYS_strchr	strchr
-#define FXSYS_strlen	strlen
 #define FXSYS_strncmp	strncmp
 #define FXSYS_strcmp	strcmp
 #define FXSYS_strcpy	strcpy
@@ -162,6 +183,7 @@ typedef FX_UINT64				FX_QWORD;
 #define FXSYS_fwrite	fwrite
 #define FXSYS_fprintf	fprintf
 #define FXSYS_fflush	fflush
+
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
 #ifdef _NATIVE_WCHAR_T_DEFINED
 #define FXSYS_wfopen(f, m) _wfopen((const wchar_t*)(f), (const wchar_t*)(m))
@@ -172,7 +194,17 @@ typedef FX_UINT64				FX_QWORD;
 FXSYS_FILE* FXSYS_wfopen(FX_LPCWSTR filename, FX_LPCWSTR mode);
 #endif
 
-#define FXSYS_wcslen	wcslen
+#ifdef __cplusplus
+} // extern "C"
+#include "../../../third_party/base/numerics/safe_conversions.h"
+#define FXSYS_strlen(ptr) pdfium::base::checked_cast<FX_STRSIZE>(strlen(ptr))
+#define FXSYS_wcslen(ptr) pdfium::base::checked_cast<FX_STRSIZE>(wcslen(ptr))
+extern "C" {
+#else
+#define FXSYS_strlen(ptr) ((FX_STRSIZE)strlen(ptr))
+#define FXSYS_wcslen(ptr) ((FX_STRSIZE)wcslen(ptr))
+#endif
+
 #define FXSYS_wcscmp	wcscmp
 #define FXSYS_wcschr	wcschr
 #define FXSYS_wcsstr	wcsstr
@@ -276,11 +308,6 @@ int			FXSYS_round(FX_FLOAT f);
 #ifdef __cplusplus
 };
 
-#include "../../../third_party/numerics/safe_math.h"
-typedef base::CheckedNumeric<FX_DWORD> FX_SAFE_DWORD;
-typedef base::CheckedNumeric<FX_INT32> FX_SAFE_INT32;
-typedef base::CheckedNumeric<size_t>   FX_SAFE_SIZE_T;
-
 #if defined(__clang__) || _MSC_VER >= 1700
 #define FX_FINAL final
 #define FX_OVERRIDE override
@@ -316,12 +343,20 @@ typedef base::CheckedNumeric<size_t>   FX_SAFE_SIZE_T;
 #define PRIuS "zu"
 #endif
 
-#else  // _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
+#else  // _FXM_PLATFORM_ != _FXM_PLATFORM_WINDOWS_
 
 #if !defined(PRIuS)
 #define PRIuS "Iu"
 #endif
 
-#endif
+#endif  // _FXM_PLATFORM_ != _FXM_PLATFORM_WINDOWS_
 
-#endif
+// Prevent a function from ever being inlined, typically because we'd
+// like it to appear in stack traces.
+#if  _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
+#define NEVER_INLINE __declspec(noinline)
+#else  // _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
+#define NEVER_INLINE __attribute__((__noinline__))
+#endif  // _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
+
+#endif  // _FX_SYSTEM_H_

@@ -6,18 +6,11 @@
 
 #ifndef _FX_BASIC_H_
 #define _FX_BASIC_H_
-#ifndef _FX_SYSTEM_H_
-#include "fx_system.h"
-#endif
-#ifndef _FX_MEMORY_H_
+
 #include "fx_memory.h"
-#endif
-#ifndef _FX_STRING_H_
-#include "fx_string.h"
-#endif
-#ifndef _FX_STREAM_H_
 #include "fx_stream.h"
-#endif
+#include "fx_string.h"
+#include "fx_system.h"
 
 // The FX_ArraySize(arr) macro returns the # of elements in an array arr.
 // The expression is a compile-time constant, and therefore can be
@@ -34,7 +27,7 @@
 template <typename T, size_t N>
 char (&ArraySizeHelper(T (&array)[N]))[N];
 
-class CFX_BinaryBuf : public CFX_Object
+class CFX_BinaryBuf 
 {
 public:
     CFX_BinaryBuf();
@@ -162,7 +155,7 @@ public:
 
     CFX_WideStringC			GetWideString() const;
 };
-class CFX_ArchiveSaver : public CFX_Object
+class CFX_ArchiveSaver 
 {
 public:
     CFX_ArchiveSaver() : m_pStream(NULL) {}
@@ -205,7 +198,7 @@ protected:
 
     IFX_FileStream*			m_pStream;
 };
-class CFX_ArchiveLoader : public CFX_Object
+class CFX_ArchiveLoader 
 {
 public:
 
@@ -240,7 +233,7 @@ class IFX_BufferArchive
 {
 public:
     IFX_BufferArchive(FX_STRSIZE size);
-
+    virtual ~IFX_BufferArchive() { }
 
     virtual void			Clear();
 
@@ -267,11 +260,11 @@ protected:
 
     FX_STRSIZE				m_Length;
 };
-class CFX_FileBufferArchive : public IFX_BufferArchive, public CFX_Object
+class CFX_FileBufferArchive : public IFX_BufferArchive
 {
 public:
     CFX_FileBufferArchive(FX_STRSIZE size = 32768);
-    ~CFX_FileBufferArchive();
+    ~CFX_FileBufferArchive() override;
     virtual void			Clear();
 
     FX_BOOL					AttachFile(IFX_StreamWrite *pFile, FX_BOOL bTakeover = FALSE);
@@ -359,7 +352,7 @@ CFX_ByteString FX_UrlEncode(const CFX_WideString& wsUrl);
 CFX_WideString FX_UrlDecode(const CFX_ByteString& bsUrl);
 CFX_ByteString FX_EncodeURI(const CFX_WideString& wsURI);
 CFX_WideString FX_DecodeURI(const CFX_ByteString& bsURI);
-class CFX_BasicArray : public CFX_Object
+class CFX_BasicArray 
 {
 protected:
     CFX_BasicArray(int unit_size);
@@ -672,7 +665,7 @@ public:
 };
 typedef CFX_ObjectArray<CFX_ByteString> CFX_ByteStringArray;
 typedef CFX_ObjectArray<CFX_WideString> CFX_WideStringArray;
-class CFX_BaseSegmentedArray : public CFX_Object
+class CFX_BaseSegmentedArray 
 {
 public:
     CFX_BaseSegmentedArray(int unit_size = 1, int segment_units = 512, int index_size = 8);
@@ -741,7 +734,7 @@ public:
     }
 };
 template <class DataType, int FixedSize>
-class CFX_FixedBufGrow : public CFX_Object
+class CFX_FixedBufGrow 
 {
 public:
     CFX_FixedBufGrow() : m_pData(NULL)
@@ -780,33 +773,7 @@ private:
     DataType		m_Data[FixedSize];
     DataType*		m_pData;
 };
-template <class DataType>
-class CFX_TempBuf
-{
-public:
-    CFX_TempBuf(int size)
-    {
-        m_pData = FX_Alloc(DataType, size);
-    }
-    ~CFX_TempBuf()
-    {
-        if (m_pData) {
-            FX_Free(m_pData);
-        }
-    }
-    DataType&	operator[](int i)
-    {
-        FXSYS_assert(m_pData != NULL);
-        return m_pData[i];
-    }
-    operator DataType*()
-    {
-        return m_pData;
-    }
-private:
-    DataType*		m_pData;
-};
-class CFX_MapPtrToPtr : public CFX_Object
+class CFX_MapPtrToPtr 
 {
 protected:
 
@@ -923,7 +890,7 @@ public:
         rValue = (ValueType)(FX_UINTPTR)pValue;
     }
 };
-class CFX_CMapDWordToDWord : public CFX_Object
+class CFX_CMapDWordToDWord 
 {
 public:
 
@@ -940,7 +907,7 @@ protected:
 
     CFX_BinaryBuf	m_Buffer;
 };
-class CFX_MapByteStringToPtr : public CFX_Object
+class CFX_MapByteStringToPtr 
 {
 protected:
 
@@ -1020,7 +987,7 @@ public:
 
     ~CFX_MapByteStringToPtr();
 };
-class CFX_CMapByteStringToPtr : public CFX_Object
+class CFX_CMapByteStringToPtr 
 {
 public:
     CFX_CMapByteStringToPtr();
@@ -1048,7 +1015,7 @@ private:
 
     CFX_BaseSegmentedArray			m_Buffer;
 };
-class CFX_PtrList : public CFX_Object
+class CFX_PtrList 
 {
 protected:
 
@@ -1197,7 +1164,7 @@ protected:
 
     void					AddData(FX_LPVOID module_id, FX_LPVOID pData, PD_CALLBACK_FREEDATA callback, FX_BOOL bSelfDestruct);
 };
-class CFX_BitStream : public CFX_Object
+class CFX_BitStream 
 {
 public:
 
@@ -1230,7 +1197,7 @@ protected:
 
     FX_LPCBYTE			m_pData;
 };
-template <class ObjClass> class CFX_CountRef : public CFX_Object
+template <class ObjClass> class CFX_CountRef 
 {
 public:
 
@@ -1278,12 +1245,8 @@ public:
             if (m_pObject->m_RefCount <= 0) {
                 delete m_pObject;
             }
-            m_pObject = NULL;
         }
-        m_pObject = FX_NEW CountedObj;
-        if (!m_pObject) {
-            return NULL;
-        }
+        m_pObject = new CountedObj;
         m_pObject->m_RefCount = 1;
         return m_pObject;
     }
@@ -1338,18 +1301,13 @@ public:
     ObjClass*			GetModify()
     {
         if (m_pObject == NULL) {
-            m_pObject = FX_NEW CountedObj;
-            if (m_pObject) {
-                m_pObject->m_RefCount = 1;
-            }
+            m_pObject = new CountedObj;
+            m_pObject->m_RefCount = 1;
         } else if (m_pObject->m_RefCount > 1) {
             m_pObject->m_RefCount --;
             CountedObj* pOldObject = m_pObject;
-            m_pObject = NULL;
-            m_pObject = FX_NEW CountedObj(*pOldObject);
-            if (m_pObject) {
-                m_pObject->m_RefCount = 1;
-            }
+            m_pObject = new CountedObj(*pOldObject);
+            m_pObject->m_RefCount = 1;
         }
         return m_pObject;
     }
@@ -1377,10 +1335,10 @@ protected:
 class IFX_Pause
 {
 public:
-
+    virtual ~IFX_Pause() { }
     virtual FX_BOOL	NeedToPauseNow() = 0;
 };
-class CFX_DataFilter : public CFX_Object
+class CFX_DataFilter 
 {
 public:
 
@@ -1414,6 +1372,21 @@ protected:
 
     CFX_DataFilter*	m_pDestFilter;
 };
+
+template<typename T>
+class CFX_AutoRestorer {
+public:
+    explicit CFX_AutoRestorer(T* location) {
+      m_Location = location;
+      m_OldValue = *location;
+    }
+    ~CFX_AutoRestorer() { *m_Location = m_OldValue; }
+
+private:
+  T* m_Location;
+  T m_OldValue;
+};
+
 template <class T>
 class CFX_SmartPointer
 {
@@ -1423,7 +1396,7 @@ public:
     {
         m_pObj->Release();
     }
-    operator T*(void)
+    T* Get(void)
     {
         return m_pObj;
     }
@@ -1440,7 +1413,7 @@ protected:
 };
 #define FX_DATALIST_LENGTH	1024
 template<size_t unit>
-class CFX_SortListArray : public CFX_Object
+class CFX_SortListArray 
 {
 protected:
 
@@ -1481,10 +1454,7 @@ public:
         while (nCount > 0) {
             FX_INT32 temp_count = FX_MIN(nCount, FX_DATALIST_LENGTH);
             DataList list;
-            list.data = FX_Alloc(FX_BYTE, temp_count * unit);
-            if (!list.data) {
-                break;
-            }
+            list.data = FX_Alloc2D(FX_BYTE, temp_count, unit);
             list.start = nStart;
             list.count = temp_count;
             Append(list);
@@ -1554,7 +1524,7 @@ protected:
     CFX_ArrayTemplate<DataList>	m_DataLists;
 };
 template<typename T1, typename T2>
-class CFX_ListArrayTemplate : public CFX_Object
+class CFX_ListArrayTemplate 
 {
 public:
 
@@ -1595,7 +1565,7 @@ typedef enum {
 #define ProgressiveStatus	FX_ProgressiveStatus
 #define FX_NAMESPACE_DECLARE(namespace, type)       namespace::type
 
-class CFX_Vector_3by1 : public CFX_Object
+class CFX_Vector_3by1 
 {
 public:
 
@@ -1611,7 +1581,7 @@ public:
     FX_FLOAT b;
     FX_FLOAT c;
 };
-class CFX_Matrix_3by3 : public CFX_Object
+class CFX_Matrix_3by3 
 {
 public:
 

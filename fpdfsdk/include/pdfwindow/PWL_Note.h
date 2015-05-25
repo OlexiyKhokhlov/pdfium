@@ -7,26 +7,31 @@
 #ifndef _PWL_NOTE_H_
 #define _PWL_NOTE_H_
 
-class IPWL_NoteNotify;
+#include "PWL_Button.h"
+#include "PWL_Edit.h"
+#include "PWL_ListCtrl.h"
+#include "PWL_ScrollBar.h"
+#include "PWL_Wnd.h"
+
+class CPWL_Label;
+class CPWL_Note;
+class CPWL_NoteItem;
+class CPWL_Note_CloseBox;
+class CPWL_Note_Contents;
+class CPWL_Note_Edit;
+class CPWL_Note_Icon;
+class CPWL_Note_LBBox;
+class CPWL_Note_Options;
+class CPWL_Note_RBBox;
 class IPWL_NoteHandler;
 class IPWL_NoteItem;
-class CPWL_NoteItem;
-class CPWL_Note;
-class CPWL_Label;
-class CPWL_Edit;
-class CPWL_Note_Icon;
-class CPWL_Note_CloseBox;
-class CPWL_Note_LBBox;
-class CPWL_Note_RBBox;
-class CPWL_Note_Edit;
-class CPWL_Note_Options;
-class CPWL_Note_Contents;
+class IPWL_NoteNotify;
 class IPopup_Note;
-
 
 class IPWL_NoteNotify
 {
 public:
+	virtual ~IPWL_NoteNotify() { }
 	virtual void						OnNoteMove(const FX_RECT& rtWin) = 0;
 	virtual void						OnNoteShow(FX_BOOL bShow) = 0;
 	virtual void						OnNoteActivate(FX_BOOL bActive) = 0;
@@ -45,12 +50,14 @@ public:
 class IPWL_NoteHandler
 {
 public:
+	virtual ~IPWL_NoteHandler() { }
 	virtual void						OnNoteColorChanged(const CPWL_Color& color) = 0;
 };
 
 class IPWL_NoteItem
 {
 public:
+	virtual ~IPWL_NoteItem() { }
 	virtual void						SetPrivateData(void* pData) = 0;
 	virtual void						SetBkColor(const CPWL_Color& color) = 0;
 	virtual void						SetSubjectName(const CFX_WideString& sName) = 0;

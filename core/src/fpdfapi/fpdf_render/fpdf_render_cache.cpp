@@ -43,7 +43,7 @@ void CPDF_PageRenderCache::CacheOptimization(FX_INT32 dwLimitCacheSize)
         return;
     }
     int nCount = m_ImageCaches.GetCount();
-    CACHEINFO* pCACHEINFO = (CACHEINFO*)FX_Alloc(FX_BYTE, (sizeof (CACHEINFO)) * nCount);
+    CACHEINFO* pCACHEINFO = (CACHEINFO*)FX_Alloc2D(FX_BYTE, sizeof(CACHEINFO), nCount);
     FX_POSITION pos = m_ImageCaches.GetStartPosition();
     int i = 0;
     while (pos) {
@@ -111,7 +111,7 @@ void CPDF_PageRenderCache::GetCachedBitmap(CPDF_Stream* pStream, CFX_DIBSource*&
     CPDF_ImageCache* pImageCache;
     FX_BOOL bFind = m_ImageCaches.Lookup(pStream, (FX_LPVOID&)pImageCache);
     if (!bFind) {
-        pImageCache = FX_NEW CPDF_ImageCache(m_pPage->m_pDocument, pStream);
+        pImageCache = new CPDF_ImageCache(m_pPage->m_pDocument, pStream);
     }
     m_nTimeCount ++;
     FX_BOOL bCached = pImageCache->GetCachedBitmap(pBitmap, pMask, MatteColor, m_pPage->m_pPageResources, bStdCS, GroupFamily, bLoadMask, pRenderStatus, downsampleWidth, downsampleHeight);
@@ -126,7 +126,7 @@ FX_BOOL	CPDF_PageRenderCache::StartGetCachedBitmap(CPDF_Stream* pStream, FX_BOOL
 {
     m_bCurFindCache = m_ImageCaches.Lookup(pStream, (FX_LPVOID&)m_pCurImageCache);
     if (!m_bCurFindCache) {
-        m_pCurImageCache = FX_NEW CPDF_ImageCache(m_pPage->m_pDocument, pStream);
+        m_pCurImageCache = new CPDF_ImageCache(m_pPage->m_pDocument, pStream);
     }
     int ret = m_pCurImageCache->StartGetCachedBitmap(pRenderStatus->m_pFormResource, m_pPage->m_pPageResources, bStdCS, GroupFamily, bLoadMask, pRenderStatus, downsampleWidth, downsampleHeight);
     if (ret == 2) {
@@ -163,7 +163,7 @@ void CPDF_PageRenderCache::ResetBitmap(CPDF_Stream* pStream, const CFX_DIBitmap*
         if (pBitmap == NULL) {
             return;
         }
-        pImageCache = FX_NEW CPDF_ImageCache(m_pPage->m_pDocument, pStream);
+        pImageCache = new CPDF_ImageCache(m_pPage->m_pDocument, pStream);
         m_ImageCaches.SetAt(pStream, pImageCache);
     }
     int oldsize = pImageCache->EstimateSize();
@@ -240,7 +240,7 @@ FX_BOOL CPDF_ImageCache::GetCachedBitmap(CFX_DIBSource*& pBitmap, CFX_DIBSource*
     CPDF_RenderContext*pContext = pRenderStatus->GetContext();
     CPDF_PageRenderCache* pPageRenderCache = pContext->m_pPageCache;
     m_dwTimeCount = pPageRenderCache->GetTimeCount();
-    CPDF_DIBSource* pSrc = FX_NEW CPDF_DIBSource;
+    CPDF_DIBSource* pSrc = new CPDF_DIBSource;
     CPDF_DIBSource* pMaskSrc = NULL;
     if (!pSrc->Load(m_pDocument, m_pStream, &pMaskSrc, &MatteColor, pRenderStatus->m_pFormResource, pPageResources, bStdCS, GroupFamily, bLoadMask)) {
         delete pSrc;
@@ -248,7 +248,6 @@ FX_BOOL CPDF_ImageCache::GetCachedBitmap(CFX_DIBSource*& pBitmap, CFX_DIBSource*
         return FALSE;
     }
     m_MatteColor = MatteColor;
-#if !defined(_FPDFAPI_MINI_)
     if (pSrc->GetPitch() * pSrc->GetHeight() < FPDF_HUGE_IMAGE_SIZE) {
         m_pCachedBitmap = pSrc->Clone();
         delete pSrc;
@@ -259,23 +258,7 @@ FX_BOOL CPDF_ImageCache::GetCachedBitmap(CFX_DIBSource*& pBitmap, CFX_DIBSource*
         m_pCachedMask = pMaskSrc->Clone();
         delete pMaskSrc;
     }
-#else
-    if (pSrc->GetFormat() == FXDIB_8bppRgb && pSrc->GetPalette() &&
-            pSrc->GetHeight() * pSrc->GetWidth() * 3 < 1024) {
-#if _FXM_PLATFORM_  == _FXM_PLATFORM_APPLE_
-        m_pCachedBitmap = pSrc->CloneConvert(FXDIB_Rgb32);
-#else
-        m_pCachedBitmap = pSrc->CloneConvert(FXDIB_Rgb);
-#endif
-        delete pSrc;
-    } else if (pSrc->GetPitch() * pSrc->GetHeight() < 102400) {
-        m_pCachedBitmap = pSrc->Clone();
-        delete pSrc;
-    } else {
-        m_pCachedBitmap = pSrc;
-    }
-    m_pCachedMask = pMaskSrc;
-#endif
+
     pBitmap = m_pCachedBitmap;
     pMask = m_pCachedMask;
     CalcSize();
@@ -306,7 +289,7 @@ int	CPDF_ImageCache::StartGetCachedBitmap(CPDF_Dictionary* pFormResources, CPDF_
         return 0;
     }
     m_pRenderStatus = pRenderStatus;
-    m_pCurBitmap = FX_NEW CPDF_DIBSource;
+    m_pCurBitmap = new CPDF_DIBSource;
     int ret = ((CPDF_DIBSource*)m_pCurBitmap)->StartLoadDIBSource(m_pDocument, m_pStream, TRUE, pFormResources, pPageResources, bStdCS, GroupFamily, bLoadMask);
     if (ret == 2) {
         return ret;
@@ -326,7 +309,6 @@ int CPDF_ImageCache::ContinueGetCachedBitmap()
     CPDF_RenderContext*pContext = m_pRenderStatus->GetContext();
     CPDF_PageRenderCache* pPageRenderCache = pContext->m_pPageCache;
     m_dwTimeCount = pPageRenderCache->GetTimeCount();
-#if !defined(_FPDFAPI_MINI_)
     if (m_pCurBitmap->GetPitch() * m_pCurBitmap->GetHeight() < FPDF_HUGE_IMAGE_SIZE) {
         m_pCachedBitmap = m_pCurBitmap->Clone();
         delete m_pCurBitmap;
@@ -339,22 +321,6 @@ int CPDF_ImageCache::ContinueGetCachedBitmap()
         delete m_pCurMask;
         m_pCurMask = NULL;
     }
-#else
-    if (m_pCurBitmap->GetFormat() == FXDIB_8bppRgb && m_pCurBitmap->GetPalette() &&
-            m_pCurBitmap->GetHeight() * m_pCurBitmap->GetWidth() * 3 < 1024) {
-        m_pCachedBitmap = m_pCurBitmap->CloneConvert(FXDIB_Rgb32);
-        m_pCachedBitmap = m_pCurBitmap->CloneConvert(FXDIB_Rgb);
-        delete m_pCurBitmap;
-        m_pCurBitmap = NULL;
-    } else if (m_pCurBitmap->GetPitch() * m_pCurBitmap->GetHeight() < 102400) {
-        m_pCachedBitmap = m_pCurBitmap->Clone();
-        delete m_pCurBitmap;
-        m_pCurBitmap = NULL;
-    } else {
-        m_pCachedBitmap = m_pCurBitmap;
-    }
-    m_pCachedMask = m_pCurMask;
-#endif
     m_pCurBitmap = m_pCachedBitmap;
     m_pCurMask = m_pCachedMask;
     CalcSize();

@@ -6,7 +6,7 @@
 
 #ifndef _FXCRT_XML_INT_
 #define _FXCRT_XML_INT_
-class CXML_DataBufAcc : public IFX_BufferRead, public CFX_Object
+class CXML_DataBufAcc : public IFX_BufferRead
 {
 public:
     CXML_DataBufAcc(FX_LPCBYTE pBuffer, size_t size)
@@ -61,7 +61,7 @@ protected:
     size_t			m_dwCurPos;
 };
 #define FX_XMLDATASTREAM_BufferSize		(32 * 1024)
-class CXML_DataStmAcc : public IFX_BufferRead, public CFX_Object
+class CXML_DataStmAcc : public IFX_BufferRead
 {
 public:
     CXML_DataStmAcc(IFX_FileRead *pFileRead)
@@ -107,9 +107,6 @@ public:
         m_dwSize = (size_t)FX_MIN(FX_XMLDATASTREAM_BufferSize, nLength - m_nStart);
         if (!m_pBuffer) {
             m_pBuffer = FX_Alloc(FX_BYTE, m_dwSize);
-            if (!m_pBuffer) {
-                return FALSE;
-            }
         }
         return m_pFileRead->ReadBlock(m_pBuffer, m_nStart, m_dwSize);
     }

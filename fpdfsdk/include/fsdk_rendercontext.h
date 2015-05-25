@@ -6,11 +6,12 @@
 
 #ifndef _RENDERCONTENT_H_
 #define _RENDERCONTENT_H_
+
+#include "../../public/fpdf_progressive.h"
 #include "../include/fsdk_define.h"
-#include "../include/fpdf_progressive.h"
 
 // Everything about rendering is put here: for OOM recovery
-class CRenderContext : public CFX_Object
+class CRenderContext 
 {
 public:
 	CRenderContext() { Clear(); }

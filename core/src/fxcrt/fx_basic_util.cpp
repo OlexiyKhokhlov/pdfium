@@ -169,6 +169,24 @@ FX_FLOAT FX_atof(FX_BSTR strc)
     }
     return bNegative ? -value : value;
 }
+
+#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_ && _MSC_VER < 1900
+void FXSYS_snprintf(char *str, size_t size, _Printf_format_string_ const char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    FXSYS_vsnprintf(str, size, fmt, ap);
+    va_end(ap);
+}
+void FXSYS_vsnprintf(char *str, size_t size, const char* fmt, va_list ap)
+{
+    (void) _vsnprintf(str, size, fmt, ap);
+    if (size) {
+        str[size - 1] = 0;
+    }
+}
+#endif  // _FXM_PLATFORM_WINDOWS_ && _MSC_VER < 1900
+
 static FX_BOOL FX_IsDigit(FX_BYTE ch)
 {
     return (ch >= '0' && ch <= '9') ? TRUE : FALSE;
@@ -276,7 +294,7 @@ CFX_WideString FX_DecodeURI(const CFX_ByteString& bsURI)
     return CFX_WideString::FromUTF8(rURI, rURI.GetLength());
 }
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-class CFindFileData : public CFX_Object
+class CFindFileData 
 {
 public:
     virtual ~CFindFileData() {}
@@ -300,20 +318,14 @@ void* FX_OpenFolder(FX_LPCSTR path)
 {
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
 #ifndef _WIN32_WCE
-    CFindFileDataA* pData = FX_NEW CFindFileDataA;
-    if (!pData) {
-        return NULL;
-    }
+    CFindFileDataA* pData = new CFindFileDataA;
 #ifdef _FX_WINAPI_PARTITION_DESKTOP_
     pData->m_Handle = FindFirstFileA(CFX_ByteString(path) + "/*.*", &pData->m_FindData);
 #else
     pData->m_Handle = FindFirstFileExA(CFX_ByteString(path) + "/*.*", FindExInfoStandard, &pData->m_FindData, FindExSearchNameMatch, NULL, 0);
 #endif
 #else
-    CFindFileDataW* pData = FX_NEW CFindFileDataW;
-    if (!pData) {
-        return NULL;
-    }
+    CFindFileDataW* pData = new CFindFileDataW;
     pData->m_Handle = FindFirstFileW(CFX_WideString::FromLocal(path) + L"/*.*", &pData->m_FindData);
 #endif
     if (pData->m_Handle == INVALID_HANDLE_VALUE) {
@@ -330,14 +342,11 @@ void* FX_OpenFolder(FX_LPCSTR path)
 void* FX_OpenFolder(FX_LPCWSTR path)
 {
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-    CFindFileDataW* pData = FX_NEW CFindFileDataW;
-    if (!pData) {
-        return NULL;
-    }
+    CFindFileDataW* pData = new CFindFileDataW;
 #ifdef _FX_WINAPI_PARTITION_DESKTOP_
-    pData->m_Handle = FindFirstFileW(CFX_WideString(path) + L"/*.*", &pData->m_FindData);
+    pData->m_Handle = FindFirstFileW((CFX_WideString(path) + L"/*.*").c_str(), &pData->m_FindData);
 #else
-    pData->m_Handle = FindFirstFileExW(CFX_WideString(path) + L"/*.*", FindExInfoStandard, &pData->m_FindData, FindExSearchNameMatch, NULL, 0);
+    pData->m_Handle = FindFirstFileExW((CFX_WideString(path) + L"/*.*").c_str(), FindExInfoStandard, &pData->m_FindData, FindExSearchNameMatch, NULL, 0);
 #endif
     if (pData->m_Handle == INVALID_HANDLE_VALUE) {
         delete pData;

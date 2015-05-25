@@ -4,6 +4,9 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include <algorithm>
+#include <limits>
+
 #include "../../../include/fxcodec/fx_codec.h"
 #include "codec_int.h"
 
@@ -30,56 +33,91 @@ static void fx_info_callback(const char *msg, void *client_data)
 {
     (void)client_data;
 }
-struct DecodeData {
-    unsigned char* src_data;
-    OPJ_SIZE_T     src_size;
-    OPJ_SIZE_T     offset;
-};
-static OPJ_SIZE_T opj_read_from_memory (void * p_buffer, OPJ_SIZE_T p_nb_bytes,  void* p_user_data)
+OPJ_SIZE_T opj_read_from_memory(void* p_buffer, OPJ_SIZE_T nb_bytes, void* p_user_data)
 {
     DecodeData* srcData = static_cast<DecodeData*>(p_user_data);
-    if (srcData == NULL || srcData->src_size == 0 || srcData->src_data == NULL || srcData->offset >= srcData->src_size) {
+    if (!srcData || !srcData->src_data || srcData->src_size == 0) {
+        return -1;
+    }
+    // Reads at EOF return an error code.
+    if (srcData->offset >= srcData->src_size) {
         return -1;
     }
     OPJ_SIZE_T bufferLength = srcData->src_size - srcData->offset;
-    OPJ_SIZE_T readlength = p_nb_bytes < bufferLength ? p_nb_bytes : bufferLength;
+    OPJ_SIZE_T readlength = nb_bytes < bufferLength ? nb_bytes : bufferLength;
     memcpy(p_buffer, &srcData->src_data[srcData->offset], readlength);
     srcData->offset += readlength;
     return readlength;
 }
-static OPJ_SIZE_T opj_write_from_memory (void * p_buffer, OPJ_SIZE_T p_nb_bytes, void* p_user_data)
+OPJ_SIZE_T opj_write_from_memory(void* p_buffer, OPJ_SIZE_T nb_bytes, void* p_user_data)
 {
     DecodeData* srcData = static_cast<DecodeData*>(p_user_data);
-    if (srcData == NULL || srcData->src_size == 0 || srcData->src_data == NULL || srcData->offset >= srcData->src_size) {
+    if (!srcData || !srcData->src_data || srcData->src_size == 0) {
+        return -1;
+    }
+    // Writes at EOF return an error code.
+    if (srcData->offset >= srcData->src_size) {
         return -1;
     }
     OPJ_SIZE_T bufferLength = srcData->src_size - srcData->offset;
-    OPJ_SIZE_T writeLength = p_nb_bytes < bufferLength ? p_nb_bytes : bufferLength;
+    OPJ_SIZE_T writeLength = nb_bytes < bufferLength ? nb_bytes : bufferLength;
     memcpy(&srcData->src_data[srcData->offset], p_buffer, writeLength);
     srcData->offset += writeLength;
     return writeLength;
 }
-static OPJ_OFF_T opj_skip_from_memory (OPJ_OFF_T p_nb_bytes, void* p_user_data)
+OPJ_OFF_T opj_skip_from_memory(OPJ_OFF_T nb_bytes, void* p_user_data)
 {
     DecodeData* srcData = static_cast<DecodeData*>(p_user_data);
-    if (srcData == NULL || srcData->src_size == 0 || srcData->src_data == NULL || srcData->offset >= srcData->src_size) {
+    if (!srcData || !srcData->src_data || srcData->src_size == 0) {
         return -1;
     }
-    OPJ_SIZE_T bufferLength = srcData->src_size - srcData->offset;
-    OPJ_SIZE_T skipLength = p_nb_bytes < bufferLength ? p_nb_bytes : bufferLength;
-    srcData->offset += skipLength;
-    return skipLength;
+    // Offsets are signed and may indicate a negative skip. Do not support this
+    // because of the strange return convention where either bytes skipped or
+    // -1 is returned. Following that convention, a successful relative seek of
+    // -1 bytes would be required to to give the same result as the error case.
+    if (nb_bytes < 0) {
+        return -1;
+    }
+    // FIXME: use std::make_unsigned<OPJ_OFF_T>::type once c++11 lib is OK'd.
+    uint64_t unsignedNbBytes = static_cast<uint64_t>(nb_bytes);
+    // Additionally, the offset may take us beyond the range of a size_t (e.g.
+    // 32-bit platforms). If so, just clamp at EOF.
+    if (unsignedNbBytes > std::numeric_limits<OPJ_SIZE_T>::max() - srcData->offset) {
+        srcData->offset = srcData->src_size;
+    } else {
+        OPJ_SIZE_T checkedNbBytes = static_cast<OPJ_SIZE_T>(unsignedNbBytes);
+        // Otherwise, mimic fseek() semantics to always succeed, even past EOF,
+        // clamping at EOF.  We can get away with this since we don't actually
+        // provide negative relative skips from beyond EOF back to inside the
+        // data, which would be the only reason to need to know exactly how far
+        // beyond EOF we are.
+        srcData->offset = std::min(srcData->offset + checkedNbBytes, srcData->src_size);
+    }
+    return nb_bytes;
 }
-static OPJ_BOOL opj_seek_from_memory (OPJ_OFF_T p_nb_bytes, void* p_user_data)
+OPJ_BOOL opj_seek_from_memory(OPJ_OFF_T nb_bytes, void* p_user_data)
 {
     DecodeData* srcData = static_cast<DecodeData*>(p_user_data);
-    if (srcData == NULL || srcData->src_size == 0 || srcData->src_data == NULL || srcData->offset >= srcData->src_size) {
+    if (!srcData || !srcData->src_data || srcData->src_size == 0) {
         return OPJ_FALSE;
     }
-    if (p_nb_bytes >= srcData->src_size) {
+    // Offsets are signed and may indicate a negative position, which would
+    // be before the start of the file. Do not support this.
+    if (nb_bytes < 0) {
         return OPJ_FALSE;
     }
-    srcData->offset = p_nb_bytes;
+    // FIXME: use std::make_unsigned<OPJ_OFF_T>::type once c++11 lib is OK'd.
+    uint64_t unsignedNbBytes = static_cast<uint64_t>(nb_bytes);
+    // Additionally, the offset may take us beyond the range of a size_t (e.g.
+    // 32-bit platforms). If so, just clamp at EOF.
+    if (unsignedNbBytes > std::numeric_limits<OPJ_SIZE_T>::max()) {
+        srcData->offset = srcData->src_size;
+    } else {
+        OPJ_SIZE_T checkedNbBytes = static_cast<OPJ_SIZE_T>(nb_bytes);
+        // Otherwise, mimic fseek() semantics to always succeed, even past EOF,
+        // again clamping at EOF.
+        srcData->offset = std::min(checkedNbBytes, srcData->src_size);
+    }
     return OPJ_TRUE;
 }
 opj_stream_t* fx_opj_stream_create_memory_stream (DecodeData* data,	OPJ_SIZE_T p_size, 	OPJ_BOOL p_is_read_stream)
@@ -322,25 +360,24 @@ void color_sycc_to_rgb(opj_image_t *img)
 }
 void color_apply_icc_profile(opj_image_t *image)
 {
-    cmsHPROFILE in_prof, out_prof;
-    cmsHTRANSFORM transform;
-    cmsColorSpaceSignature in_space, out_space;
-    cmsUInt32Number intent, in_type, out_type, nr_samples;
-    int *r, *g, *b;
-    int prec, i, max, max_w, max_h;
-    OPJ_COLOR_SPACE oldspace;
-    in_prof =
+    cmsHPROFILE out_prof;
+    cmsUInt32Number in_type;
+    cmsUInt32Number out_type;
+    int *r;
+    int *g;
+    int *b;
+    int max;
+    cmsHPROFILE in_prof =
         cmsOpenProfileFromMem(image->icc_profile_buf, image->icc_profile_len);
     if(in_prof == NULL) {
         return;
     }
-    in_space = cmsGetPCS(in_prof);
-    out_space = cmsGetColorSpace(in_prof);
-    intent = cmsGetHeaderRenderingIntent(in_prof);
-    max_w = (int)image->comps[0].w;
-    max_h = (int)image->comps[0].h;
-    prec = (int)image->comps[0].prec;
-    oldspace = image->color_space;
+    cmsColorSpaceSignature out_space = cmsGetColorSpace(in_prof);
+    cmsUInt32Number intent = cmsGetHeaderRenderingIntent(in_prof);
+    int max_w = (int)image->comps[0].w;
+    int max_h = (int)image->comps[0].h;
+    int prec = (int)image->comps[0].prec;
+    OPJ_COLOR_SPACE oldspace = image->color_space;
     if(out_space == cmsSigRgbData) {
         if( prec <= 8 ) {
             in_type = TYPE_RGB_8;
@@ -369,8 +406,8 @@ void color_apply_icc_profile(opj_image_t *image)
     } else {
         return;
     }
-    transform = cmsCreateTransform(in_prof, in_type,
-                                   out_prof, out_type, intent, 0);
+    cmsHTRANSFORM transform =
+        cmsCreateTransform(in_prof, in_type, out_prof, out_type, intent, 0);
     cmsCloseProfile(in_prof);
     cmsCloseProfile(out_prof);
     if(transform == NULL) {
@@ -381,13 +418,13 @@ void color_apply_icc_profile(opj_image_t *image)
         if( prec <= 8 ) {
             unsigned char *inbuf, *outbuf, *in, *out;
             max = max_w * max_h;
-            nr_samples = (cmsUInt32Number)max * 3 * (cmsUInt32Number)sizeof(unsigned char);
+            cmsUInt32Number nr_samples = max * 3 * sizeof(unsigned char);
             in = inbuf = FX_Alloc(unsigned char, nr_samples);
             out = outbuf = FX_Alloc(unsigned char, nr_samples);
             r = image->comps[0].data;
             g = image->comps[1].data;
             b = image->comps[2].data;
-            for(i = 0; i < max; ++i) {
+            for(int i = 0; i < max; ++i) {
                 *in++ = (unsigned char) * r++;
                 *in++ = (unsigned char) * g++;
                 *in++ = (unsigned char) * b++;
@@ -396,7 +433,7 @@ void color_apply_icc_profile(opj_image_t *image)
             r = image->comps[0].data;
             g = image->comps[1].data;
             b = image->comps[2].data;
-            for(i = 0; i < max; ++i) {
+            for(int i = 0; i < max; ++i) {
                 *r++ = (int) * out++;
                 *g++ = (int) * out++;
                 *b++ = (int) * out++;
@@ -406,13 +443,13 @@ void color_apply_icc_profile(opj_image_t *image)
         } else {
             unsigned short *inbuf, *outbuf, *in, *out;
             max = max_w * max_h;
-            nr_samples = (cmsUInt32Number)max * 3 * (cmsUInt32Number)sizeof(unsigned short);
+            cmsUInt32Number nr_samples = max * 3 * sizeof(unsigned short);
             in = inbuf = FX_Alloc(unsigned short, nr_samples);
             out = outbuf = FX_Alloc(unsigned short, nr_samples);
             r = image->comps[0].data;
             g = image->comps[1].data;
             b = image->comps[2].data;
-            for(i = 0; i < max; ++i) {
+            for(int i = 0; i < max; ++i) {
                 *in++ = (unsigned short) * r++;
                 *in++ = (unsigned short) * g++;
                 *in++ = (unsigned short) * b++;
@@ -421,7 +458,7 @@ void color_apply_icc_profile(opj_image_t *image)
             r = image->comps[0].data;
             g = image->comps[1].data;
             b = image->comps[2].data;
-            for(i = 0; i < max; ++i) {
+            for(int i = 0; i < max; ++i) {
                 *r++ = (int) * out++;
                 *g++ = (int) * out++;
                 *b++ = (int) * out++;
@@ -432,7 +469,8 @@ void color_apply_icc_profile(opj_image_t *image)
     } else {
         unsigned char *in, *inbuf, *out, *outbuf;
         max = max_w * max_h;
-        nr_samples = (cmsUInt32Number)max * 3 * sizeof(unsigned char);
+        cmsUInt32Number nr_samples =
+            (cmsUInt32Number)max * 3 * sizeof(unsigned char);
         in = inbuf = FX_Alloc(unsigned char, nr_samples);
         out = outbuf = FX_Alloc(unsigned char, nr_samples);
         image->comps = (opj_image_comp_t*)
@@ -448,14 +486,14 @@ void color_apply_icc_profile(opj_image_t *image)
         FXSYS_memset8(image->comps[2].data, 0, sizeof(int) * (size_t)max);
         image->numcomps += 2;
         r = image->comps[0].data;
-        for(i = 0; i < max; ++i) {
+        for(int i = 0; i < max; ++i) {
             *in++ = (unsigned char) * r++;
         }
         cmsDoTransform(transform, inbuf, outbuf, (cmsUInt32Number)max);
         r = image->comps[0].data;
         g = image->comps[1].data;
         b = image->comps[2].data;
-        for(i = 0; i < max; ++i) {
+        for(int i = 0; i < max; ++i) {
             *r++ = (int) * out++;
             *g++ = (int) * out++;
             *b++ = (int) * out++;
@@ -479,14 +517,12 @@ void color_apply_conversion(opj_image_t *image)
         int *L, *a, *b, *red, *green, *blue, *src0, *src1, *src2;
         double rl, ol, ra, oa, rb, ob, prec0, prec1, prec2;
         double minL, maxL, mina, maxa, minb, maxb;
-        unsigned int default_type, il;
-        unsigned int i, max, illu;
+        unsigned int default_type;
+        unsigned int i, max;
         cmsHPROFILE in, out;
         cmsHTRANSFORM transform;
         cmsUInt16Number RGB[3];
         cmsCIELab Lab;
-        illu = 0;
-        il = 0;
         in = cmsCreateLab4Profile(NULL);
         out = cmsCreate_sRGBProfile();
         transform =
@@ -555,7 +591,7 @@ void color_apply_conversion(opj_image_t *image)
         return;
     }
 }
-class CJPX_Decoder : public CFX_Object
+class CJPX_Decoder 
 {
 public:
     CJPX_Decoder();
@@ -594,10 +630,7 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
     image = NULL;
     m_SrcData = src_data;
     m_SrcSize = src_size;
-    DecodeData srcData;
-    srcData.offset  = 0;
-    srcData.src_size = src_size;
-    srcData.src_data = const_cast<unsigned char*>(src_data);
+    DecodeData srcData(const_cast<unsigned char*>(src_data), src_size);
     l_stream = fx_opj_stream_create_memory_stream(&srcData, OPJ_J2K_STREAM_CHUNK_SIZE, 1);
     if (l_stream == NULL) {
         return FALSE;
@@ -639,7 +672,7 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
             image = NULL;
             return FALSE;
         }
-        if (!(opj_decode(l_codec, l_stream, image) && opj_end_decompress(l_codec,	l_stream))) {
+        if (!(opj_decode(l_codec, l_stream, image) && opj_end_decompress(l_codec, l_stream))) {
             opj_image_destroy(image);
             image = NULL;
             return FALSE;
@@ -680,10 +713,7 @@ void CJPX_Decoder::GetInfo(FX_DWORD& width, FX_DWORD& height, FX_DWORD& codestre
 }
 FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateColor, FX_LPBYTE offsets)
 {
-    FX_BYTE** channel_bufs;
-    int* adjust_comps;
     int i, wid, hei, row, col, channel, src;
-    FX_BOOL flag;
     FX_LPBYTE pChannel, pScanline, pPixel;
 
     if(image->comps[0].w != image->x1 || image->comps[0].h != image->y1) {
@@ -693,16 +723,9 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
         return FALSE;
     }
     FXSYS_memset8(dest_buf, 0xff, image->y1 * pitch);
-    channel_bufs = FX_Alloc(FX_BYTE*, image->numcomps);
-    if (channel_bufs == NULL) {
-        return FALSE;
-    }
-    adjust_comps = FX_Alloc(int, image->numcomps);
-    if (adjust_comps == NULL) {
-        FX_Free(channel_bufs);
-        return FALSE;
-    }
-    flag = TRUE;
+    FX_BYTE** channel_bufs = FX_Alloc(FX_BYTE*, image->numcomps);
+    FX_BOOL result = FALSE;
+    int* adjust_comps = FX_Alloc(int, image->numcomps);
     for (i = 0; i < (int)image->numcomps; i ++) {
         channel_bufs[i] = dest_buf + offsets[i];
         adjust_comps[i] = image->comps[i].prec - 8;
@@ -710,8 +733,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
             if(image->comps[i].dx != image->comps[i - 1].dx
                     || image->comps[i].dy != image->comps[i - 1].dy
                     || image->comps[i].prec != image->comps[i - 1].prec) {
-                flag = FALSE;
-                goto failed;
+                goto done;
             }
         }
     }
@@ -758,14 +780,12 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
             }
         }
     }
+    result = TRUE;
 
+done:
     FX_Free(channel_bufs);
     FX_Free(adjust_comps);
-    return TRUE;
-failed:
-    FX_Free(channel_bufs);
-    FX_Free(adjust_comps);
-    return FALSE;
+    return result;
 }
 void initialize_transition_table();
 void initialize_significance_luts();
@@ -775,10 +795,7 @@ CCodec_JpxModule::CCodec_JpxModule()
 }
 void* CCodec_JpxModule::CreateDecoder(FX_LPCBYTE src_buf, FX_DWORD src_size , FX_BOOL useColorSpace)
 {
-    CJPX_Decoder* pDecoder = FX_NEW CJPX_Decoder;
-    if (pDecoder == NULL) {
-        return NULL;
-    }
+    CJPX_Decoder* pDecoder = new CJPX_Decoder;
     pDecoder->m_useColorSpace = useColorSpace;
     if (!pDecoder->Init(src_buf, src_size)) {
         delete pDecoder;

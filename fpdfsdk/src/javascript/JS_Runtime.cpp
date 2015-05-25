@@ -27,8 +27,6 @@
 #include "../../include/javascript/global.h"
 #include "../../include/javascript/console.h"
 
-#include <libplatform/libplatform.h>
-
 CJS_RuntimeFactory::~CJS_RuntimeFactory()
 {
 }
@@ -38,10 +36,6 @@ IFXJS_Runtime*					CJS_RuntimeFactory::NewJSRuntime(CPDFDoc_Environment* pApp)
 	if (!m_bInit)
 	{
 		JS_Initial();
-                m_platform = v8::platform::CreateDefaultPlatform();
-                v8::V8::InitializePlatform(m_platform);
-                v8::V8::Initialize();
-		
 		m_bInit = TRUE;
 	}
 	return new CJS_Runtime(pApp);
@@ -60,9 +54,6 @@ void							CJS_RuntimeFactory::Release()
 		{
 			JS_Release();
 			ReleaseGlobalData();
-                        v8::V8::ShutdownPlatform();
-                        delete m_platform;
-                        m_platform = NULL;
 			m_bInit = FALSE;
 		}
 	}
@@ -100,17 +91,32 @@ void CJS_RuntimeFactory::ReleaseGlobalData()
 	}
 }
 
+void* CJS_ArrayBufferAllocator::Allocate(size_t length) {
+    return calloc(1, length);
+}
+
+void* CJS_ArrayBufferAllocator::AllocateUninitialized(size_t length) {
+    return malloc(length);
+}
+
+void CJS_ArrayBufferAllocator::Free(void* data, size_t length) {
+    free(data);
+}
+
 /* ------------------------------ CJS_Runtime ------------------------------ */
 
 CJS_Runtime::CJS_Runtime(CPDFDoc_Environment * pApp) : 
 	m_pApp(pApp),
 	m_pDocument(NULL),
 	m_bBlocking(FALSE),
-	m_pFieldEventPath(NULL),
-	m_bRegistered(FALSE)
+	m_bRegistered(FALSE),
+	m_pFieldEventPath(NULL)
 {
-	m_isolate = v8::Isolate::New();
-	//m_isolate->Enter();
+	m_pArrayBufferAllocator.reset(new CJS_ArrayBufferAllocator());
+
+	v8::Isolate::CreateParams params;
+	params.array_buffer_allocator = m_pArrayBufferAllocator.get();
+	m_isolate = v8::Isolate::New(params);
 
 	InitJSObjects();
 
@@ -143,7 +149,7 @@ FX_BOOL CJS_Runtime::InitJSObjects()
 {
 	v8::Isolate::Scope isolate_scope(GetIsolate());
 	v8::HandleScope handle_scope(GetIsolate());
-	v8::Handle<v8::Context> context = v8::Context::New(GetIsolate());
+	v8::Local<v8::Context> context = v8::Context::New(GetIsolate());
 	v8::Context::Scope context_scope(context);
 	//0 - 8
 	if (CJS_Border::Init(*this, JS_STATIC) < 0) return FALSE;
@@ -322,7 +328,7 @@ void CJS_Runtime::RemoveEventsInLoop(CJS_FieldEvent* pStart)
 	}
 }
 
-v8::Handle<v8::Context>	CJS_Runtime::NewJSContext()
+v8::Local<v8::Context>	CJS_Runtime::NewJSContext()
 {
 	return v8::Local<v8::Context>::New(m_isolate, m_context);
 }
@@ -332,147 +338,4 @@ CFX_WideString ChangeObjName(const CFX_WideString& str)
 	CFX_WideString sRet = str;
 	sRet.Replace(L"_", L".");
 	return sRet;
-}
-
-void CJS_Runtime::GetObjectNames(CFX_WideStringArray& array)
-{
-	array.RemoveAll();
-
-	array.Add(CJS_Border::m_pClassName);
-	array.Add(CJS_Display::m_pClassName);
-	array.Add(CJS_Font::m_pClassName);
-	array.Add(CJS_Highlight::m_pClassName);
-	array.Add(CJS_Position::m_pClassName);
-	array.Add(CJS_ScaleHow::m_pClassName);
-	array.Add(CJS_ScaleWhen::m_pClassName);
-	array.Add(CJS_Style::m_pClassName);
-	array.Add(CJS_Zoomtype::m_pClassName);
-
-	array.Add(CJS_App::m_pClassName);
-	array.Add(L"this");
-	array.Add(CJS_Event::m_pClassName);	
-
-	array.Add(CJS_Global::m_pClassName);	
-	array.Add(CJS_Util::m_pClassName);
-}
-
-void CJS_Runtime::GetObjectConsts(const CFX_WideString& sObjName, CFX_WideStringArray& array)
-{
-	JSConstSpec* pConsts = NULL;
-	int nSize = 0;
-
-	if (sObjName == CJS_Border::m_pClassName)
-		CJS_Border::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_Display::m_pClassName)
-		CJS_Display::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_Font::m_pClassName)
-		CJS_Font::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_Highlight::m_pClassName)
-		CJS_Highlight::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_Position::m_pClassName)
-		CJS_Position::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_ScaleHow::m_pClassName)
-		CJS_ScaleHow::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_ScaleWhen::m_pClassName)
-		CJS_ScaleWhen::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_Style::m_pClassName)
-		CJS_Style::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_Zoomtype::m_pClassName)
-		CJS_Zoomtype::GetConsts(pConsts, nSize);
-
-	else if (sObjName == CJS_App::m_pClassName)
-		CJS_App::GetConsts(pConsts, nSize);
-	else if (sObjName == CJS_Color::m_pClassName)
-		CJS_Color::GetConsts(pConsts, nSize);	
-
-	else if (sObjName == L"this") 
-	{
-		if (GetReaderDocument())
-			CJS_Document::GetConsts(pConsts, nSize);
-		else 
-			CJS_App::GetConsts(pConsts, nSize);
-	}
-
-	if (sObjName == CJS_Event::m_pClassName)
-		CJS_Event::GetConsts(pConsts, nSize);	
-	else if (sObjName == CJS_Field::m_pClassName)
-		CJS_Field::GetConsts(pConsts, nSize);	
-	else if (sObjName == CJS_Global::m_pClassName)
-		CJS_Global::GetConsts(pConsts, nSize);	
-	else if (sObjName == CJS_Util::m_pClassName)
-		CJS_Util::GetConsts(pConsts, nSize);
-
-	for (int i=0; i<nSize; i++)
-		array.Add(pConsts[i].pName);
-}
-
-void CJS_Runtime::GetObjectProps(const CFX_WideString& sObjName, CFX_WideStringArray& array)
-{
-	JSPropertySpec* pProperties = NULL;
-	int nSize = 0;
-
- 	if (sObjName == CJS_App::m_pClassName)
-		CJS_App::GetProperties(pProperties, nSize);
-	else if (sObjName == CJS_Color::m_pClassName)
-		CJS_Color::GetProperties(pProperties, nSize); 
-	else if (sObjName == L"this")
-	{
-		if (GetReaderDocument())
-			CJS_Document::GetProperties(pProperties, nSize);
-		else	
-			CJS_App::GetProperties(pProperties, nSize);
-	}
-	else if (sObjName == CJS_Event::m_pClassName)
-		CJS_Event::GetProperties(pProperties, nSize);	
-	else if (sObjName == CJS_Field::m_pClassName)
-		CJS_Field::GetProperties(pProperties, nSize);	
-	else if (sObjName == CJS_Global::m_pClassName)
-		CJS_Global::GetProperties(pProperties, nSize);	
-	else if (sObjName == CJS_Util::m_pClassName)
-		CJS_Util::GetProperties(pProperties, nSize);
-
-	for (int i=0; i<nSize; i++)
-		array.Add(pProperties[i].pName);
-}
-
-void CJS_Runtime::GetObjectMethods(const CFX_WideString& sObjName, CFX_WideStringArray& array)
-{
-	JSMethodSpec* pMethods = NULL;
-	int nSize = 0;
-
- 	 if (sObjName == CJS_App::m_pClassName)
-		CJS_App::GetMethods(pMethods, nSize);
-	else if (sObjName == CJS_Color::m_pClassName)
-		CJS_Color::GetMethods(pMethods, nSize);	
-	else if (sObjName == L"this") 
-	{
-		if (GetReaderDocument())
-			CJS_Document::GetMethods(pMethods, nSize);
-		else	
-			CJS_App::GetMethods(pMethods, nSize);
-	}
-	else if (sObjName == CJS_Event::m_pClassName)
-		CJS_Event::GetMethods(pMethods, nSize);	
-	else if (sObjName == CJS_Field::m_pClassName)
-		CJS_Field::GetMethods(pMethods, nSize);	
-	else if (sObjName == CJS_Global::m_pClassName)
-		CJS_Global::GetMethods(pMethods, nSize);	
-	else if (sObjName == CJS_Util::m_pClassName)
-		CJS_Util::GetMethods(pMethods, nSize);
-
-	for (int i=0; i<nSize; i++)
-		array.Add(pMethods[i].pName);
-}
-
-FX_BOOL  CJS_Runtime::IsEntered()
-{
-	return v8::Isolate::GetCurrent() == m_isolate;
-}
-void	CJS_Runtime::Exit()
-{
-	if(m_isolate) m_isolate->Exit();
-}
-void	CJS_Runtime::Enter()
-{
-	if(m_isolate) m_isolate->Enter();
 }

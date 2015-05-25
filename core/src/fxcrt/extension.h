@@ -7,6 +7,8 @@
 #ifndef _FXCRT_EXTENSION_IMP_
 #define _FXCRT_EXTENSION_IMP_
 
+#include "fx_safe_types.h"
+
 class IFXCRT_FileAccess
 {
 public:
@@ -26,7 +28,7 @@ public:
     virtual FX_BOOL		Truncate(FX_FILESIZE szFile) = 0;
 };
 IFXCRT_FileAccess*	FXCRT_FileAccess_Create();
-class CFX_CRTFileStream FX_FINAL : public IFX_FileStream, public CFX_Object
+class CFX_CRTFileStream FX_FINAL : public IFX_FileStream
 {
 public:
     CFX_CRTFileStream(IFXCRT_FileAccess* pFA) : m_pFile(pFA), m_dwCount(1), m_bUseRange(FALSE), m_nOffset(0), m_nSize(0) {}
@@ -131,7 +133,7 @@ public:
 #define FX_MEMSTREAM_BlockSize		(64 * 1024)
 #define FX_MEMSTREAM_Consecutive	0x01
 #define FX_MEMSTREAM_TakeOver		0x02
-class CFX_MemoryStream FX_FINAL : public IFX_MemoryStream, public CFX_Object
+class CFX_MemoryStream FX_FINAL : public IFX_MemoryStream
 {
 public:
     CFX_MemoryStream(FX_BOOL bConsecutive)
@@ -346,9 +348,7 @@ public:
         if (m_dwFlags & FX_MEMSTREAM_Consecutive) {
             if (m_Blocks.GetSize() < 1) {
                 FX_LPBYTE pBlock = FX_Alloc(FX_BYTE, FX_MAX(nInitSize, 4096));
-                if (pBlock) {
-                    m_Blocks.Add(pBlock);
-                }
+                m_Blocks.Add(pBlock);
             }
             m_nGrowSize = FX_MAX(nGrowSize, 4096);
         } else if (m_Blocks.GetSize() < 1) {
@@ -405,9 +405,6 @@ protected:
         m_Blocks.SetSize(m_Blocks.GetSize() + (FX_INT32)size);
         while (size --) {
             FX_LPBYTE pBlock = FX_Alloc(FX_BYTE, m_nGrowSize);
-            if (!pBlock) {
-                return FALSE;
-            }
             m_Blocks.SetAt(iCount ++, pBlock);
             m_nTotalSize += m_nGrowSize;
         }

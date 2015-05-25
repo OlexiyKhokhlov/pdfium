@@ -6,7 +6,7 @@
 
 #ifndef TTGSUBTable_H
 #define TTGSUBTable_H
-#include "../../fx_freetype.h"
+#include "../../../include/fxge/fx_freetype.h"
 #include "../../../include/fxcrt/fx_basic.h"
 #include "common.h"
 class CFX_GlyphMap
@@ -19,7 +19,7 @@ public:
 protected:
     CFX_BinaryBuf	m_Buffer;
 };
-class CFX_CTTGSUBTable : public CFX_Object
+class CFX_CTTGSUBTable 
 {
 public:
     CFX_CTTGSUBTable(void): m_bFeautureMapLoad(FALSE), loaded(false) {};
@@ -406,7 +406,7 @@ private:
     struct TFeatureList FeatureList;
     struct TLookupList LookupList;
 };
-class CFX_GSUBTable FX_FINAL : public IFX_GSUBTable, public CFX_Object
+class CFX_GSUBTable FX_FINAL : public IFX_GSUBTable
 {
 public:
     virtual void	Release() FX_OVERRIDE
@@ -414,6 +414,11 @@ public:
         delete this;
     }
     virtual FX_BOOL GetVerticalGlyph(FX_DWORD glyphnum, FX_DWORD* vglyphnum) FX_OVERRIDE;
+
     CFX_CTTGSUBTable m_GsubImp;
+
+private:
+    ~CFX_GSUBTable() { }
 };
 #endif
+

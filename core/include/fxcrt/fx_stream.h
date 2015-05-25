@@ -6,16 +6,19 @@
 
 #ifndef _FX_STREAM_H_
 #define _FX_STREAM_H_
-#ifndef _FX_MEMORY_H_
+
 #include "fx_memory.h"
-#endif
+#include "fx_string.h"
+
 void* FX_OpenFolder(FX_LPCSTR path);
 void* FX_OpenFolder(FX_LPCWSTR path);
 FX_BOOL FX_GetNextFile(void* handle, CFX_ByteString& filename, FX_BOOL& bFolder);
 FX_BOOL FX_GetNextFile(void* handle, CFX_WideString& filename, FX_BOOL& bFolder);
 void FX_CloseFolder(void* handle);
 FX_WCHAR FX_GetFolderSeparator();
-FX_DEFINEHANDLE(FX_HFILE)
+typedef struct FX_HFILE_ {
+    FX_LPVOID pData;
+}* FX_HFILE;
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
 #define FX_FILESIZE			FX_INT32
 #else
@@ -30,7 +33,6 @@ FX_DEFINEHANDLE(FX_HFILE)
 #endif
 #define FX_FILESIZE			off_t
 #endif
-typedef base::CheckedNumeric<FX_FILESIZE>    FX_SAFE_FILESIZE;
 #define FX_GETBYTEOFFSET32(a)	0
 #define FX_GETBYTEOFFSET40(a)	0
 #define FX_GETBYTEOFFSET48(a)	0
@@ -65,7 +67,7 @@ FX_BOOL		FX_File_Move(FX_WSTR fileNameSrc, FX_WSTR fileNameDst);
 class IFX_StreamWrite
 {
 public:
-
+    virtual ~IFX_StreamWrite() { }
     virtual void		Release() = 0;
 
     virtual	FX_BOOL		WriteBlock(const void* pData, size_t size) = 0;
@@ -91,6 +93,7 @@ IFX_FileWrite* FX_CreateFileWrite(FX_LPCWSTR filename);
 class IFX_StreamRead
 {
 public:
+    virtual ~IFX_StreamRead() { }
 
     virtual void			Release() = 0;
 
@@ -103,7 +106,6 @@ public:
 class IFX_FileRead : IFX_StreamRead
 {
 public:
-
     virtual void			Release() = 0;
 
     virtual FX_FILESIZE		GetSize() = 0;

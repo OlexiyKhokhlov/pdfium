@@ -4,8 +4,10 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../../include/fpdfdoc/fpdf_doc.h"
 #include "../../include/fpdfapi/fpdf_pageobj.h"
+
 CPDF_AnnotList::CPDF_AnnotList(CPDF_Page* pPage)
 {
     ASSERT(pPage != NULL);
@@ -37,10 +39,7 @@ CPDF_AnnotList::CPDF_AnnotList(CPDF_Page* pPage)
             pAnnots->RemoveAt(i + 1);
             pDict = pAnnots->GetDict(i);
         }
-        CPDF_Annot* pAnnot = FX_NEW CPDF_Annot(pDict);
-        if (pAnnot == NULL) {
-            break;
-        }
+        CPDF_Annot* pAnnot = new CPDF_Annot(pDict);
         pAnnot->m_pList = this;
         m_AnnotList.Add(pAnnot);
         if (bRegenerateAP && pDict->GetConstString(FX_BSTRC("Subtype")) == FX_BSTRC("Widget"))
@@ -225,10 +224,7 @@ CPDF_Form* CPDF_Annot::GetAPForm(const CPDF_Page* pPage, AppearanceMode mode)
     if (m_APMap.Lookup(pStream, (void*&)pForm)) {
         return pForm;
     }
-    pForm = FX_NEW CPDF_Form(m_pList->m_pDocument, pPage->m_pResources, pStream);
-    if (pForm == NULL) {
-        return NULL;
-    }
+    pForm = new CPDF_Form(m_pList->m_pDocument, pPage->m_pResources, pStream);
     pForm->ParseContent(NULL, NULL, NULL, NULL);
     m_APMap.SetAt(pStream, pForm);
     return pForm;
@@ -323,19 +319,14 @@ CPDF_PageObject* CPDF_Annot::GetBorder(FX_BOOL bPrint, const CPDF_RenderOptions*
         int B = (FX_INT32)(pColor->GetNumber(2) * 255);
         argb = ArgbEncode(0xff, R, G, B);
     }
-    CPDF_PathObject *pPathObject = FX_NEW CPDF_PathObject();
-    if (!pPathObject) {
-        return NULL;
-    }
+    nonstd::unique_ptr<CPDF_PathObject> pPathObject(new CPDF_PathObject());
     CPDF_GraphStateData *pGraphState = pPathObject->m_GraphState.GetModify();
     if (!pGraphState) {
-        pPathObject->Release();
         return NULL;
     }
     pGraphState->m_LineWidth = width;
     CPDF_ColorStateData *pColorData = pPathObject->m_ColorState.GetModify();
     if (!pColorData) {
-        pPathObject->Release();
         return NULL;
     }
     pColorData->m_StrokeRGB = argb;
@@ -348,10 +339,6 @@ CPDF_PageObject* CPDF_Annot::GetBorder(FX_BOOL bPrint, const CPDF_RenderOptions*
                 dash_count ++;
             }
             pGraphState->m_DashArray = FX_Alloc(FX_FLOAT, dash_count);
-            if (pGraphState->m_DashArray == NULL) {
-                pPathObject->Release();
-                return NULL;
-            }
             pGraphState->m_DashCount = dash_count;
             FX_DWORD i;
             for (i = 0; i < pDashArray->GetCount(); i ++) {
@@ -362,10 +349,6 @@ CPDF_PageObject* CPDF_Annot::GetBorder(FX_BOOL bPrint, const CPDF_RenderOptions*
             }
         } else {
             pGraphState->m_DashArray = FX_Alloc(FX_FLOAT, 2);
-            if (pGraphState->m_DashArray == NULL) {
-                pPathObject->Release();
-                return NULL;
-            }
             pGraphState->m_DashCount = 2;
             pGraphState->m_DashArray[0] = pGraphState->m_DashArray[1] = 3 * 1.0f;
         }
@@ -378,7 +361,7 @@ CPDF_PageObject* CPDF_Annot::GetBorder(FX_BOOL bPrint, const CPDF_RenderOptions*
         pPathData->AppendRect(rect.left + width, rect.bottom + width, rect.right - width, rect.top - width);
     }
     pPathObject->CalcBoundingBox();
-    return pPathObject;
+    return pPathObject.release();
 }
 void CPDF_Annot::DrawBorder(CFX_RenderDevice* pDevice, const CFX_AffineMatrix* pUser2Device, const CPDF_RenderOptions* pOptions)
 {
@@ -452,9 +435,6 @@ void CPDF_Annot::DrawBorder(CFX_RenderDevice* pDevice, const CFX_AffineMatrix* p
                 dash_count ++;
             }
             graph_state.m_DashArray = FX_Alloc(FX_FLOAT, dash_count);
-            if (graph_state.m_DashArray == NULL) {
-                return ;
-            }
             graph_state.m_DashCount = dash_count;
             FX_DWORD i;
             for (i = 0; i < pDashArray->GetCount(); i ++) {
@@ -465,9 +445,6 @@ void CPDF_Annot::DrawBorder(CFX_RenderDevice* pDevice, const CFX_AffineMatrix* p
             }
         } else {
             graph_state.m_DashArray = FX_Alloc(FX_FLOAT, 2);
-            if (graph_state.m_DashArray == NULL) {
-                return ;
-            }
             graph_state.m_DashCount = 2;
             graph_state.m_DashArray[0] = graph_state.m_DashArray[1] = 3 * 1.0f;
         }

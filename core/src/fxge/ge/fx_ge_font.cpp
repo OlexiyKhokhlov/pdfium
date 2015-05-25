@@ -32,18 +32,14 @@ CFX_Font::~CFX_Font()
         delete m_pSubstFont;
         m_pSubstFont = NULL;
     }
-#ifdef FOXIT_CHROME_BUILD
     if (m_pFontDataAllocation) {
         FX_Free(m_pFontDataAllocation);
         m_pFontDataAllocation = NULL;
     }
-#endif
     if (m_Face) {
-#ifdef FOXIT_CHROME_BUILD
         if (FXFT_Get_Face_External_Stream(m_Face)) {
             FXFT_Clear_Face_External_Stream(m_Face);
         }
-#endif
         if(m_bEmbedded) {
             DeleteFace();
         } else {
@@ -58,7 +54,7 @@ CFX_Font::~CFX_Font()
         FX_Free(m_pGsubData);
         m_pGsubData = NULL;
     }
-#if (_FXM_PLATFORM_  == _FXM_PLATFORM_APPLE_ && (!defined(_FPDFAPI_MINI_)))
+#if _FXM_PLATFORM_  == _FXM_PLATFORM_APPLE_
     ReleasePlatformResource();
 #endif
 }
@@ -72,10 +68,7 @@ FX_BOOL CFX_Font::LoadSubst(const CFX_ByteString& face_name, FX_BOOL bTrueType, 
 {
     m_bEmbedded = FALSE;
     m_bVertical = bVertical;
-    m_pSubstFont = FX_NEW CFX_SubstFont;
-    if (!m_pSubstFont) {
-        return FALSE;
-    }
+    m_pSubstFont = new CFX_SubstFont;
     m_Face = CFX_GEModule::Get()->GetFontMgr()->FindSubstFont(face_name, bTrueType, flags, weight, italic_angle,
              CharsetCP, m_pSubstFont);
 #if _FXM_PLATFORM_  == _FXM_PLATFORM_APPLE_
@@ -111,9 +104,6 @@ extern "C" {
 FX_BOOL _LoadFile(FXFT_Library library, FXFT_Face* Face, IFX_FileRead* pFile, FXFT_Stream* stream)
 {
     FXFT_Stream stream1 = (FXFT_Stream)FX_Alloc(FX_BYTE, sizeof (FXFT_StreamRec));
-    if (!stream1) {
-        return FALSE;
-    }
     stream1->base = NULL;
     stream1->size = (unsigned long)pFile->GetSize();
     stream1->pos = 0;
@@ -170,7 +160,7 @@ static FXFT_Face FT_LoadFont(FX_LPBYTE pData, int size)
         FXFT_Init_FreeType(&CFX_GEModule::Get()->GetFontMgr()->m_FTLibrary);
     }
     library = CFX_GEModule::Get()->GetFontMgr()->m_FTLibrary;
-    FXFT_Face face;
+    FXFT_Face face = NULL;
     int error = FXFT_New_Memory_Face(library, pData, size, 0, &face);
     if (error) {
         return NULL;
@@ -183,18 +173,10 @@ static FXFT_Face FT_LoadFont(FX_LPBYTE pData, int size)
 }
 FX_BOOL CFX_Font::LoadEmbedded(FX_LPCBYTE data, FX_DWORD size)
 {
-#ifdef FOXIT_CHROME_BUILD
     m_pFontDataAllocation = FX_Alloc(FX_BYTE, size);
-    if (!m_pFontDataAllocation) {
-        return FALSE;
-    }
     FXSYS_memcpy32(m_pFontDataAllocation, data, size);
     m_Face = FT_LoadFont((FX_LPBYTE)m_pFontDataAllocation, size);
     m_pFontData = (FX_LPBYTE)m_pFontDataAllocation;
-#else
-    m_Face = FT_LoadFont((FX_LPBYTE)data, size);
-    m_pFontData = (FX_LPBYTE)data;
-#endif
     m_bEmbedded = TRUE;
     m_dwSize = size;
     return m_Face != NULL;
@@ -451,7 +433,5 @@ FX_DWORD CFX_UnicodeEncoding::GlyphFromCharCodeEx(FX_DWORD charcode, int encodin
 }
 IFX_FontEncoding* FXGE_CreateUnicodeEncoding(CFX_Font* pFont)
 {
-    CFX_UnicodeEncoding* pEncoding = NULL;
-    pEncoding = FX_NEW CFX_UnicodeEncoding(pFont);
-    return pEncoding;
+    return new CFX_UnicodeEncoding(pFont);
 }

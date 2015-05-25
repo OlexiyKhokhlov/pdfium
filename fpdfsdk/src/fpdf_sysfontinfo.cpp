@@ -4,8 +4,9 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../public/fpdf_sysfontinfo.h"
 #include "../include/fsdk_define.h"
-#include "../include/fpdf_sysfontinfo.h"
+#include "../include/pdfwindow/PWL_FontMap.h"
 
 class CSysFontInfo_Ext FX_FINAL : public IFX_SystemFontInfo
 {
@@ -75,6 +76,9 @@ public:
 		if (m_pInfo->DeleteFont)
 			m_pInfo->DeleteFont(m_pInfo, hFont);
 	}
+
+private:
+        ~CSysFontInfo_Ext() { }
 };
 
 DLLEXPORT void STDCALL FPDF_AddInstalledFont(void* mapper, const char* name, int charset)
@@ -86,9 +90,14 @@ DLLEXPORT void STDCALL FPDF_SetSystemFontInfo(FPDF_SYSFONTINFO* pFontInfoExt)
 {
 	if (pFontInfoExt->version != 1) return;
 
-	CSysFontInfo_Ext* pFontInfo = FX_NEW CSysFontInfo_Ext;
+	CSysFontInfo_Ext* pFontInfo = new CSysFontInfo_Ext;
 	pFontInfo->m_pInfo = pFontInfoExt;
 	CFX_GEModule::Get()->GetFontMgr()->SetSystemFontInfo(pFontInfo);
+}
+
+DLLEXPORT const FPDF_CharsetFontMap* STDCALL FPDF_GetDefaultTTFMap()
+{
+    return CPWL_FontMap::defaultTTFMap;
 }
 
 struct FPDF_SYSFONTINFO_DEFAULT : public FPDF_SYSFONTINFO

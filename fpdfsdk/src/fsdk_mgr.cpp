@@ -4,9 +4,9 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../public/fpdf_ext.h"
 #include "../include/fsdk_define.h"
 #include "../include/fsdk_mgr.h"
-#include "../include/fpdf_ext.h"
 #include "../include/formfiller/FFL_FormFiller.h"
 #include "../include/javascript/IJavaScript.h"
 
@@ -423,30 +423,32 @@ void CPDFSDK_Document:: ProcJavascriptFun()
 
 FX_BOOL CPDFSDK_Document::ProcOpenAction()
 {
-	if(!m_pDoc) return FALSE;
-	
-	CPDF_Dictionary* pRoot = m_pDoc->GetRoot();	
-	if (!pRoot)	return FALSE;
-	CPDF_Object* pOpenAction = pRoot->GetDict("OpenAction");//
-	if(!pOpenAction) pOpenAction = pRoot->GetArray("OpenAction");//
-	if(!pOpenAction) return FALSE;
-	
+	if(!m_pDoc)
+		return FALSE;
+
+	CPDF_Dictionary* pRoot = m_pDoc->GetRoot();
+	if (!pRoot)
+		return FALSE;
+
+	CPDF_Object* pOpenAction = pRoot->GetDict("OpenAction");
+	if(!pOpenAction)
+		pOpenAction = pRoot->GetArray("OpenAction");
+
+	if(!pOpenAction)
+		return FALSE;
+
 	if(pOpenAction->GetType()==PDFOBJ_ARRAY)
-	{	
-	}
-	else if(pOpenAction->GetType()==PDFOBJ_DICTIONARY)
-	{	
-		CPDF_Dictionary * pDict=(CPDF_Dictionary*)pOpenAction;	
-		CPDF_Action Action = pDict;
-		
-		if(m_pEnv->GetActionHander())
-			m_pEnv->GetActionHander()->DoAction_DocOpen(Action,this);		
-	}	
-	else
+		return TRUE;
+
+	if(pOpenAction->GetType()==PDFOBJ_DICTIONARY)
 	{
-		return FALSE;			
-	}	
-	return TRUE;
+		CPDF_Dictionary * pDict=(CPDF_Dictionary*)pOpenAction;
+		CPDF_Action action(pDict);
+		if(m_pEnv->GetActionHander())
+			m_pEnv->GetActionHander()->DoAction_DocOpen(action, this);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 CPDF_OCContext*	CPDFSDK_Document::GetOCContext()

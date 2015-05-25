@@ -7,13 +7,11 @@
 #include "../../../include/fpdfapi/fpdf_parser.h"
 #include "../../../include/fpdfapi/fpdf_module.h"
 #include "../../../include/fpdfapi/fpdf_page.h"
-#include "../../../../third_party/numerics/safe_math.h"
+#include "../../../src/fxcrt/fx_safe_types.h"
 #include "../fpdf_page/pageint.h"
 #include <utility>
 #include <vector>
 
-#define _PARSER_OBJECT_LEVLE_		64
-extern const FX_LPCSTR _PDF_CharType;
 FX_BOOL IsSignatureDict(const CPDF_Dictionary* pDict)
 {
     CPDF_Object* pType = pDict->GetElementValue(FX_BSTRC("Type"));
@@ -39,6 +37,7 @@ static int _CompareFileSize(const void* p1, const void* p2)
     }
     return 0;
 }
+
 CPDF_Parser::CPDF_Parser()
 {
     m_pDocument = NULL;
@@ -174,7 +173,7 @@ FX_DWORD CPDF_Parser::StartParse(IFX_FileRead* pFileAccess, FX_BOOL bReParse, FX
     }
     m_Syntax.RestorePos(m_Syntax.m_FileLen - m_Syntax.m_HeaderOffset - 9);
     if (!bReParse) {
-        m_pDocument = FX_NEW CPDF_Document(this);
+        m_pDocument = new CPDF_Document(this);
     }
     FX_BOOL bXRefRebuilt = FALSE;
     if (m_Syntax.SearchWord(FX_BSTRC("startxref"), TRUE, FALSE, 4096)) {
@@ -628,13 +627,12 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
     }
     FX_INT32 status = 0;
     FX_INT32 inside_index = 0;
-    FX_DWORD objnum, gennum;
+    FX_DWORD objnum = 0, gennum = 0;
     FX_INT32 depth = 0;
     FX_LPBYTE buffer = FX_Alloc(FX_BYTE, 4096);
     FX_FILESIZE pos = m_Syntax.m_HeaderOffset;
-    FX_FILESIZE start_pos, start_pos1;
+    FX_FILESIZE start_pos = 0, start_pos1 = 0;
     FX_FILESIZE last_obj = -1, last_xref = -1, last_trailer = -1;
-    FX_BOOL bInUpdate = FALSE;
     while (pos < m_Syntax.m_FileLen) {
         FX_BOOL bOverFlow = FALSE;
         FX_DWORD size = (FX_DWORD)(m_Syntax.m_FileLen - pos);
@@ -648,7 +646,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
             FX_BYTE byte = buffer[i];
             switch (status) {
                 case 0:
-                    if (_PDF_CharType[byte] == 'W') {
+                    if (PDF_CharType[byte] == 'W') {
                         status = 1;
                     }
                     if (byte <= '9' && byte >= '0') {
@@ -676,7 +674,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                     }
                     break;
                 case 1:
-                    if (_PDF_CharType[byte] == 'W') {
+                    if (PDF_CharType[byte] == 'W') {
                         break;
                     } else if (byte <= '9' && byte >= '0') {
                         start_pos = pos + i;
@@ -697,7 +695,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                     if (byte <= '9' && byte >= '0') {
                         objnum = objnum * 10 + byte - '0';
                         break;
-                    } else if (_PDF_CharType[byte] == 'W') {
+                    } else if (PDF_CharType[byte] == 'W') {
                         status = 3;
                     } else {
                         --i;
@@ -710,7 +708,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                         start_pos1 = pos + i;
                         status = 4;
                         gennum = byte - '0';
-                    } else if (_PDF_CharType[byte] == 'W') {
+                    } else if (PDF_CharType[byte] == 'W') {
                         break;
                     } else if (byte == 't') {
                         status = 7;
@@ -724,7 +722,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                     if (byte <= '9' && byte >= '0') {
                         gennum = gennum * 10 + byte - '0';
                         break;
-                    } else if (_PDF_CharType[byte] == 'W') {
+                    } else if (PDF_CharType[byte] == 'W') {
                         status = 5;
                     } else {
                         --i;
@@ -735,7 +733,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                     if (byte == 'o') {
                         status = 6;
                         inside_index = 1;
-                    } else if (_PDF_CharType[byte] == 'W') {
+                    } else if (PDF_CharType[byte] == 'W') {
                         break;
                     } else if (byte <= '9' && byte >= '0') {
                         objnum = gennum;
@@ -770,7 +768,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                             }
                             break;
                         case 3:
-                            if (_PDF_CharType[byte] == 'W' || _PDF_CharType[byte] == 'D') {
+                            if (PDF_CharType[byte] == 'W' || PDF_CharType[byte] == 'D') {
                                 if (objnum > 0x1000000) {
                                     status = 0;
                                     break;
@@ -844,7 +842,7 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                     break;
                 case 7:
                     if (inside_index == 7) {
-                        if (_PDF_CharType[byte] == 'W' || _PDF_CharType[byte] == 'D') {
+                        if (PDF_CharType[byte] == 'W' || PDF_CharType[byte] == 'D') {
                             last_trailer = pos + i - 7;
                             m_Syntax.RestorePos(pos + i - m_Syntax.m_HeaderOffset);
                             CPDF_Object* pObj = m_Syntax.GetObject(m_pDocument, 0, 0, 0);
@@ -895,7 +893,6 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                                     } else {
                                         pObj->Release();
                                     }
-                                    bInUpdate = TRUE;
                                 }
                             }
                         }
@@ -949,13 +946,13 @@ FX_BOOL CPDF_Parser::RebuildCrossRef()
                     status = 0;
                     break;
                 case 13:
-                    if (_PDF_CharType[byte] == 'D' || _PDF_CharType[byte] == 'W') {
+                    if (PDF_CharType[byte] == 'D' || PDF_CharType[byte] == 'W') {
                         --i;
                         status = 0;
                     }
                     break;
                 case 14:
-                    if (_PDF_CharType[byte] == 'W') {
+                    if (PDF_CharType[byte] == 'W') {
                         status = 0;
                     } else if (byte == '%' || byte == '(' || byte == '<' || byte == '\\') {
                         status = 0;
@@ -1003,7 +1000,15 @@ FX_BOOL CPDF_Parser::LoadCrossRefV5(FX_FILESIZE pos, FX_FILESIZE& prev, FX_BOOL 
         return FALSE;
     }
     if (m_pDocument) {
-        m_pDocument->InsertIndirectObject(pStream->m_ObjNum, pStream);
+        CPDF_Dictionary * pDict = m_pDocument->GetRoot();
+        if (!pDict || pDict->GetObjNum() != pStream->m_ObjNum) {
+            m_pDocument->InsertIndirectObject(pStream->m_ObjNum, pStream);
+        } else {
+            if (pStream->GetType() == PDFOBJ_STREAM) {
+                pStream->Release();
+            }
+            return FALSE;
+        }
     }
     if (pStream->GetType() != PDFOBJ_STREAM) {
         return FALSE;
@@ -1032,7 +1037,11 @@ FX_BOOL CPDF_Parser::LoadCrossRefV5(FX_FILESIZE pos, FX_FILESIZE& prev, FX_BOOL 
             CPDF_Object* pCountObj = pArray->GetElement(i * 2 + 1);
             if (pStartNumObj && pStartNumObj->GetType() == PDFOBJ_NUMBER
                 && pCountObj && pCountObj->GetType() == PDFOBJ_NUMBER) {
-                arrIndex.push_back(std::make_pair(pStartNumObj->GetInteger(), pCountObj->GetInteger()));
+                int nStartNum = pStartNumObj->GetInteger();
+                int nCount = pCountObj->GetInteger();
+                if (nStartNum >= 0 && nCount > 0) {
+                    arrIndex.push_back(std::make_pair(nStartNum, nCount));
+                }
             }
         }
     }
@@ -1065,8 +1074,8 @@ FX_BOOL CPDF_Parser::LoadCrossRefV5(FX_FILESIZE pos, FX_FILESIZE& prev, FX_BOOL 
         if (startnum < 0) {
             continue;
         }
-        m_dwXrefStartObjNum = base::checked_cast<FX_DWORD, FX_INT32> (startnum);
-        FX_DWORD count = base::checked_cast<FX_DWORD, FX_INT32> (arrIndex[i].second);
+        m_dwXrefStartObjNum = pdfium::base::checked_cast<FX_DWORD, FX_INT32> (startnum);
+        FX_DWORD count = pdfium::base::checked_cast<FX_DWORD, FX_INT32> (arrIndex[i].second);
         FX_SAFE_DWORD dwCaculatedSize = segindex;
         dwCaculatedSize += count;
         dwCaculatedSize *= totalWidth;
@@ -1076,7 +1085,7 @@ FX_BOOL CPDF_Parser::LoadCrossRefV5(FX_FILESIZE pos, FX_FILESIZE& prev, FX_BOOL 
         FX_LPCBYTE segstart = pData + segindex * totalWidth;
         FX_SAFE_DWORD dwMaxObjNum = startnum;
         dwMaxObjNum += count;
-        FX_DWORD dwV5Size = base::checked_cast<FX_DWORD, FX_INT32> (m_V5Type.GetSize());
+        FX_DWORD dwV5Size = pdfium::base::checked_cast<FX_DWORD, FX_INT32> (m_V5Type.GetSize());
         if (!dwMaxObjNum.IsValid() || dwMaxObjNum.ValueOrDie() > dwV5Size) {
             continue;
         }
@@ -1202,14 +1211,14 @@ CPDF_Object* CPDF_Parser::ParseIndirectObject(CPDF_IndirectObjects* pObjList, FX
         FX_INT32 offset = pObjStream->GetDict()->GetInteger(FX_BSTRC("First"));
         CPDF_SyntaxParser syntax;
         CFX_SmartPointer<IFX_FileStream> file(FX_CreateMemoryStream((FX_LPBYTE)pObjStream->GetData(), (size_t)pObjStream->GetSize(), FALSE));
-        syntax.InitParser((IFX_FileStream*)file, 0);
+        syntax.InitParser(file.Get(), 0);
         CPDF_Object* pRet = NULL;
         while (n) {
             FX_DWORD thisnum = syntax.GetDirectNum();
             FX_DWORD thisoff = syntax.GetDirectNum();
             if (thisnum == objnum) {
                 syntax.RestorePos(offset + thisoff);
-                pRet = syntax.GetObject(pObjList, 0, 0, 0, pContext);
+                pRet = syntax.GetObject(pObjList, 0, 0, pContext);
                 break;
             }
             n --;
@@ -1228,7 +1237,7 @@ CPDF_StreamAcc* CPDF_Parser::GetObjectStream(FX_DWORD objnum)
     if (pStream == NULL || pStream->GetType() != PDFOBJ_STREAM) {
         return NULL;
     }
-    pStreamAcc = FX_NEW CPDF_StreamAcc;
+    pStreamAcc = new CPDF_StreamAcc;
     pStreamAcc->LoadAllData(pStream);
     m_ObjectStreamMap.SetAt((void*)(FX_UINTPTR)objnum, pStreamAcc);
     return pStreamAcc;
@@ -1275,7 +1284,7 @@ void CPDF_Parser::GetIndirectBinary(FX_DWORD objnum, FX_LPBYTE& pBuffer, FX_DWOR
         FX_LPCBYTE pData = pObjStream->GetData();
         FX_DWORD totalsize = pObjStream->GetSize();
         CFX_SmartPointer<IFX_FileStream> file(FX_CreateMemoryStream((FX_LPBYTE)pData, (size_t)totalsize, FALSE));
-        syntax.InitParser((IFX_FileStream*)file, 0);
+        syntax.InitParser(file.Get(), 0);
         while (n) {
             FX_DWORD thisnum = syntax.GetDirectNum();
             FX_DWORD thisoff = syntax.GetDirectNum();
@@ -1388,11 +1397,11 @@ CPDF_Object* CPDF_Parser::ParseIndirectObjectAt(CPDF_IndirectObjects* pObjList, 
         m_Syntax.RestorePos(SavedPos);
         return NULL;
     }
-    CPDF_Object* pObj = m_Syntax.GetObject(pObjList, objnum, parser_gennum, 0, pContext);
-    FX_FILESIZE endOffset = m_Syntax.SavePos();
+    CPDF_Object* pObj = m_Syntax.GetObject(pObjList, objnum, parser_gennum, pContext);
+    m_Syntax.SavePos();
     CFX_ByteString bsWord = m_Syntax.GetKeyword();
     if (bsWord == FX_BSTRC("endobj")) {
-        endOffset = m_Syntax.SavePos();
+        m_Syntax.SavePos();
     }
     m_Syntax.RestorePos(SavedPos);
     if (pObj) {
@@ -1429,7 +1438,7 @@ CPDF_Object* CPDF_Parser::ParseIndirectObjectAtByStrict(CPDF_IndirectObjects* pO
         m_Syntax.RestorePos(SavedPos);
         return NULL;
     }
-    CPDF_Object* pObj = m_Syntax.GetObjectByStrict(pObjList, objnum, gennum, 0, pContext);
+    CPDF_Object* pObj = m_Syntax.GetObjectByStrict(pObjList, objnum, gennum, pContext);
     if (pResultPos) {
         *pResultPos = m_Syntax.m_Pos;
     }
@@ -1548,7 +1557,7 @@ FX_DWORD CPDF_Parser::StartAsynParse(IFX_FileRead* pFileAccess, FX_BOOL bReParse
         return StartParse(pFileAccess, bReParse, bOwnFileRead);
     }
     if (!bReParse) {
-        m_pDocument = FX_NEW CPDF_Document(this);
+        m_pDocument = new CPDF_Document(this);
     }
     FX_FILESIZE dwFirstXRefOffset = m_Syntax.SavePos();
     FX_BOOL bXRefRebuilt = FALSE;
@@ -1566,11 +1575,10 @@ FX_DWORD CPDF_Parser::StartAsynParse(IFX_FileRead* pFileAccess, FX_BOOL bReParse
             return FALSE;
         }
         FX_INT32 xrefsize = GetDirectInteger(m_pTrailer, FX_BSTRC("Size"));
-        if (xrefsize == 0) {
-            return FALSE;
+        if (xrefsize > 0) {
+            m_CrossRef.SetSize(xrefsize);
+            m_V5Type.SetSize(xrefsize);
         }
-        m_CrossRef.SetSize(xrefsize);
-        m_V5Type.SetSize(xrefsize);
     }
     FX_DWORD dwRet = SetEncryptHandler();
     if (dwRet != PDFPARSE_ERROR_SUCCESS) {
@@ -1641,14 +1649,14 @@ FX_DWORD CPDF_Parser::LoadLinearizedMainXRefTable()
     FX_BYTE ch = 0;
     FX_DWORD dwCount = 0;
     m_Syntax.GetNextChar(ch);
-    FX_INT32 type = _PDF_CharType[ch];
+    FX_INT32 type = PDF_CharType[ch];
     while (type == 'W') {
         ++dwCount;
         if (m_Syntax.m_FileLen >= (FX_FILESIZE)(m_Syntax.SavePos() + m_Syntax.m_HeaderOffset)) {
             break;
         }
         m_Syntax.GetNextChar(ch);
-        type = _PDF_CharType[ch];
+        type = PDF_CharType[ch];
     }
     m_LastXRefOffset += dwCount;
     FX_POSITION pos = m_ObjectStreamMap.GetStartPosition();
@@ -1668,6 +1676,10 @@ FX_DWORD CPDF_Parser::LoadLinearizedMainXRefTable()
     m_Syntax.m_MetadataObjnum = dwSaveMetadataObjnum;
     return PDFPARSE_ERROR_SUCCESS;
 }
+
+// static
+int CPDF_SyntaxParser::s_CurrentRecursionDepth = 0;
+
 CPDF_SyntaxParser::CPDF_SyntaxParser()
 {
     m_pFileAccess = NULL;
@@ -1677,11 +1689,7 @@ CPDF_SyntaxParser::CPDF_SyntaxParser()
     m_pFileBuf = NULL;
     m_MetadataObjnum = 0;
     m_dwWordPos = 0;
-#if defined(_FPDFAPI_MINI_)
-    m_bFileStream = TRUE;
-#else
     m_bFileStream = FALSE;
-#endif
 }
 CPDF_SyntaxParser::~CPDF_SyntaxParser()
 {
@@ -1773,13 +1781,13 @@ void CPDF_SyntaxParser::GetNextWord()
     if (!GetNextChar(ch)) {
         return;
     }
-    FX_BYTE type = _PDF_CharType[ch];
+    FX_BYTE type = PDF_CharType[ch];
     while (1) {
         while (type == 'W') {
             if (!GetNextChar(ch)) {
                 return;
             }
-            type = _PDF_CharType[ch];
+            type = PDF_CharType[ch];
         }
         if (ch != '%') {
             break;
@@ -1792,7 +1800,7 @@ void CPDF_SyntaxParser::GetNextWord()
                 break;
             }
         }
-        type = _PDF_CharType[ch];
+        type = PDF_CharType[ch];
     }
     if (type == 'D') {
         m_bIsNumber = FALSE;
@@ -1802,7 +1810,7 @@ void CPDF_SyntaxParser::GetNextWord()
                 if (!GetNextChar(ch)) {
                     return;
                 }
-                type = _PDF_CharType[ch];
+                type = PDF_CharType[ch];
                 if (type != 'R' && type != 'N') {
                     m_Pos --;
                     return;
@@ -1842,7 +1850,7 @@ void CPDF_SyntaxParser::GetNextWord()
         if (!GetNextChar(ch)) {
             return;
         }
-        type = _PDF_CharType[ch];
+        type = PDF_CharType[ch];
         if (type == 'D' || type == 'W') {
             m_Pos --;
             break;
@@ -2010,14 +2018,14 @@ void CPDF_SyntaxParser::ToNextWord()
     if (!GetNextChar(ch)) {
         return;
     }
-    FX_BYTE type = _PDF_CharType[ch];
+    FX_BYTE type = PDF_CharType[ch];
     while (1) {
         while (type == 'W') {
             m_dwWordPos = m_Pos;
             if (!GetNextChar(ch)) {
                 return;
             }
-            type = _PDF_CharType[ch];
+            type = PDF_CharType[ch];
         }
         if (ch != '%') {
             break;
@@ -2030,7 +2038,7 @@ void CPDF_SyntaxParser::ToNextWord()
                 break;
             }
         }
-        type = _PDF_CharType[ch];
+        type = PDF_CharType[ch];
     }
     m_Pos --;
 }
@@ -2045,9 +2053,10 @@ CFX_ByteString CPDF_SyntaxParser::GetKeyword()
     GetNextWord();
     return CFX_ByteString((FX_LPCSTR)m_WordBuffer, m_WordSize);
 }
-CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWORD objnum, FX_DWORD gennum, FX_INT32 level, PARSE_CONTEXT* pContext, FX_BOOL bDecrypt)
+CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWORD objnum, FX_DWORD gennum, PARSE_CONTEXT* pContext, FX_BOOL bDecrypt)
 {
-    if (level > _PARSER_OBJECT_LEVLE_) {
+    CFX_AutoRestorer<int> restorer(&s_CurrentRecursionDepth);
+    if (++s_CurrentRecursionDepth > kParserMaxRecursionDepth) {
         return NULL;
     }
     FX_FILESIZE SavedPos = m_Pos;
@@ -2132,7 +2141,7 @@ CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWO
         }
         CPDF_Array* pArray = CPDF_Array::Create();
         while (1) {
-            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum, level + 1);
+            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum);
             if (pObj == NULL) {
                 return pArray;
             }
@@ -2147,8 +2156,6 @@ CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWO
         return pRet;
     }
     if (word == FX_BSTRC("<<")) {
-        FX_FILESIZE saveDictOffset = m_Pos - 2;
-        FX_DWORD dwDictSize = 0;
         if (bTypeOnly) {
             return (CPDF_Object*)PDFOBJ_DICTIONARY;
         }
@@ -2168,11 +2175,9 @@ CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWO
             }
             FX_FILESIZE SavedPos = m_Pos - key.GetLength();
             if (key == FX_BSTRC(">>")) {
-                dwDictSize = m_Pos - saveDictOffset;
                 break;
             }
             if (key == FX_BSTRC("endobj")) {
-                dwDictSize = m_Pos - 6 - saveDictOffset;
                 m_Pos = SavedPos;
                 break;
             }
@@ -2184,22 +2189,22 @@ CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWO
             if (key == FX_BSTRC("/Contents")) {
                 dwSignValuePos = m_Pos;
             }
-            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum, level + 1);
+            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum);
             if (pObj == NULL) {
                 continue;
             }
             if (key.GetLength() >= 1) {
                 if (nKeys < 32) {
-                    pDict->SetAt(CFX_ByteStringC(((FX_LPCSTR)key) + 1, key.GetLength() - 1), pObj);
+                    pDict->SetAt(CFX_ByteStringC(key.c_str() + 1, key.GetLength() - 1), pObj);
                 } else {
-                    pDict->AddValue(CFX_ByteStringC(((FX_LPCSTR)key) + 1, key.GetLength() - 1), pObj);
+                    pDict->AddValue(CFX_ByteStringC(key.c_str() + 1, key.GetLength() - 1), pObj);
                 }
             }
         }
         if (IsSignatureDict(pDict)) {
             FX_FILESIZE dwSavePos = m_Pos;
             m_Pos = dwSignValuePos;
-            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum, level + 1, NULL, FALSE);
+            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum, NULL, FALSE);
             pDict->SetAt(FX_BSTRC("Contents"), pObj);
             m_Pos = dwSavePos;
         }
@@ -2234,10 +2239,10 @@ CPDF_Object* CPDF_SyntaxParser::GetObject(CPDF_IndirectObjects* pObjList, FX_DWO
     }
     return NULL;
 }
-CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList, FX_DWORD objnum, FX_DWORD gennum,
-        FX_INT32 level, struct PARSE_CONTEXT* pContext)
+CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList, FX_DWORD objnum, FX_DWORD gennum, struct PARSE_CONTEXT* pContext)
 {
-    if (level > _PARSER_OBJECT_LEVLE_) {
+    CFX_AutoRestorer<int> restorer(&s_CurrentRecursionDepth);
+    if (++s_CurrentRecursionDepth > kParserMaxRecursionDepth) {
         return NULL;
     }
     FX_FILESIZE SavedPos = m_Pos;
@@ -2314,13 +2319,14 @@ CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList
         }
         CPDF_Array* pArray = CPDF_Array::Create();
         while (1) {
-            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum, level + 1);
+            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum);
             if (pObj == NULL) {
                 if (m_WordBuffer[0] == ']') {
                     return pArray;
                 }
-                if (pArray)
+                if (pArray) {
                     pArray->Release();
+                }
                 return NULL;
             }
             pArray->Add(pObj);
@@ -2345,8 +2351,9 @@ CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList
             FX_FILESIZE SavedPos = m_Pos;
             CFX_ByteString key = GetNextWord(bIsNumber);
             if (key.IsEmpty()) {
-                if (pDict)
+                if (pDict) {
                     pDict->Release();
+                }
                 return NULL;
             }
             if (key == FX_BSTRC(">>")) {
@@ -2360,10 +2367,11 @@ CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList
                 continue;
             }
             key = PDF_NameDecode(key);
-            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum, level + 1);
+            CPDF_Object* pObj = GetObject(pObjList, objnum, gennum);
             if (pObj == NULL) {
-                if (pDict)
+                if (pDict) {
                     pDict->Release();
+                }
                 FX_BYTE ch;
                 while (1) {
                     if (!GetNextChar(ch)) {
@@ -2375,11 +2383,9 @@ CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList
                 }
                 return NULL;
             }
-            if (key.GetLength() == 1) {
-                pDict->SetAt(CFX_ByteStringC(((FX_LPCSTR)key) + 1, key.GetLength() - 1), pObj);
-            } else {
-                pDict->AddValue(CFX_ByteStringC(((FX_LPCSTR)key) + 1, key.GetLength() - 1), pObj);
-            }
+            if (key.GetLength() > 1) {
+                pDict->AddValue(CFX_ByteStringC(key.c_str() + 1, key.GetLength() - 1), pObj);
+            } 
         }
         if (pContext) {
             pContext->m_DictEnd = m_Pos;
@@ -2395,8 +2401,9 @@ CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList
             if (pStream) {
                 return pStream;
             }
-            if (pDict)
+            if (pDict) {
                 pDict->Release();
+            }
             return NULL;
         } else {
             m_Pos = SavedPos;
@@ -2431,7 +2438,7 @@ CPDF_Stream* CPDF_SyntaxParser::ReadStream(CPDF_Dictionary* pDict, PARSE_CONTEXT
 
     CPDF_CryptoHandler* pCryptoHandler = objnum == (FX_DWORD)m_MetadataObjnum ? NULL : m_pCryptoHandler;
     if (pCryptoHandler == NULL) {
-        base::CheckedNumeric<FX_FILESIZE> pos = m_Pos;
+        pdfium::base::CheckedNumeric<FX_FILESIZE> pos = m_Pos;
         pos += len;
         if (pos.IsValid() && pos.ValueOrDie() < m_FileLen) {
             m_Pos = pos.ValueOrDie();
@@ -2469,14 +2476,7 @@ CPDF_Stream* CPDF_SyntaxParser::ReadStream(CPDF_Dictionary* pDict, PARSE_CONTEXT
         m_Pos = StreamStartPos;
     }
     CPDF_Stream* pStream;
-#if defined(_FPDFAPI_MINI_) && !defined(_FXCORE_FEATURE_ALL_)
-    pStream = FX_NEW CPDF_Stream(m_pFileAccess, pCryptoHandler, m_HeaderOffset + m_Pos, len, pDict, gennum);
-    m_Pos += len;
-#else
     FX_LPBYTE pData = FX_Alloc(FX_BYTE, len);
-    if (!pData) {
-        return NULL;
-    }
     ReadBlock(pData, len);
     if (pCryptoHandler) {
         CFX_BinaryBuf dest_buf;
@@ -2489,8 +2489,7 @@ CPDF_Stream* CPDF_SyntaxParser::ReadStream(CPDF_Dictionary* pDict, PARSE_CONTEXT
         len = dest_buf.GetSize();
         dest_buf.DetachBuffer();
     }
-    pStream = FX_NEW CPDF_Stream(pData, len, pDict);
-#endif
+    pStream = new CPDF_Stream(pData, len, pDict);
     if (pContext) {
         pContext->m_DataEnd = pContext->m_DataStart + len;
     }
@@ -2526,19 +2525,19 @@ FX_INT32 CPDF_SyntaxParser::GetDirectNum()
 }
 FX_BOOL CPDF_SyntaxParser::IsWholeWord(FX_FILESIZE startpos, FX_FILESIZE limit, FX_LPCBYTE tag, FX_DWORD taglen)
 {
-    FX_BYTE type = _PDF_CharType[tag[0]];
+    FX_BYTE type = PDF_CharType[tag[0]];
     FX_BOOL bCheckLeft = type != 'D' && type != 'W';
-    type = _PDF_CharType[tag[taglen - 1]];
+    type = PDF_CharType[tag[taglen - 1]];
     FX_BOOL bCheckRight = type != 'D' && type != 'W';
     FX_BYTE ch;
     if (bCheckRight && startpos + (FX_INT32)taglen <= limit && GetCharAt(startpos + (FX_INT32)taglen, ch)) {
-        FX_BYTE type = _PDF_CharType[ch];
+        FX_BYTE type = PDF_CharType[ch];
         if (type == 'N' || type == 'R') {
             return FALSE;
         }
     }
     if (bCheckLeft && startpos > 0 && GetCharAt(startpos - 1, ch)) {
-        FX_BYTE type = _PDF_CharType[ch];
+        FX_BYTE type = PDF_CharType[ch];
         if (type == 'N' || type == 'R') {
             return FALSE;
         }
@@ -2556,7 +2555,7 @@ FX_BOOL CPDF_SyntaxParser::SearchWord(FX_BSTR tag, FX_BOOL bWholeWord, FX_BOOL b
     if (!bForward) {
         offset = taglen - 1;
     }
-    FX_LPCBYTE tag_data = tag;
+    FX_LPCBYTE tag_data = tag.GetPtr();
     FX_BYTE byte;
     while (1) {
         if (bForward) {
@@ -2593,7 +2592,7 @@ FX_BOOL CPDF_SyntaxParser::SearchWord(FX_BSTR tag, FX_BOOL bWholeWord, FX_BOOL b
                 }
             }
             FX_FILESIZE startpos = bForward ? pos - taglen + 1 : pos;
-            if (!bWholeWord || IsWholeWord(startpos, limit, tag, taglen)) {
+            if (!bWholeWord || IsWholeWord(startpos, limit, tag.GetPtr(), taglen)) {
                 m_Pos = startpos;
                 return TRUE;
             }
@@ -2717,10 +2716,215 @@ void CPDF_SyntaxParser::GetBinary(FX_BYTE* buffer, FX_DWORD size)
         }
     }
 }
-CPDF_DataAvail::CPDF_DataAvail(IFX_FileAvail* pFileAvail, IFX_FileRead* pFileRead)
+
+class CPDF_DataAvail FX_FINAL : public IPDF_DataAvail
 {
-    m_pFileAvail = pFileAvail;
-    m_pFileRead = pFileRead;
+public:
+    CPDF_DataAvail(IFX_FileAvail* pFileAvail, IFX_FileRead* pFileRead);
+    ~CPDF_DataAvail();
+
+    virtual FX_BOOL                     IsDocAvail(IFX_DownloadHints* pHints)  FX_OVERRIDE;
+
+    virtual void                        SetDocument(CPDF_Document* pDoc)  FX_OVERRIDE;
+
+    virtual FX_BOOL                     IsPageAvail(int iPage, IFX_DownloadHints* pHints)  FX_OVERRIDE;
+
+    virtual FX_INT32                    IsFormAvail(IFX_DownloadHints *pHints)  FX_OVERRIDE;
+
+    virtual FX_INT32                    IsLinearizedPDF()  FX_OVERRIDE;
+
+    virtual FX_BOOL                     IsLinearized()  FX_OVERRIDE
+    {
+        return m_bLinearized;
+    }
+
+    virtual void                        GetLinearizedMainXRefInfo(FX_FILESIZE *pPos, FX_DWORD *pSize)  FX_OVERRIDE;
+
+protected:
+    static const int kMaxDataAvailRecursionDepth = 64;
+    static int s_CurrentDataAvailRecursionDepth;
+
+    FX_DWORD                            GetObjectSize(FX_DWORD objnum, FX_FILESIZE& offset);
+    FX_BOOL                             IsObjectsAvail(CFX_PtrArray& obj_array, FX_BOOL bParsePage, IFX_DownloadHints* pHints, CFX_PtrArray &ret_array);
+    FX_BOOL                             CheckDocStatus(IFX_DownloadHints *pHints);
+    FX_BOOL                             CheckHeader(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckFirstPage(IFX_DownloadHints *pHints);
+    FX_BOOL                             CheckEnd(IFX_DownloadHints *pHints);
+    FX_BOOL                             CheckCrossRef(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckCrossRefItem(IFX_DownloadHints *pHints);
+    FX_BOOL                             CheckTrailer(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckRoot(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckInfo(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckPages(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckPage(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckResources(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckAnnots(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckAcroForm(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckAcroFormSubObject(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckTrailerAppend(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckPageStatus(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckAllCrossRefStream(IFX_DownloadHints *pHints);
+
+    FX_INT32                            CheckCrossRefStream(IFX_DownloadHints *pHints, FX_FILESIZE &xref_offset);
+    FX_BOOL                             IsLinearizedFile(FX_LPBYTE pData, FX_DWORD dwLen);
+    void                                SetStartOffset(FX_FILESIZE dwOffset);
+    FX_BOOL                             GetNextToken(CFX_ByteString &token);
+    FX_BOOL                             GetNextChar(FX_BYTE &ch);
+    CPDF_Object	*                       ParseIndirectObjectAt(FX_FILESIZE pos, FX_DWORD objnum);
+    CPDF_Object	*                       GetObject(FX_DWORD objnum, IFX_DownloadHints* pHints, FX_BOOL *pExistInFile);
+    FX_BOOL                             GetPageKids(CPDF_Parser *pParser, CPDF_Object *pPages);
+    FX_BOOL                             PreparePageItem();
+    FX_BOOL                             LoadPages(IFX_DownloadHints* pHints);
+    FX_BOOL                             LoadAllXref(IFX_DownloadHints* pHints);
+    FX_BOOL                             LoadAllFile(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckLinearizedData(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckFileResources(IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckPageAnnots(int iPage, IFX_DownloadHints* pHints);
+
+    FX_BOOL                             CheckLinearizedFirstPage(int iPage, IFX_DownloadHints* pHints);
+    FX_BOOL                             HaveResourceAncestor(CPDF_Dictionary *pDict);
+    FX_BOOL                             CheckPage(FX_INT32 iPage, IFX_DownloadHints* pHints);
+    FX_BOOL                             LoadDocPages(IFX_DownloadHints* pHints);
+    FX_BOOL                             LoadDocPage(FX_INT32 iPage, IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckPageNode(CPDF_PageNode &pageNodes, FX_INT32 iPage, FX_INT32 &iCount, IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckUnkownPageNode(FX_DWORD dwPageNo, CPDF_PageNode *pPageNode, IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckArrayPageNode(FX_DWORD dwPageNo, CPDF_PageNode *pPageNode, IFX_DownloadHints* pHints);
+    FX_BOOL                             CheckPageCount(IFX_DownloadHints* pHints);
+    FX_BOOL                             IsFirstCheck(int iPage);
+    void                                ResetFirstCheck(int iPage);
+
+    CPDF_Parser                         m_parser;
+
+    CPDF_SyntaxParser                   m_syntaxParser;
+
+    CPDF_Object                         *m_pRoot;
+
+    FX_DWORD                            m_dwRootObjNum;
+
+    FX_DWORD                            m_dwInfoObjNum;
+
+    CPDF_Object                         *m_pLinearized;
+
+    CPDF_Object                         *m_pTrailer;
+
+    FX_BOOL                             m_bDocAvail;
+
+    FX_FILESIZE                         m_dwHeaderOffset;
+
+    FX_FILESIZE                         m_dwLastXRefOffset;
+
+    FX_FILESIZE                         m_dwXRefOffset;
+
+    FX_FILESIZE                         m_dwTrailerOffset;
+
+    FX_FILESIZE                         m_dwCurrentOffset;
+
+    PDF_DATAAVAIL_STATUS                m_docStatus;
+
+    FX_FILESIZE	                        m_dwFileLen;
+
+    CPDF_Document*                      m_pDocument;
+
+    CPDF_SortObjNumArray                m_objnum_array;
+
+    CFX_PtrArray                        m_objs_array;
+
+    FX_FILESIZE	                        m_Pos;
+
+    FX_FILESIZE                         m_bufferOffset;
+
+    FX_DWORD                            m_bufferSize;
+
+    CFX_ByteString                      m_WordBuf;
+
+    FX_BYTE                             m_WordBuffer[257];
+
+    FX_DWORD                            m_WordSize;
+
+    FX_BYTE                             m_bufferData[512];
+
+    CFX_FileSizeArray                   m_CrossOffset;
+
+    CFX_DWordArray                      m_XRefStreamList;
+
+    CFX_DWordArray                      m_PageObjList;
+
+    FX_DWORD                            m_PagesObjNum;
+
+    FX_BOOL                             m_bLinearized;
+
+    FX_DWORD                            m_dwFirstPageNo;
+
+    FX_BOOL                             m_bLinearedDataOK;
+
+    FX_BOOL                             m_bMainXRefLoadTried;
+
+    FX_BOOL                             m_bMainXRefLoadedOK;
+
+    FX_BOOL                             m_bPagesTreeLoad;
+
+    FX_BOOL                             m_bPagesLoad;
+
+    CPDF_Parser *                       m_pCurrentParser;
+
+    FX_FILESIZE                         m_dwCurrentXRefSteam;
+
+    FX_BOOL                             m_bAnnotsLoad;
+
+    FX_BOOL                             m_bHaveAcroForm;
+
+    FX_DWORD                            m_dwAcroFormObjNum;
+
+    FX_BOOL                             m_bAcroFormLoad;
+
+    CPDF_Object	*                       m_pAcroForm;
+
+    CFX_PtrArray                        m_arrayAcroforms;
+
+    CPDF_Dictionary *                   m_pPageDict;
+
+    CPDF_Object *                       m_pPageResource;
+
+    FX_BOOL                             m_bNeedDownLoadResource;
+
+    FX_BOOL                             m_bPageLoadedOK;
+
+    FX_BOOL                             m_bLinearizedFormParamLoad;
+
+    CFX_PtrArray                        m_PagesArray;
+
+    FX_DWORD                            m_dwEncryptObjNum;
+
+    FX_FILESIZE                         m_dwPrevXRefOffset;
+
+    FX_BOOL                             m_bTotalLoadPageTree;
+
+    FX_BOOL                             m_bCurPageDictLoadOK;
+
+    CPDF_PageNode                       m_pageNodes;
+
+    CFX_CMapDWordToDWord *              m_pageMapCheckState;
+
+    CFX_CMapDWordToDWord *              m_pagesLoadState;
+};
+
+IPDF_DataAvail::IPDF_DataAvail(IFX_FileAvail* pFileAvail, IFX_FileRead* pFileRead) :
+    m_pFileAvail(pFileAvail),
+    m_pFileRead(pFileRead) {
+}
+
+// static
+IPDF_DataAvail* IPDF_DataAvail::Create(IFX_FileAvail* pFileAvail, IFX_FileRead* pFileRead)
+{
+  return new CPDF_DataAvail(pFileAvail, pFileRead);
+}
+
+// static
+int CPDF_DataAvail::s_CurrentDataAvailRecursionDepth = 0;
+
+CPDF_DataAvail::CPDF_DataAvail(IFX_FileAvail* pFileAvail, IFX_FileRead* pFileRead)
+    : IPDF_DataAvail(pFileAvail, pFileRead)
+{
     m_Pos = 0;
     m_dwFileLen = 0;
     if (m_pFileRead) {
@@ -2868,7 +3072,7 @@ FX_BOOL CPDF_DataAvail::IsObjectsAvail(CFX_PtrArray& obj_array, FX_BOOL bParsePa
                     FX_DWORD dwNum = pRef->GetRefObjNum();
                     FX_FILESIZE offset;
                     FX_DWORD original_size = GetObjectSize(dwNum, offset);
-                    base::CheckedNumeric<FX_DWORD> size = original_size;
+                    pdfium::base::CheckedNumeric<FX_DWORD> size = original_size;
                     if (size.ValueOrDefault(0) == 0 || offset < 0 || offset >= m_dwFileLen) {
                         break;
                     }
@@ -3095,7 +3299,7 @@ CPDF_Object* CPDF_DataAvail::GetObject(FX_DWORD objnum, IFX_DownloadHints* pHint
         pParser       = (CPDF_Parser *)(m_pDocument->GetParser());
     }
 
-    base::CheckedNumeric<FX_DWORD> size = original_size;
+    pdfium::base::CheckedNumeric<FX_DWORD> size = original_size;
     if (size.ValueOrDefault(0) == 0 || offset < 0 || offset >= m_dwFileLen) {
         if (pExistInFile)
            *pExistInFile = FALSE;
@@ -3182,7 +3386,12 @@ FX_BOOL CPDF_DataAvail::CheckRoot(IFX_DownloadHints* pHints)
         }
         return FALSE;
     }
-    CPDF_Reference* pRef = (CPDF_Reference*)m_pRoot->GetDict()->GetElement(FX_BSTRC("Pages"));
+    CPDF_Dictionary* pDict = m_pRoot->GetDict();
+    if (!pDict) {
+        m_docStatus = PDF_DATAAVAIL_ERROR;
+        return FALSE;
+    }
+    CPDF_Reference* pRef = (CPDF_Reference*)pDict->GetElement(FX_BSTRC("Pages"));
     if (pRef == NULL || pRef->GetType() != PDFOBJ_REFERENCE) {
         m_docStatus = PDF_DATAAVAIL_ERROR;
         return FALSE;
@@ -3220,7 +3429,7 @@ FX_BOOL CPDF_DataAvail::PreparePageItem()
 FX_BOOL CPDF_DataAvail::IsFirstCheck(int iPage)
 {
     if (NULL == m_pageMapCheckState) {
-        m_pageMapCheckState = FX_NEW CFX_CMapDWordToDWord();
+        m_pageMapCheckState = new CFX_CMapDWordToDWord();
     }
     FX_DWORD dwValue = 0;
     if (!m_pageMapCheckState->Lookup(iPage, dwValue)) {
@@ -3236,7 +3445,7 @@ FX_BOOL CPDF_DataAvail::IsFirstCheck(int iPage)
 void CPDF_DataAvail::ResetFirstCheck(int iPage)
 {
     if (NULL == m_pageMapCheckState) {
-        m_pageMapCheckState = FX_NEW CFX_CMapDWordToDWord();
+        m_pageMapCheckState = new CFX_CMapDWordToDWord();
     }
     FX_DWORD dwValue = 1;
     if (!m_pageMapCheckState->Lookup(iPage, dwValue)) {
@@ -3499,13 +3708,13 @@ FX_INT32 CPDF_DataAvail::IsLinearizedPDF()
 FX_BOOL CPDF_DataAvail::IsLinearizedFile(FX_LPBYTE pData, FX_DWORD dwLen)
 {
     CFX_SmartPointer<IFX_FileStream> file(FX_CreateMemoryStream(pData, (size_t)dwLen, FALSE));
-    FX_INT32 offset = GetHeaderOffset((IFX_FileStream*)file);
+    FX_INT32 offset = GetHeaderOffset(file.Get());
     if (offset == -1) {
         m_docStatus = PDF_DATAAVAIL_ERROR;
         return FALSE;
     }
     m_dwHeaderOffset = offset;
-    m_syntaxParser.InitParser((IFX_FileStream*)file, offset);
+    m_syntaxParser.InitParser(file.Get(), offset);
     m_syntaxParser.RestorePos(m_syntaxParser.m_HeaderOffset + 9);
     FX_BOOL bNumber = FALSE;
     CFX_ByteString wordObjNum = m_syntaxParser.GetNextWord(bNumber);
@@ -3546,7 +3755,7 @@ FX_BOOL CPDF_DataAvail::CheckEnd(IFX_DownloadHints* pHints)
         FX_BYTE buffer[1024];
         m_pFileRead->ReadBlock(buffer, req_pos, dwSize);
         CFX_SmartPointer<IFX_FileStream> file(FX_CreateMemoryStream(buffer, (size_t)dwSize, FALSE));
-        m_syntaxParser.InitParser((IFX_FileStream*)file, 0);
+        m_syntaxParser.InitParser(file.Get(), 0);
         m_syntaxParser.RestorePos(dwSize - 1);
         if (m_syntaxParser.SearchWord(FX_BSTRC("startxref"), TRUE, FALSE, dwSize)) {
             FX_BOOL bNumber;
@@ -3573,7 +3782,7 @@ FX_BOOL CPDF_DataAvail::CheckEnd(IFX_DownloadHints* pHints)
     pHints->AddSegment(req_pos, dwSize);
     return FALSE;
 }
-FX_DWORD CPDF_DataAvail::CheckCrossRefStream(IFX_DownloadHints* pHints, FX_FILESIZE &xref_offset)
+FX_INT32 CPDF_DataAvail::CheckCrossRefStream(IFX_DownloadHints* pHints, FX_FILESIZE &xref_offset)
 {
     xref_offset = 0;
     FX_DWORD req_size = (FX_DWORD)(m_Pos + 512 > m_dwFileLen ? m_dwFileLen - m_Pos : 512);
@@ -3583,7 +3792,7 @@ FX_DWORD CPDF_DataAvail::CheckCrossRefStream(IFX_DownloadHints* pHints, FX_FILES
         FX_LPBYTE pBuf = buf.GetBuffer();
         m_pFileRead->ReadBlock(pBuf, m_dwCurrentXRefSteam, iSize);
         CFX_SmartPointer<IFX_FileStream> file(FX_CreateMemoryStream(pBuf, (size_t)iSize, FALSE));
-        m_parser.m_Syntax.InitParser((IFX_FileStream*)file, 0);
+        m_parser.m_Syntax.InitParser(file.Get(), 0);
         FX_BOOL bNumber = FALSE;
         CFX_ByteString objnum = m_parser.m_Syntax.GetNextWord(bNumber);
         if (!bNumber) {
@@ -3626,13 +3835,13 @@ FX_BOOL CPDF_DataAvail::GetNextToken(CFX_ByteString &token)
     if (!GetNextChar(ch)) {
         return FALSE;
     }
-    FX_BYTE type = _PDF_CharType[ch];
+    FX_BYTE type = PDF_CharType[ch];
     while (1) {
         while (type == 'W') {
             if (!GetNextChar(ch)) {
                 return FALSE;
             }
-            type = _PDF_CharType[ch];
+            type = PDF_CharType[ch];
         }
         if (ch != '%') {
             break;
@@ -3645,7 +3854,7 @@ FX_BOOL CPDF_DataAvail::GetNextToken(CFX_ByteString &token)
                 break;
             }
         }
-        type = _PDF_CharType[ch];
+        type = PDF_CharType[ch];
     }
     if (type == 'D') {
         m_WordBuffer[m_WordSize++] = ch;
@@ -3654,7 +3863,7 @@ FX_BOOL CPDF_DataAvail::GetNextToken(CFX_ByteString &token)
                 if (!GetNextChar(ch)) {
                     return FALSE;
                 }
-                type = _PDF_CharType[ch];
+                type = PDF_CharType[ch];
                 if (type != 'R' && type != 'N') {
                     m_Pos --;
                     CFX_ByteString ret(m_WordBuffer, m_WordSize);
@@ -3695,7 +3904,7 @@ FX_BOOL CPDF_DataAvail::GetNextToken(CFX_ByteString &token)
         if (!GetNextChar(ch)) {
             return FALSE;
         }
-        type = _PDF_CharType[ch];
+        type = PDF_CharType[ch];
         if (type == 'D' || type == 'W') {
             m_Pos --;
             break;
@@ -3750,8 +3959,8 @@ FX_BOOL CPDF_DataAvail::CheckCrossRefItem(IFX_DownloadHints *pHints)
 FX_BOOL CPDF_DataAvail::CheckAllCrossRefStream(IFX_DownloadHints *pHints)
 {
     FX_FILESIZE xref_offset = 0;
-    FX_DWORD dwRet = CheckCrossRefStream(pHints, xref_offset);
-    if (dwRet == 1) {
+    FX_INT32 nRet = CheckCrossRefStream(pHints, xref_offset);
+    if (nRet == 1) {
         if (!xref_offset) {
             m_docStatus = PDF_DATAAVAIL_LOADALLCRSOSSREF;
         } else {
@@ -3759,7 +3968,7 @@ FX_BOOL CPDF_DataAvail::CheckAllCrossRefStream(IFX_DownloadHints *pHints)
             m_Pos = xref_offset;
         }
         return TRUE;
-    } else if (dwRet == -1) {
+    } else if (nRet == -1) {
         m_docStatus = PDF_DATAAVAIL_ERROR;
     }
     return FALSE;
@@ -3827,14 +4036,14 @@ FX_BOOL CPDF_DataAvail::CheckTrailer(IFX_DownloadHints* pHints)
             return FALSE;
         }
         CFX_SmartPointer<IFX_FileStream> file(FX_CreateMemoryStream(pBuf, (size_t)iSize, FALSE));
-        m_syntaxParser.InitParser((IFX_FileStream*)file, 0);
+        m_syntaxParser.InitParser(file.Get(), 0);
         CPDF_Object *pTrailer = m_syntaxParser.GetObject(NULL, 0, 0, 0);
-        if (pTrailer->GetType() != PDFOBJ_DICTIONARY) {
-            return FALSE;
-        }
         if (!pTrailer) {
             m_Pos += m_syntaxParser.SavePos();
             pHints->AddSegment(m_Pos, iTrailerSize);
+            return FALSE;
+        }
+        if (pTrailer->GetType() != PDFOBJ_DICTIONARY) {
             return FALSE;
         }
         CPDF_Dictionary *pTrailerDict = pTrailer->GetDict();
@@ -3924,7 +4133,7 @@ FX_BOOL	CPDF_DataAvail::CheckArrayPageNode(FX_DWORD dwPageNo, CPDF_PageNode *pPa
         if (!pKid || pKid->GetType() != PDFOBJ_REFERENCE) {
             continue;
         }
-        CPDF_PageNode *pNode = FX_NEW CPDF_PageNode();
+        CPDF_PageNode *pNode = new CPDF_PageNode();
         pPageNode->m_childNode.Add(pNode);
         pNode->m_dwPageNo = ((CPDF_Reference*)pKid)->GetRefObjNum();
     }
@@ -3970,7 +4179,7 @@ FX_BOOL CPDF_DataAvail::CheckUnkownPageNode(FX_DWORD dwPageNo, CPDF_PageNode *pP
         switch (pKids->GetType()) {
             case PDFOBJ_REFERENCE: {
                     CPDF_Reference *pKid = (CPDF_Reference *)pKids;
-                    CPDF_PageNode *pNode = FX_NEW CPDF_PageNode();
+                    CPDF_PageNode *pNode = new CPDF_PageNode();
                     pPageNode->m_childNode.Add(pNode);
                     pNode->m_dwPageNo = pKid->GetRefObjNum();
                 }
@@ -3982,7 +4191,7 @@ FX_BOOL CPDF_DataAvail::CheckUnkownPageNode(FX_DWORD dwPageNo, CPDF_PageNode *pP
                         if (!pKid || pKid->GetType() != PDFOBJ_REFERENCE) {
                             continue;
                         }
-                        CPDF_PageNode *pNode = FX_NEW CPDF_PageNode();
+                        CPDF_PageNode *pNode = new CPDF_PageNode();
                         pPageNode->m_childNode.Add(pNode);
                         pNode->m_dwPageNo = ((CPDF_Reference*)pKid)->GetRefObjNum();
                     }
@@ -4194,6 +4403,10 @@ FX_BOOL CPDF_DataAvail::CheckLinearizedFirstPage(FX_INT32 iPage, IFX_DownloadHin
 }
 FX_BOOL CPDF_DataAvail::HaveResourceAncestor(CPDF_Dictionary *pDict)
 {
+    CFX_AutoRestorer<int> restorer(&s_CurrentDataAvailRecursionDepth);
+    if (++s_CurrentDataAvailRecursionDepth > kMaxDataAvailRecursionDepth) {
+        return FALSE;
+    }
     CPDF_Object *pParent = pDict->GetElement("Parent");
     if (!pParent) {
         return FALSE;
@@ -4206,9 +4419,8 @@ FX_BOOL CPDF_DataAvail::HaveResourceAncestor(CPDF_Dictionary *pDict)
     if (pRet) {
         m_pPageResource = pRet;
         return TRUE;
-    } else {
-        return HaveResourceAncestor(pParentDict);
     }
+    return HaveResourceAncestor(pParentDict);
 }
 FX_BOOL CPDF_DataAvail::IsPageAvail(FX_INT32 iPage, IFX_DownloadHints* pHints)
 {
@@ -4224,7 +4436,7 @@ FX_BOOL CPDF_DataAvail::IsPageAvail(FX_INT32 iPage, IFX_DownloadHints* pHints)
         m_objnum_array.RemoveAll();
     }
     if (m_pagesLoadState == NULL) {
-        m_pagesLoadState = FX_NEW CFX_CMapDWordToDWord();
+        m_pagesLoadState = new CFX_CMapDWordToDWord();
     }
     FX_DWORD dwPageLoad = 0;
     if (m_pagesLoadState->Lookup(iPage, dwPageLoad) && dwPageLoad != 0) {

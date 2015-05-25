@@ -203,9 +203,6 @@ FX_BOOL CFX_RenderDevice::DrawNormalText(int nChars, const FXTEXT_CHARPOS* pChar
     CFX_FaceCache* pFaceCache = pCache->GetCachedFace(pFont);
     FX_FONTCACHE_DEFINE(pCache, pFont);
     FXTEXT_GLYPHPOS* pGlyphAndPos = FX_Alloc(FXTEXT_GLYPHPOS, nChars);
-    if (!pGlyphAndPos) {
-        return FALSE;
-    }
     int iChar;
     deviceCtm = char2device;
     CFX_AffineMatrix matrixCTM = GetCTM();
@@ -984,19 +981,8 @@ CFX_FaceCache* CFX_FontCache::GetCachedFace(CFX_Font* pFont)
         counted_face_cache->m_nCount++;
         return counted_face_cache->m_Obj;
     }
-    CFX_FaceCache* face_cache = NULL;
-    face_cache = FX_NEW CFX_FaceCache(bExternal ? NULL : (FXFT_Face)face);
-    if (face_cache == NULL)	{
-        return NULL;
-    }
-    counted_face_cache = FX_NEW CFX_CountedFaceCache;
-    if (!counted_face_cache) {
-        if (face_cache) {
-            delete face_cache;
-            face_cache = NULL;
-        }
-        return NULL;
-    }
+    CFX_FaceCache* face_cache = new CFX_FaceCache(bExternal ? NULL : (FXFT_Face)face);
+    counted_face_cache = new CFX_CountedFaceCache;
     counted_face_cache->m_nCount = 2;
     counted_face_cache->m_Obj = face_cache;
     map.SetAt((FXFT_Face)face, counted_face_cache);
@@ -1070,7 +1056,7 @@ CFX_FaceCache::~CFX_FaceCache()
     }
     m_PathMap.RemoveAll();
 }
-#if ((_FXM_PLATFORM_  != _FXM_PLATFORM_APPLE_)|| defined(_FPDFAPI_MINI_))
+#if _FXM_PLATFORM_  != _FXM_PLATFORM_APPLE_
 void CFX_FaceCache::InitPlatform()
 {
 }
@@ -1081,10 +1067,7 @@ CFX_GlyphBitmap* CFX_FaceCache::LookUpGlyphBitmap(CFX_Font* pFont, const CFX_Aff
 {
     CFX_SizeGlyphCache* pSizeCache = NULL;
     if (!m_SizeMap.Lookup(FaceGlyphsKey, (void*&)pSizeCache)) {
-        pSizeCache = FX_NEW CFX_SizeGlyphCache;
-        if (pSizeCache == NULL)	{
-            return NULL;
-        }
+        pSizeCache = new CFX_SizeGlyphCache;
         m_SizeMap.SetAt(FaceGlyphsKey, pSizeCache);
     }
     CFX_GlyphBitmap* pGlyphBitmap = NULL;
@@ -1105,7 +1088,7 @@ const CFX_GlyphBitmap* CFX_FaceCache::LoadGlyphBitmap(CFX_Font* pFont, FX_DWORD 
         return NULL;
     }
     _CFX_UniqueKeyGen keygen;
-#if ((_FXM_PLATFORM_  != _FXM_PLATFORM_APPLE_)|| defined(_FPDFAPI_MINI_))
+#if _FXM_PLATFORM_  != _FXM_PLATFORM_APPLE_
     if (pFont->GetSubstFont())
         keygen.Generate(9, (int)(pMatrix->a * 10000), (int)(pMatrix->b * 10000),
                         (int)(pMatrix->c * 10000), (int)(pMatrix->d * 10000), dest_width, anti_alias,
@@ -1133,7 +1116,7 @@ const CFX_GlyphBitmap* CFX_FaceCache::LoadGlyphBitmap(CFX_Font* pFont, FX_DWORD 
     }
 #endif
     CFX_ByteStringC FaceGlyphsKey(keygen.m_Key, keygen.m_KeyLen);
-#if ((_FXM_PLATFORM_  != _FXM_PLATFORM_APPLE_)|| defined(_FPDFAPI_MINI_))
+#if _FXM_PLATFORM_  != _FXM_PLATFORM_APPLE_
     return LookUpGlyphBitmap(pFont, pMatrix, FaceGlyphsKey, glyph_index, bFontStyle, dest_width, anti_alias);
 #else
     if (text_flags & FXTEXT_NO_NATIVETEXT) {
@@ -1153,10 +1136,7 @@ const CFX_GlyphBitmap* CFX_FaceCache::LoadGlyphBitmap(CFX_Font* pFont, FX_DWORD 
         } else {
             pGlyphBitmap = RenderGlyph_Nativetext(pFont, glyph_index, pMatrix, dest_width, anti_alias);
             if (pGlyphBitmap) {
-                pSizeCache = FX_NEW CFX_SizeGlyphCache;
-                if (pSizeCache == NULL)	{
-                    return NULL;
-                }
+                pSizeCache = new CFX_SizeGlyphCache;
                 m_SizeMap.SetAt(FaceGlyphsKey, pSizeCache);
                 pSizeCache->m_GlyphMap.SetAt((FX_LPVOID)(FX_UINTPTR)glyph_index, pGlyphBitmap);
                 return pGlyphBitmap;
@@ -1186,11 +1166,7 @@ CFX_SizeGlyphCache::~CFX_SizeGlyphCache()
     }
     m_GlyphMap.RemoveAll();
 }
-#if defined(_FPDFAPI_MINI_)
-#define CONTRAST_RAMP_STEP	16
-#else
 #define CONTRAST_RAMP_STEP	1
-#endif
 void CFX_Font::AdjustMMParams(int glyph_index, int dest_width, int weight)
 {
     FXFT_MM_Var pMasters = NULL;
@@ -1336,13 +1312,21 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph(CFX_Font* pFont, FX_DWORD glyph_inde
             pFont->AdjustMMParams(glyph_index, dest_width, pFont->GetSubstFont()->m_Weight);
         }
     }
-    int transflag = FXFT_Get_Face_Internal_Flag(m_Face);
     FXFT_Set_Transform(m_Face, &ft_matrix, 0);
     int load_flags = (m_Face->face_flags & FT_FACE_FLAG_SFNT) ? FXFT_LOAD_NO_BITMAP : (FXFT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING);
     int error = FXFT_Load_Glyph(m_Face, glyph_index, load_flags);
     if (error) {
-        FXFT_Set_Face_Internal_Flag(m_Face, transflag);
-        return NULL;
+        //if an error is returned, try to reload glyphs without hinting.
+        if (load_flags & FT_LOAD_NO_HINTING || load_flags & FT_LOAD_NO_SCALE) {
+            return NULL;
+        }
+
+        load_flags |= FT_LOAD_NO_HINTING;
+        error = FXFT_Load_Glyph(m_Face, glyph_index, load_flags);
+
+        if (error) { 
+            return NULL;
+        }
     }
     int weight = 0;
     if (bUseCJKSubFont) {
@@ -1353,7 +1337,6 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph(CFX_Font* pFont, FX_DWORD glyph_inde
     if (pSubstFont && !(pSubstFont->m_SubstFlags & FXFONT_SUBST_MM) && weight > 400) {
         int index = (weight - 400) / 10;
         if (index >= WEIGHTPOW_ARRAY_SIZE) {
-            FXFT_Set_Face_Internal_Flag(m_Face, transflag);
             return NULL;
         }
         int level = 0;
@@ -1367,20 +1350,15 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph(CFX_Font* pFont, FX_DWORD glyph_inde
     FXFT_Library_SetLcdFilter(CFX_GEModule::Get()->GetFontMgr()->m_FTLibrary, FT_LCD_FILTER_DEFAULT);
     error = FXFT_Render_Glyph(m_Face, anti_alias);
     if (error) {
-        FXFT_Set_Face_Internal_Flag(m_Face, transflag);
         return NULL;
     }
     int bmwidth = FXFT_Get_Bitmap_Width(FXFT_Get_Glyph_Bitmap(m_Face));
     int bmheight = FXFT_Get_Bitmap_Rows(FXFT_Get_Glyph_Bitmap(m_Face));
     if (bmwidth > 2048 || bmheight > 2048) {
-        FXFT_Set_Face_Internal_Flag(m_Face, transflag);
         return NULL;
     }
     int dib_width = bmwidth;
-    CFX_GlyphBitmap* pGlyphBitmap = FX_NEW CFX_GlyphBitmap;
-    if (!pGlyphBitmap) {
-        return NULL;
-    }
+    CFX_GlyphBitmap* pGlyphBitmap = new CFX_GlyphBitmap;
     pGlyphBitmap->m_Bitmap.Create(dib_width, bmheight,
                                   anti_alias == FXFT_RENDER_MODE_MONO ? FXDIB_1bppMask : FXDIB_8bppMask);
     pGlyphBitmap->m_Left = FXFT_Get_Glyph_BitmapLeft(m_Face);
@@ -1410,7 +1388,6 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph(CFX_Font* pFont, FX_DWORD glyph_inde
             _GammaAdjust(pDestBuf, bmwidth, bmheight, dest_pitch, CFX_GEModule::Get()->GetTextGammaTable());
         }
     }
-    FXFT_Set_Face_Internal_Flag(m_Face, transflag);
     return pGlyphBitmap;
 }
 FX_BOOL _OutputGlyph(void* dib, int x, int y, CFX_Font* pFont,
@@ -1452,7 +1429,6 @@ FX_BOOL OutputText(void* dib, int x, int y, CFX_Font* pFont, double font_size,
     }
     FXFT_Face face = pFont->GetFace();
     FXFT_Select_Charmap(pFont->m_Face, FXFT_ENCODING_UNICODE);
-    int transflag = FXFT_Get_Face_Internal_Flag(pFont->m_Face);
     if (pText_matrix) {
         FXFT_Matrix  ft_matrix;
         ft_matrix.xx = (signed long)(pText_matrix->a / 64 * 65536);
@@ -1480,7 +1456,6 @@ FX_BOOL OutputText(void* dib, int x, int y, CFX_Font* pFont, double font_size,
                      glyph_index, argb);
         x_pos += (FX_FLOAT)w / em;
     }
-    FXFT_Set_Face_Internal_Flag(pFont->m_Face, transflag);
     return TRUE;
 }
 FX_BOOL OutputGlyph(void* dib, int x, int y, CFX_Font* pFont, double font_size,
@@ -1497,11 +1472,9 @@ FX_BOOL OutputGlyph(void* dib, int x, int y, CFX_Font* pFont, double font_size,
         ft_matrix.xy = ft_matrix.yx = 0;
         ft_matrix.yy = (signed long)(font_size / 64 * 65536);
     }
-    int transflag = FXFT_Get_Face_Internal_Flag(pFont->m_Face);
     FXFT_Set_Transform(pFont->m_Face, &ft_matrix, 0);
     FX_BOOL ret = _OutputGlyph(dib, x, y, pFont,
                                glyph_index, argb);
-    FXFT_Set_Face_Internal_Flag(pFont->m_Face, transflag);
     return ret;
 }
 const CFX_PathData* CFX_FaceCache::LoadGlyphPath(CFX_Font* pFont, FX_DWORD glyph_index, int dest_width)
@@ -1648,12 +1621,10 @@ CFX_PathData* CFX_Font::LoadGlyphPath(FX_DWORD glyph_index, int dest_width)
             AdjustMMParams(glyph_index, dest_width, m_pSubstFont->m_Weight);
         }
     }
-    int transflag = FXFT_Get_Face_Internal_Flag(m_Face);
     FXFT_Set_Transform(m_Face, &ft_matrix, 0);
     int load_flags = (m_Face->face_flags & FT_FACE_FLAG_SFNT) ? FXFT_LOAD_NO_BITMAP : FXFT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING;
     int error = FXFT_Load_Glyph(m_Face, glyph_index, load_flags);
     if (error) {
-        FXFT_Set_Face_Internal_Flag(m_Face, transflag);
         return NULL;
     }
     if (m_pSubstFont && !(m_pSubstFont->m_SubstFlags & FXFONT_SUBST_MM) && m_pSubstFont->m_Weight > 400) {
@@ -1680,13 +1651,9 @@ CFX_PathData* CFX_Font::LoadGlyphPath(FX_DWORD glyph_index, int dest_width)
     params.m_PointCount = 0;
     FXFT_Outline_Decompose(FXFT_Get_Glyph_Outline(m_Face), &funcs, &params);
     if (params.m_PointCount == 0) {
-        FXFT_Set_Face_Internal_Flag(m_Face, transflag);
         return NULL;
     }
-    CFX_PathData* pPath = FX_NEW CFX_PathData;
-    if (!pPath) {
-        return NULL;
-    }
+    CFX_PathData* pPath = new CFX_PathData;
     pPath->SetPointCount(params.m_PointCount);
     params.m_bCount = FALSE;
     params.m_PointCount = 0;
@@ -1699,7 +1666,6 @@ CFX_PathData* CFX_Font::LoadGlyphPath(FX_DWORD glyph_index, int dest_width)
     if (params.m_PointCount) {
         pPath->GetPoints()[params.m_PointCount - 1].m_Flag |= FXPT_CLOSEFIGURE;
     }
-    FXFT_Set_Face_Internal_Flag(m_Face, transflag);
     return pPath;
 }
 void _CFX_UniqueKeyGen::Generate(int count, ...)

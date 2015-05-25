@@ -41,7 +41,7 @@ CPDF_Document* CPWL_FontMap::GetDocument()
 	{
 		if (CPDF_ModuleMgr::Get())
 		{
-			m_pPDFDoc = FX_NEW CPDF_Document;
+			m_pPDFDoc = new CPDF_Document;
 			m_pPDFDoc->CreateNewDoc();
 		}
 	}
@@ -312,11 +312,7 @@ FX_INT32 CPWL_FontMap::GetPWLFontIndex(FX_WORD word, FX_INT32 nCharset)
 	}
 	*/
 
-#ifdef FOXIT_CHROME_BUILD
-  CFX_ByteString sAlias = EncodeFontAlias("Arial_Chrome", nCharset);
-#else
-	CFX_ByteString sAlias = EncodeFontAlias("Arial_Foxit", nCharset);
-#endif
+	CFX_ByteString sAlias = EncodeFontAlias("Arial_Chrome", nCharset);
 	AddedFont(pNewFont, sAlias);
 
 	return AddFontData(pNewFont, sAlias, nCharset);

@@ -7,7 +7,11 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
+#include "JS_Define.h"
+
 class CJS_GlobalData;
+class CJS_GlobalVariableArray;
+class CJS_KeyValue;
 
 struct js_global_data
 {
@@ -29,7 +33,7 @@ struct js_global_data
 	double				dData;
 	bool				bData;
 	CFX_ByteString		sData;
-	v8::Persistent<v8::Object>  pData;
+	v8::Global<v8::Object>  pData;
 	bool				bPersistent;
 	bool				bDeleted;
 };
@@ -41,12 +45,12 @@ public:
 	virtual ~global_alternate();
 
 public:
-	FX_BOOL						setPersistent(OBJ_METHOD_PARAMS);
+	FX_BOOL						setPersistent(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError);
 
 public:
 	FX_BOOL						QueryProperty(FX_LPCWSTR propname);
-	FX_BOOL						DoProperty(IFXJS_Context* cc, FX_LPCWSTR propname, CJS_PropValue & vp, JS_ErrorString & sError);
-	FX_BOOL						DelProperty(IFXJS_Context* cc, FX_LPCWSTR propname, JS_ErrorString & sError);
+	FX_BOOL						DoProperty(IFXJS_Context* cc, FX_LPCWSTR propname, CJS_PropValue & vp, CFX_WideString & sError);
+	FX_BOOL						DelProperty(IFXJS_Context* cc, FX_LPCWSTR propname, CFX_WideString & sError);
 
 	void						Initial(CPDFDoc_Environment* pApp);
 
@@ -57,8 +61,8 @@ private:
 	FX_BOOL						SetGlobalVariables(FX_LPCSTR propname, int nType, 
 									double dData, bool bData, const CFX_ByteString& sData, JSObject pData, bool bDefaultPersistent);
 
-	void						ObjectToArray(v8::Handle<v8::Object> pObj, CJS_GlobalVariableArray& array);
-	void						PutObjectProperty(v8::Handle<v8::Object> obj, CJS_KeyValue* pData);
+	void						ObjectToArray(v8::Local<v8::Object> pObj, CJS_GlobalVariableArray& array);
+	void						PutObjectProperty(v8::Local<v8::Object> obj, CJS_KeyValue* pData);
 
 private:
 	CFX_MapByteStringToPtr		m_mapGlobal;

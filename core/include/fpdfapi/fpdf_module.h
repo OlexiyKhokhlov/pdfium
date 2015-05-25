@@ -23,7 +23,7 @@ class ICodec_IccModule;
 class ICodec_FlateModule;
 #define ADDIN_NAME_CJK			"Eastern Asian Language Support"
 #define ADDIN_NAME_DECODER		"JPEG2000 and JBIG2 Image Decoders"
-class CPDF_ModuleMgr : public CFX_Object
+class CPDF_ModuleMgr 
 {
 public:
 
@@ -47,11 +47,6 @@ public:
     void		InitPageModule();
 
     void		InitRenderModule();
-
-
-    void		SetModulePath(FX_LPCSTR module_name, FX_LPCSTR path);
-
-    CFX_ByteString GetModuleFilePath(FX_LPCSTR module_name, FX_LPCSTR name);
 
     void		SetDownloadCallback(FX_BOOL (*callback)(FX_LPCSTR module_name));
 
@@ -118,10 +113,6 @@ protected:
 
     FX_BOOL (*m_pDownloadCallback)(FX_LPCSTR module_name);
 
-    CFX_ByteString			m_DefaultModulePath;
-
-    CFX_CMapByteStringToPtr	m_ModulePathList;
-
     CFX_MapByteStringToPtr	m_SecurityHandlerMap;
 
     CFX_PrivateData			m_privateData;
@@ -132,7 +123,7 @@ class CPDF_FontGlobals;
 class IPDF_FontMgr;
 class IPDF_FontMapper;
 class CPDF_ColorSpace;
-class CPDF_PageModuleDef : public CFX_Object
+class CPDF_PageModuleDef 
 {
 public:
     virtual ~CPDF_PageModuleDef() {}
@@ -170,7 +161,7 @@ class CPDF_Stream;
 class CFX_DIBSource;
 class CPDF_RenderConfig;
 class CPDF_Image;
-class CPDF_RenderModuleDef : public CFX_Object
+class CPDF_RenderModuleDef 
 {
 public:
     virtual ~CPDF_RenderModuleDef() {}

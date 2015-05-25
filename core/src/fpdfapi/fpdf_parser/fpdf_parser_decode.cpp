@@ -40,9 +40,6 @@ FX_DWORD _A85Decode(const FX_BYTE* src_buf, FX_DWORD src_size, FX_LPBYTE& dest_b
         return (FX_DWORD) - 1;
     }
     dest_buf = FX_Alloc(FX_BYTE, zcount * 4 + (pos - zcount));
-    if (dest_buf == NULL) {
-        return (FX_DWORD) - 1;
-    }
     int state = 0;
     FX_UINT32 res = 0;
     pos = dest_size = 0;
@@ -153,9 +150,6 @@ FX_DWORD RunLengthDecode(const FX_BYTE* src_buf, FX_DWORD src_size, FX_LPBYTE& d
         return -1;
     }
     dest_buf = FX_Alloc( FX_BYTE, dest_size);
-    if (!dest_buf) {
-        return -1;
-    }
     i = 0;
     int dest_count = 0;
     while (i < src_size) {
@@ -238,11 +232,9 @@ ICodec_ScanlineDecoder* FPDFAPI_CreateFlateDecoder(FX_LPCBYTE src_buf, FX_DWORD 
         int nComps, int bpc, const CPDF_Dictionary* pParams)
 {
     int predictor = 0;
-    FX_BOOL bEarlyChange = TRUE;
     int Colors = 0, BitsPerComponent = 0, Columns = 0;
     if (pParams) {
         predictor = ((CPDF_Dictionary*)pParams)->GetInteger(FX_BSTRC("Predictor"));
-        bEarlyChange = ((CPDF_Dictionary*)pParams)->GetInteger(FX_BSTRC("EarlyChange"), 1);
         Colors = pParams->GetInteger(FX_BSTRC("Colors"), 1);
         BitsPerComponent = pParams->GetInteger(FX_BSTRC("BitsPerComponent"), 8);
         Columns = pParams->GetInteger(FX_BSTRC("Columns"), 1);
@@ -436,14 +428,10 @@ CFX_WideString PDF_DecodeText(FX_LPCBYTE src_data, FX_DWORD src_len, CFX_CharMap
     }
     return result;
 }
-CFX_WideString PDF_DecodeText(const CFX_ByteString& bstr, CFX_CharMap* pCharMap)
-{
-    return PDF_DecodeText((FX_LPCBYTE)(FX_LPCSTR)bstr, bstr.GetLength(), pCharMap);
-}
 CFX_ByteString PDF_EncodeText(FX_LPCWSTR pString, int len, CFX_CharMap* pCharMap)
 {
     if (len == -1) {
-        len = (FX_STRSIZE)FXSYS_wcslen(pString);
+        len = FXSYS_wcslen(pString);
     }
     CFX_ByteString result;
     if (pCharMap == NULL) {

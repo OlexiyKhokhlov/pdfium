@@ -438,6 +438,9 @@ public:
 FX_BOOL CPDF_LabCS::v_Load(CPDF_Document* pDoc, CPDF_Array* pArray)
 {
     CPDF_Dictionary* pDict = pArray->GetDict(1);
+    if (!pDict) {
+        return FALSE;
+    }
     CPDF_Array* pParam = pDict->GetArray(FX_BSTRC("WhitePoint"));
     int i;
     for (i = 0; i < 3; i ++) {
@@ -640,7 +643,7 @@ FX_BOOL CPDF_ICCBasedCS::v_Load(CPDF_Document* pDoc, CPDF_Array* pArray)
         }
     }
     CPDF_Array* pRanges = pDict->GetArray(FX_BSTRC("Range"));
-    m_pRanges = FX_Alloc(FX_FLOAT, m_nComponents * 2);
+    m_pRanges = FX_Alloc2D(FX_FLOAT, m_nComponents, 2);
     for (int i = 0; i < m_nComponents * 2; i ++) {
         if (pRanges) {
             m_pRanges[i] = pRanges->GetNumber(i);
@@ -712,8 +715,8 @@ void CPDF_ICCBasedCS::TranslateImageLine(FX_LPBYTE pDestBuf, FX_LPCBYTE pSrcBuf,
             CPDF_ModuleMgr::Get()->GetIccModule()->TranslateScanline(m_pProfile->m_pTransform, pDestBuf, pSrcBuf, pixels);
         } else {
             if (m_pCache == NULL) {
-                ((CPDF_ICCBasedCS*)this)->m_pCache = FX_Alloc(FX_BYTE, nMaxColors * 3);
-                FX_LPBYTE temp_src = FX_Alloc(FX_BYTE, nMaxColors * m_nComponents);
+                ((CPDF_ICCBasedCS*)this)->m_pCache = FX_Alloc2D(FX_BYTE, nMaxColors, 3);
+                FX_LPBYTE temp_src = FX_Alloc2D(FX_BYTE, nMaxColors, m_nComponents);
                 FX_LPBYTE pSrc = temp_src;
                 for (int i = 0; i < nMaxColors; i ++) {
                     FX_DWORD color = i;
@@ -801,7 +804,7 @@ FX_BOOL CPDF_IndexedCS::v_Load(CPDF_Document* pDoc, CPDF_Array* pArray)
     }
     m_pCountedBaseCS = pDocPageData->FindColorSpacePtr(m_pBaseCS->GetArray());
     m_nBaseComponents = m_pBaseCS->CountComponents();
-    m_pCompMinMax = FX_Alloc(FX_FLOAT, m_nBaseComponents * 2);
+    m_pCompMinMax = FX_Alloc2D(FX_FLOAT, m_nBaseComponents, 2);
     FX_FLOAT defvalue;
     for (int i = 0; i < m_nBaseComponents; i ++) {
         m_pBaseCS->GetDefaultValue(i, defvalue, m_pCompMinMax[i * 2], m_pCompMinMax[i * 2 + 1]);
@@ -1142,21 +1145,21 @@ CPDF_ColorSpace* CPDF_ColorSpace::Load(CPDF_Document* pDoc, CPDF_Object* pObj)
     CPDF_ColorSpace* pCS = NULL;
     FX_DWORD id = familyname.GetID();
     if (id == FXBSTR_ID('C', 'a', 'l', 'G')) {
-        pCS = FX_NEW CPDF_CalGray();
+        pCS = new CPDF_CalGray();
     } else if (id == FXBSTR_ID('C', 'a', 'l', 'R')) {
-        pCS = FX_NEW CPDF_CalRGB();
+        pCS = new CPDF_CalRGB();
     } else if (id == FXBSTR_ID('L', 'a', 'b', 0)) {
-        pCS = FX_NEW CPDF_LabCS();
+        pCS = new CPDF_LabCS();
     } else if (id == FXBSTR_ID('I', 'C', 'C', 'B')) {
-        pCS = FX_NEW CPDF_ICCBasedCS();
+        pCS = new CPDF_ICCBasedCS();
     } else if (id == FXBSTR_ID('I', 'n', 'd', 'e') || id == FXBSTR_ID('I', 0, 0, 0)) {
-        pCS = FX_NEW CPDF_IndexedCS();
+        pCS = new CPDF_IndexedCS();
     } else if (id == FXBSTR_ID('S', 'e', 'p', 'a')) {
-        pCS = FX_NEW CPDF_SeparationCS();
+        pCS = new CPDF_SeparationCS();
     } else if (id == FXBSTR_ID('D', 'e', 'v', 'i')) {
-        pCS = FX_NEW CPDF_DeviceNCS();
+        pCS = new CPDF_DeviceNCS();
     } else if (id == FXBSTR_ID('P', 'a', 't', 't')) {
-        pCS = FX_NEW CPDF_PatternCS();
+        pCS = new CPDF_PatternCS();
     } else {
         return NULL;
     }

@@ -622,13 +622,7 @@ FX_BOOL CCodec_FaxDecoder::Create(FX_LPCBYTE src_buf, FX_DWORD src_size, int wid
     m_OutputWidth = m_OrigWidth;
     m_OutputHeight = m_OrigHeight;
     m_pScanlineBuf = FX_Alloc(FX_BYTE, m_Pitch);
-    if (m_pScanlineBuf == NULL) {
-        return FALSE;
-    }
     m_pRefBuf = FX_Alloc(FX_BYTE, m_Pitch);
-    if (m_pRefBuf == NULL) {
-        return FALSE;
-    }
     m_pSrcBuf = src_buf;
     m_SrcSize = src_size;
     m_nComps = 1;
@@ -705,9 +699,6 @@ extern "C" {
             pitch = (width + 7) / 8;
         }
         FX_LPBYTE ref_buf = FX_Alloc(FX_BYTE, pitch);
-        if (ref_buf == NULL) {
-            return;
-        }
         FXSYS_memset8(ref_buf, 0xff, pitch);
         int bitpos = *pbitpos;
         for (int iRow = 0; iRow < height; iRow ++) {
@@ -926,7 +917,7 @@ static void _FaxEncode2DLine(FX_LPBYTE dest_buf, int& dest_bitpos, FX_LPCBYTE sr
         }
     }
 }
-class CCodec_FaxEncoder : public CFX_Object
+class CCodec_FaxEncoder 
 {
 public:
     CCodec_FaxEncoder(FX_LPCBYTE src_buf, int width, int height, int pitch);
@@ -945,14 +936,8 @@ CCodec_FaxEncoder::CCodec_FaxEncoder(FX_LPCBYTE src_buf, int width, int height, 
     m_Rows = height;
     m_Pitch = pitch;
     m_pRefLine = FX_Alloc(FX_BYTE, m_Pitch);
-    if (m_pRefLine == NULL) {
-        return;
-    }
     FXSYS_memset8(m_pRefLine, 0xff, m_Pitch);
-    m_pLineBuf = FX_Alloc(FX_BYTE, m_Pitch * 8);
-    if (m_pLineBuf == NULL) {
-        return;
-    }
+    m_pLineBuf = FX_Alloc2D(FX_BYTE, m_Pitch, 8);
     m_DestBuf.EstimateSize(0, 10240);
 }
 CCodec_FaxEncoder::~CCodec_FaxEncoder()
@@ -994,10 +979,7 @@ FX_BOOL	CCodec_FaxModule::Encode(FX_LPCBYTE src_buf, int width, int height, int 
 ICodec_ScanlineDecoder*	CCodec_FaxModule::CreateDecoder(FX_LPCBYTE src_buf, FX_DWORD src_size, int width, int height,
         int K, FX_BOOL EndOfLine, FX_BOOL EncodedByteAlign, FX_BOOL BlackIs1, int Columns, int Rows)
 {
-    CCodec_FaxDecoder* pDecoder = FX_NEW CCodec_FaxDecoder;
-    if (pDecoder == NULL) {
-        return NULL;
-    }
+    CCodec_FaxDecoder* pDecoder = new CCodec_FaxDecoder;
     pDecoder->Create(src_buf, src_size, width, height, K, EndOfLine, EncodedByteAlign, BlackIs1, Columns, Rows);
     return pDecoder;
 }

@@ -77,28 +77,23 @@ CPWL_Wnd* CFFL_ComboBox::NewPDFWindow(const PWL_CREATEPARAM& cp, CPDFSDK_PageVie
 	pWnd->AttachFFLData(this);
 	pWnd->Create(cp);
 
-	ASSERT(m_pApp != NULL);
 	CFFL_IFormFiller* pFormFiller = m_pApp->GetIFormFiller();
 	pWnd->SetFillerNotify(pFormFiller);
 
-	ASSERT(m_pWidget != NULL);
 	FX_INT32 nCurSel = m_pWidget->GetSelectedIndex(0);
-	
 	CFX_WideString swText;
-	
 	if (nCurSel < 0)
 		swText = m_pWidget->GetValue();
 	else
 		swText = m_pWidget->GetOptionLabel(nCurSel);
-	
+
 	for (FX_INT32 i=0,sz=m_pWidget->CountOptions(); i<sz; i++)
 	{
-		pWnd->AddString(m_pWidget->GetOptionLabel(i));			
+		pWnd->AddString(m_pWidget->GetOptionLabel(i).c_str());
 	}
-	
+
 	pWnd->SetSelect(nCurSel);
-	pWnd->SetText(swText);
-	
+	pWnd->SetText(swText.c_str());
 	return pWnd;
 }
 
@@ -245,7 +240,7 @@ void CFFL_ComboBox::SetActionData(CPDFSDK_PageView* pPageView, CPDF_AAction::AAc
 			if (CPWL_Edit* pEdit = (CPWL_Edit*)*pComboBox)
 			{
 				pEdit->SetSel(fa.nSelStart, fa.nSelEnd);
-				pEdit->ReplaceSel(fa.sChange);
+				pEdit->ReplaceSel(fa.sChange.c_str());
 			}
 		}
 		break;
@@ -297,7 +292,7 @@ void CFFL_ComboBox::RestoreState(CPDFSDK_PageView* pPageView)
 		{
 			if (CPWL_Edit* pEdit = (CPWL_Edit*)*pComboBox)
 			{
-				pEdit->SetText(m_State.sValue);
+				pEdit->SetText(m_State.sValue.c_str());
 				pEdit->SetSel(m_State.nStart, m_State.nEnd);
 			}
 		}
@@ -364,7 +359,7 @@ void CFFL_ComboBox::OnSetFocus(CPWL_Wnd* pWnd)
 		CFX_WideString wsText = pEdit->GetText();
 		int nCharacters = wsText.GetLength();
 		CFX_ByteString bsUTFText = wsText.UTF16LE_Encode();
-		unsigned short* pBuffer = (unsigned short*)(FX_LPCSTR)bsUTFText;
+		unsigned short* pBuffer = (unsigned short*)bsUTFText.c_str();
 		m_pApp->FFI_OnSetFieldInputFocus(m_pWidget->GetFormField(), pBuffer, nCharacters, TRUE);
 
  		pEdit->SetEditNotify(this);

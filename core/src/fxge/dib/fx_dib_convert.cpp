@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_dib.h"
@@ -97,7 +97,7 @@ const FX_DWORD g_dwMacPalette[256] = {
     0xffEEEEEE, 0xffDDDDDD, 0xffBBBBBB, 0xffAAAAAA, 0xff888888, 0xff777777,
     0xff555555, 0xff444444, 0xff222222, 0xff111111, 0xff000000
 };
-class CFX_Palette : public CFX_Object
+class CFX_Palette
 {
 public:
     CFX_Palette();
@@ -236,9 +236,6 @@ FX_BOOL CFX_Palette::BuildPalette(const CFX_DIBSource* pBitmap, int pal_type)
         FX_Free(m_pPalette);
     }
     m_pPalette = FX_Alloc(FX_DWORD, 256);
-    if (!m_pPalette) {
-        return FALSE;
-    }
     int bpp    = pBitmap->GetBPP() / 8;
     int width  = pBitmap->GetWidth();
     int height = pBitmap->GetHeight();
@@ -251,13 +248,7 @@ FX_BOOL CFX_Palette::BuildPalette(const CFX_DIBSource* pBitmap, int pal_type)
         m_aLut = NULL;
     }
     m_cLut = FX_Alloc(FX_DWORD, 4096);
-    if (!m_cLut) {
-        return FALSE;
-    }
     m_aLut = FX_Alloc(FX_DWORD, 4096);
-    if (!m_aLut) {
-        return FALSE;
-    }
     int row, col;
     m_lut = 0;
     for (row = 0; row < height; row++) {
@@ -585,10 +576,6 @@ inline FX_BOOL _ConvertBuffer_Rgb2PltRgb8_NoTransform(FX_LPBYTE dest_buf, int de
 FX_BOOL _ConvertBuffer_Rgb2PltRgb8(FX_LPBYTE dest_buf, int dest_pitch, int width, int height,
                                    const CFX_DIBSource* pSrcBitmap, int src_left, int src_top, FX_DWORD* dst_plt, void* pIccTransform)
 {
-    ICodec_IccModule* pIccModule = NULL;
-    if (pIccTransform) {
-        pIccModule = CFX_GEModule::Get()->GetCodecModule()->GetIccModule();
-    }
     FX_BOOL ret = _ConvertBuffer_Rgb2PltRgb8_NoTransform(dest_buf, dest_pitch, width, height, pSrcBitmap, src_left, src_top, dst_plt);
     if (ret && pIccTransform) {
         ICodec_IccModule* pIccModule = CFX_GEModule::Get()->GetCodecModule()->GetIccModule();
@@ -872,9 +859,6 @@ FX_BOOL ConvertBuffer(FXDIB_Format dest_format, FX_LPBYTE dest_buf, int dest_pit
                     return ConvertBuffer(FXDIB_8bppMask, dest_buf, dest_pitch, width, height, pSrcBitmap, src_left, src_top, d_pal, pIccTransform);
                 }
                 d_pal = FX_Alloc(FX_DWORD, 256);
-                if (!d_pal) {
-                    return FALSE;
-                }
                 if (((src_format & 0xff) == 1 || (src_format & 0xff) == 8) && pSrcBitmap->GetPalette()) {
                     return _ConvertBuffer_Plt2PltRgb8(dest_buf, dest_pitch, width, height, pSrcBitmap, src_left, src_top, d_pal, pIccTransform);
                 } else if ((src_format & 0xff) >= 24) {
@@ -942,10 +926,7 @@ CFX_DIBitmap* CFX_DIBSource::CloneConvert(FXDIB_Format dest_format, const FX_REC
         }
         return pClone;
     }
-    CFX_DIBitmap* pClone = FX_NEW CFX_DIBitmap;
-    if (!pClone) {
-        return NULL;
-    }
+    CFX_DIBitmap* pClone = new CFX_DIBitmap;
     if(!pClone->Create(m_Width, m_Height, dest_format)) {
         delete pClone;
         return NULL;
@@ -1015,7 +996,7 @@ FX_BOOL CFX_DIBitmap::ConvertFormat(FXDIB_Format dest_format, void* pIccTransfor
     }
     int dest_bpp = dest_format & 0xff;
     int dest_pitch = (dest_bpp * m_Width + 31) / 32 * 4;
-    FX_LPBYTE dest_buf = FX_AllocNL(FX_BYTE, dest_pitch * m_Height + 4);
+    FX_LPBYTE dest_buf = FX_TryAlloc(FX_BYTE, dest_pitch * m_Height + 4);
     if (dest_buf == NULL) {
         return FALSE;
     }

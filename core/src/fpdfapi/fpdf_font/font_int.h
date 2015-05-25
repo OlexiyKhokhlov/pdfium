@@ -5,7 +5,7 @@
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 typedef void* FXFT_Library;
-class CPDF_CMapManager : public CFX_Object
+class CPDF_CMapManager 
 {
 public:
     CPDF_CMapManager();
@@ -18,14 +18,11 @@ private:
     CPDF_CMap*				LoadPredefinedCMap(const CFX_ByteString& name,  FX_BOOL bPrompt);
     CPDF_CID2UnicodeMap*	LoadCID2UnicodeMap(int charset, FX_BOOL bPrompt);
     void					DropAll(FX_BOOL bReload);
-#ifndef _FPDFAPI_MINI_
     FX_BOOL					m_bPrompted;
-    FX_LPVOID				m_pPackage;
-#endif
     CFX_MapByteStringToPtr	m_CMaps;
     CPDF_CID2UnicodeMap*	m_CID2UnicodeMaps[6];
 };
-class CPDF_FontGlobals : public CFX_Object
+class CPDF_FontGlobals 
 {
 public:
     CPDF_FontGlobals();
@@ -34,7 +31,6 @@ public:
     void				Clear(void* key);
     CPDF_Font*			Find(void* key, int index);
     void				Set(void* key, int index, CPDF_Font* pFont);
-    CFX_MapPtrToPtr		m_pStockMap;
     CPDF_CMapManager	m_CMapManager;
     struct {
         const struct FXCMAP_CMap*	m_pMapList;
@@ -44,6 +40,8 @@ public:
         const FX_WORD*	m_pMap;
         int				m_Count;
     } m_EmbeddedToUnicodes[NUMBER_OF_CIDSETS];
+private:
+    CFX_MapPtrToPtr		m_pStockMap;
     FX_LPBYTE			m_pContrastRamps;
 };
 struct _CMap_CodeRange {
@@ -51,7 +49,7 @@ struct _CMap_CodeRange {
     FX_BYTE		m_Lower[4];
     FX_BYTE		m_Upper[4];
 };
-class CPDF_CMapParser : public CFX_Object
+class CPDF_CMapParser 
 {
 public:
     CPDF_CMapParser();
@@ -76,7 +74,7 @@ private:
 #define CIDCODING_UCS2		5
 #define CIDCODING_CID		6
 #define CIDCODING_UTF16		7
-class CPDF_CMap : public CFX_Object
+class CPDF_CMap 
 {
 public:
     CPDF_CMap();
@@ -98,8 +96,8 @@ public:
     FX_WORD					CIDFromCharCode(FX_DWORD charcode) const;
     FX_DWORD				CharCodeFromCID(FX_WORD CID) const;
     int						GetCharSize(FX_DWORD charcode) const;
-    FX_DWORD				GetNextChar(const FX_CHAR* pString, int& offset) const;
-    int						CountChar(const FX_CHAR* pString, int size) const;
+    FX_DWORD				GetNextChar(FX_LPCSTR pString, int nStrLen, int& offset) const;
+    int						CountChar(FX_LPCSTR pString, int size) const;
     int						AppendChar(FX_LPSTR str, FX_DWORD charcode) const;
     typedef enum {OneByte, TwoBytes, MixedTwoBytes, MixedFourBytes} CodingScheme;
 protected:
@@ -141,31 +139,7 @@ typedef struct _FileHeader {
     FX_DWORD	dwDataOffset;
     FX_DWORD	dwRecordSize;
 } FXMP_FILEHEADER;
-class CPDF_FXMP : public CFX_Object
-{
-public:
-    CPDF_FXMP()
-    {
-        m_pHeader = NULL;
-        m_pTable = NULL;
-    }
-    ~CPDF_FXMP()
-    {
-        if (m_pHeader) {
-            FX_Free(m_pHeader);
-        }
-    }
-    FX_BOOL		IsLoaded()
-    {
-        return m_pTable != NULL;
-    }
-    FX_BOOL		LoadFile(FX_LPVOID pPackage, FX_LPCSTR fileid);
-    FX_LPBYTE	GetRecord(FX_DWORD index);
-private:
-    FXMP_FILEHEADER*	m_pHeader;
-    FX_LPBYTE	m_pTable;
-};
-class CPDF_CID2UnicodeMap : public CFX_Object
+class CPDF_CID2UnicodeMap 
 {
 public:
     CPDF_CID2UnicodeMap();
@@ -178,11 +152,8 @@ protected:
     int			m_Charset;
     const FX_WORD*	m_pEmbeddedMap;
     FX_DWORD	m_EmbeddedCount;
-#ifndef _FPDFAPI_MINI_
-    CPDF_FXMP*	m_pExternalMap;
-#endif
 };
-class CPDF_ToUnicodeMap : public CFX_Object
+class CPDF_ToUnicodeMap 
 {
 public:
     void					Load(CPDF_Stream* pStream);
@@ -193,7 +164,7 @@ protected:
     CPDF_CID2UnicodeMap*	m_pBaseMap;
     CFX_WideTextBuf			m_MultiCharBuf;
 };
-class CPDF_FontCharMap : public CFX_CharMap, public CFX_Object
+class CPDF_FontCharMap : public CFX_CharMap
 {
 public:
     CPDF_FontCharMap(CPDF_Font* pFont);

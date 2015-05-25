@@ -6,35 +6,16 @@
 
 #include "../../include/fpdfdoc/fpdf_doc.h"
 #include "../../include/fxcrt/fx_xml.h"
-CFX_WideString	GetFullName(CPDF_Dictionary* pFieldDict);
-void			InitInterFormDict(CPDF_Dictionary*& pFormDict, CPDF_Document* pDocument);
-FX_DWORD		CountInterFormFonts(CPDF_Dictionary* pFormDict);
-CPDF_Font*		GetInterFormFont(CPDF_Dictionary* pFormDict, CPDF_Document* pDocument, FX_DWORD index, CFX_ByteString& csNameTag);
-CPDF_Font*		GetInterFormFont(CPDF_Dictionary* pFormDict, CPDF_Document* pDocument, CFX_ByteString csNameTag);
-CPDF_Font*		GetInterFormFont(CPDF_Dictionary* pFormDict, CPDF_Document* pDocument, CFX_ByteString csFontName, CFX_ByteString& csNameTag);
-CPDF_Font*		GetNativeInterFormFont(CPDF_Dictionary* pFormDict, CPDF_Document* pDocument, FX_BYTE charSet, CFX_ByteString& csNameTag);
-CPDF_Font*		GetNativeInterFormFont(CPDF_Dictionary* pFormDict, CPDF_Document* pDocument, CFX_ByteString& csNameTag);
-FX_BOOL			FindInterFormFont(CPDF_Dictionary* pFormDict, const CPDF_Font* pFont, CFX_ByteString& csNameTag);
-FX_BOOL			FindInterFormFont(CPDF_Dictionary* pFormDict, CPDF_Document* pDocument, CFX_ByteString csFontName, CPDF_Font*& pFont, CFX_ByteString& csNameTag);
-void			AddInterFormFont(CPDF_Dictionary*& pFormDict, CPDF_Document* pDocument, const CPDF_Font* pFont, CFX_ByteString& csNameTag);
-CPDF_Font*		AddNativeInterFormFont(CPDF_Dictionary*& pFormDict, CPDF_Document* pDocument, FX_BYTE charSet, CFX_ByteString& csNameTag);
-CPDF_Font*		AddNativeInterFormFont(CPDF_Dictionary*& pFormDict, CPDF_Document* pDocument, CFX_ByteString& csNameTag);
-void			RemoveInterFormFont(CPDF_Dictionary* pFormDict, const CPDF_Font* pFont);
-void			RemoveInterFormFont(CPDF_Dictionary* pFormDict, CFX_ByteString csNameTag);
-CPDF_Font*		GetDefaultInterFormFont(CPDF_Dictionary* pFormDict, CPDF_Document* pDocument);
-void			SetDefaultInterFormFont(CPDF_Dictionary*& pFormDict, CPDF_Document* pDocument, const CPDF_Font* pFont);
-void			SaveCheckedFieldStatus(CPDF_FormField* pField, CFX_ByteArray& statusArray);
-FX_BOOL			NeedPDFEncodeForFieldFullName(const CFX_WideString& csFieldName);
-FX_BOOL			NeedPDFEncodeForFieldTree(CPDF_Dictionary* pFieldDict, int nLevel = 0);
-void			EncodeFieldName(const CFX_WideString& csName, CFX_ByteString& csT);
-void			UpdateEncodeFieldName(CPDF_Dictionary* pFieldDict, int nLevel = 0);
+#include "doc_utils.h"
+
 const int nMaxRecursion = 32;
-class _CFieldNameExtractor : public CFX_Object
+
+class _CFieldNameExtractor 
 {
 public:
     _CFieldNameExtractor(const CFX_WideString& full_name)
     {
-        m_pStart = full_name;
+        m_pStart = full_name.c_str();
         m_pEnd = m_pStart + full_name.GetLength();
         m_pCur = m_pStart;
     }
@@ -54,10 +35,10 @@ protected:
     FX_LPCWSTR m_pEnd;
     FX_LPCWSTR m_pCur;
 };
-class CFieldTree : public CFX_Object
+class CFieldTree 
 {
 public:
-    struct _Node : public CFX_Object {
+    struct _Node  {
         _Node *parent;
         CFX_PtrArray children;
         CFX_WideString short_name;
@@ -126,10 +107,7 @@ CFieldTree::_Node *CFieldTree::AddChild(_Node *pParent, const CFX_WideString &sh
     if (pParent == NULL) {
         return NULL;
     }
-    _Node *pNode = FX_NEW _Node;
-    if (pNode == NULL) {
-        return NULL;
-    }
+    _Node* pNode = new _Node;
     pNode->parent = pParent;
     pNode->short_name = short_name;
     pNode->field_ptr = field_ptr;
@@ -270,7 +248,7 @@ CPDF_InterForm::CPDF_InterForm(CPDF_Document* pDocument, FX_BOOL bGenerateAP) : 
     m_bGenerateAP = bGenerateAP;
     m_pFormNotify = NULL;
     m_bUpdated = FALSE;
-    m_pFieldTree = FX_NEW CFieldTree;
+    m_pFieldTree = new CFieldTree;
     CPDF_Dictionary* pRoot = m_pDocument->GetRoot();
     m_pFormDict = pRoot->GetDict("AcroForm");
     if (m_pFormDict == NULL) {
@@ -446,7 +424,7 @@ CPDF_Font* CPDF_InterForm::AddSystemFont(const CPDF_Document* pDocument, CFX_Byt
     if (iCharSet == 1) {
         iCharSet = GetNativeCharSet();
     }
-    HFONT hFont = ::CreateFontA(0, 0, 0, 0, 0, 0, 0, 0, iCharSet, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, (FX_LPCSTR)csFontName);
+    HFONT hFont = ::CreateFontA(0, 0, 0, 0, 0, 0, 0, 0, iCharSet, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, csFontName.c_str());
     if (hFont != NULL) {
         LOGFONTA lf;
         memset(&lf, 0, sizeof(LOGFONTA));
@@ -468,7 +446,7 @@ CPDF_Font* CPDF_InterForm::AddSystemFont(const CPDF_Document* pDocument, CFX_Wid
     if (iCharSet == 1) {
         iCharSet = GetNativeCharSet();
     }
-    HFONT hFont = ::CreateFontW(0, 0, 0, 0, 0, 0, 0, 0, iCharSet, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, csFontName);
+    HFONT hFont = ::CreateFontW(0, 0, 0, 0, 0, 0, 0, 0, iCharSet, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, csFontName.c_str());
     if (hFont != NULL) {
         LOGFONTA lf;
         memset(&lf, 0, sizeof(LOGFONTA));
@@ -736,7 +714,8 @@ int CPDF_InterForm::CompareFieldName(const CFX_ByteString& name1, const CFX_Byte
 }
 int CPDF_InterForm::CompareFieldName(const CFX_WideString& name1, const CFX_WideString& name2)
 {
-    FX_LPCWSTR ptr1 = name1, ptr2 = name2;
+    FX_LPCWSTR ptr1 = name1.c_str();
+    FX_LPCWSTR ptr2 = name2.c_str();
     if (name1.GetLength() != name2.GetLength()) {
         int i = 0;
         while (ptr1[i] == ptr2[i]) {
@@ -1334,7 +1313,7 @@ CPDF_FormField* CPDF_InterForm::AddTerminalField(const CPDF_Dictionary* pFieldDi
                 }
             }
         }
-        pField = FX_NEW CPDF_FormField(this, pParent);
+        pField = new CPDF_FormField(this, pParent);
         CPDF_Object* pTObj = pDict->GetElement("T");
         if (pTObj && pTObj->GetType() == PDFOBJ_REFERENCE) {
             CPDF_Object* pClone = pTObj->Clone(TRUE);
@@ -1371,10 +1350,7 @@ CPDF_FormControl* CPDF_InterForm::AddControl(const CPDF_FormField* pField, const
     if (m_ControlMap.Lookup((CPDF_Dictionary*)pWidgetDict, rValue)) {
         return (CPDF_FormControl*)rValue;
     }
-    CPDF_FormControl* pControl = FX_NEW CPDF_FormControl((CPDF_FormField*)pField, (CPDF_Dictionary*)pWidgetDict);
-    if (pControl == NULL) {
-        return NULL;
-    }
+    CPDF_FormControl* pControl = new CPDF_FormControl((CPDF_FormField*)pField, (CPDF_Dictionary*)pWidgetDict);
     m_ControlMap.SetAt((CPDF_Dictionary*)pWidgetDict, pControl);
     ((CPDF_FormField*)pField)->m_ControlList.Add(pControl);
     return pControl;

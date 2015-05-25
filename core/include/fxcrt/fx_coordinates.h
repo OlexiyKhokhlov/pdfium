@@ -6,6 +6,9 @@
 
 #ifndef _FXCRT_COORDINATES_
 #define _FXCRT_COORDINATES_
+
+#include "fx_basic.h"
+
 template<class baseType> class CFX_PSVTemplate;
 template<class baseType> class CFX_VTemplate;
 template<class baseType> class CFX_PRLTemplate;
@@ -15,7 +18,7 @@ template<class baseType> class CFX_ATemplate;
 template<class baseType> class CFX_RRTemplate;
 class CFX_Matrix;
 template<class baseType>
-class CFX_PSVTemplate : public CFX_Object
+class CFX_PSVTemplate 
 {
 public:
     typedef CFX_PSVTemplate<baseType>	FXT_PSV;
@@ -129,9 +132,10 @@ public:
     typedef CFX_PSVTemplate<baseType>	FXT_POINT;
     typedef CFX_PSVTemplate<baseType>	FXT_SIZE;
     typedef CFX_VTemplate<baseType>		FXT_VECTOR;
-    void		Set(baseType x, baseType y)
+    void		Set(baseType newx, baseType newy)
     {
-        FXT_PSV::x = x, FXT_PSV::y = y;
+        FXT_PSV::x = newx;
+        FXT_PSV::y = newy;
     }
     void		Set(const FXT_PSV &psv)
     {
@@ -162,26 +166,26 @@ public:
         FXT_PSV::x = ((baseType)FXT_PSV::x) / fLen;
         FXT_PSV::y = ((baseType)FXT_PSV::y) / fLen;
     }
-    baseType	DotProduct(baseType x, baseType y) const
+    baseType	DotProduct(baseType otherx, baseType othery) const
     {
-        return FXT_PSV::x * x + FXT_PSV::y * y;
+        return FXT_PSV::x * otherx + FXT_PSV::y * othery;
     }
     baseType	DotProduct(const FXT_VECTOR &v) const
     {
         return FXT_PSV::x * v.x + FXT_PSV::y * v.y;
     }
-    FX_BOOL		IsParallel(baseType x, baseType y) const
+    FX_BOOL		IsParallel(baseType otherx, baseType othery) const
     {
-        baseType t = FXT_PSV::x * y - FXT_PSV::y * x;
+        baseType t = FXT_PSV::x * othery - FXT_PSV::y * otherx;
         return FXSYS_fabs(t) < 0x0001f;
     }
     FX_BOOL		IsParallel(const FXT_VECTOR &v) const
     {
         return IsParallel(v.x, v.y);
     }
-    FX_BOOL		IsPerpendicular(baseType x, baseType y) const
+    FX_BOOL		IsPerpendicular(baseType otherx, baseType othery) const
     {
-        baseType t = DotProduct(x, y);
+        baseType t = DotProduct(otherx, othery);
         return FXSYS_fabs(t) < 0x0001f;
     }
     FX_BOOL		IsPerpendicular(const FXT_VECTOR &v) const
@@ -226,7 +230,7 @@ public:
 typedef CFX_VTemplate<FX_INT32> CFX_Vector;
 typedef CFX_VTemplate<FX_FLOAT> CFX_VectorF;
 template<class baseType>
-class CFX_RTemplate: public CFX_Object
+class CFX_RTemplate
 {
 public:
     typedef CFX_PSVTemplate<baseType>	FXT_POINT;
@@ -537,7 +541,7 @@ struct FX_RECT {
 
     int			bottom;
 
-    FX_RECT() {}
+    FX_RECT(): left(0), top(0), right(0), bottom(0) { }
 
     FX_RECT(int left1, int top1, int right1, int bottom1)
     {
@@ -606,7 +610,7 @@ struct FX_SMALL_RECT {
 
     FX_SHORT	Bottom;
 };
-class CFX_FloatRect : public CFX_Object
+class CFX_FloatRect 
 {
 public:
 
@@ -745,7 +749,7 @@ public:
 
     FX_FLOAT			top;
 };
-class CFX_Matrix : public CFX_Object
+class CFX_Matrix 
 {
 public:
 

@@ -59,10 +59,7 @@ CFX_DIBitmap* _FX_WindowsDIB_LoadFromBuf(BITMAPINFO* pbmi, LPVOID pData, FX_BOOL
         bBottomUp = FALSE;
     }
     int pitch = (width * pbmi->bmiHeader.biBitCount + 31) / 32 * 4;
-    CFX_DIBitmap* pBitmap = FX_NEW CFX_DIBitmap;
-    if (!pBitmap) {
-        return NULL;
-    }
+    CFX_DIBitmap* pBitmap = new CFX_DIBitmap;
     FXDIB_Format format = bAlpha ? (FXDIB_Format)(pbmi->bmiHeader.biBitCount + 0x200) : (FXDIB_Format)pbmi->bmiHeader.biBitCount;
     FX_BOOL ret = pBitmap->Create(width, height, format);
     if (!ret) {
@@ -72,12 +69,6 @@ CFX_DIBitmap* _FX_WindowsDIB_LoadFromBuf(BITMAPINFO* pbmi, LPVOID pData, FX_BOOL
     FXSYS_memcpy32(pBitmap->GetBuffer(), pData, pitch * height);
     if (bBottomUp) {
         FX_LPBYTE temp_buf = FX_Alloc(FX_BYTE, pitch);
-        if (!temp_buf) {
-            if (pBitmap) {
-                delete pBitmap;
-            }
-            return NULL;
-        }
         int top = 0, bottom = height - 1;
         while (top < bottom) {
             FXSYS_memcpy32(temp_buf, pBitmap->GetBuffer() + top * pitch, pitch);
@@ -108,8 +99,8 @@ HBITMAP	CFX_WindowsDIB::GetDDBitmap(const CFX_DIBitmap* pBitmap, HDC hDC)
 {
     CFX_ByteString info = GetBitmapInfo(pBitmap);
     HBITMAP hBitmap = NULL;
-    hBitmap = CreateDIBitmap(hDC, (BITMAPINFOHEADER*)(FX_LPCSTR)info, CBM_INIT,
-                             pBitmap->GetBuffer(), (BITMAPINFO*)(FX_LPCSTR)info, DIB_RGB_COLORS);
+    hBitmap = CreateDIBitmap(hDC, (BITMAPINFOHEADER*)info.c_str(), CBM_INIT,
+        pBitmap->GetBuffer(), (BITMAPINFO*)info.c_str(), DIB_RGB_COLORS);
     return hBitmap;
 }
 void GetBitmapSize(HBITMAP hBitmap, int& w, int& h)
@@ -135,18 +126,14 @@ CFX_DIBitmap* CFX_WindowsDIB::LoadFromFile(FX_LPCWSTR filename)
     HDC hDC = CreateCompatibleDC(NULL);
     int width, height;
     GetBitmapSize(hBitmap, width, height);
-    CFX_DIBitmap* pDIBitmap = FX_NEW CFX_DIBitmap;
-    if (!pDIBitmap) {
-        DeleteDC(hDC);
-        return NULL;
-    }
+    CFX_DIBitmap* pDIBitmap = new CFX_DIBitmap;
     if (!pDIBitmap->Create(width, height, FXDIB_Rgb)) {
         delete pDIBitmap;
         DeleteDC(hDC);
         return NULL;
     }
     CFX_ByteString info = GetBitmapInfo(pDIBitmap);
-    int ret = GetDIBits(hDC, hBitmap, 0, height, pDIBitmap->GetBuffer(), (BITMAPINFO*)(FX_LPCSTR)info, DIB_RGB_COLORS);
+    int ret = GetDIBits(hDC, hBitmap, 0, height, pDIBitmap->GetBuffer(), (BITMAPINFO*)info.c_str(), DIB_RGB_COLORS);
     if (!ret) {
         if (pDIBitmap) {
             delete pDIBitmap;
@@ -171,18 +158,14 @@ CFX_DIBitmap* CFX_WindowsDIB::LoadDIBitmap(WINDIB_Open_Args_ args)
     HDC hDC = CreateCompatibleDC(NULL);
     int width, height;
     GetBitmapSize(hBitmap, width, height);
-    CFX_DIBitmap* pDIBitmap = FX_NEW CFX_DIBitmap;
-    if (!pDIBitmap) {
-        DeleteDC(hDC);
-        return NULL;
-    }
+    CFX_DIBitmap* pDIBitmap = new CFX_DIBitmap;
     if (!pDIBitmap->Create(width, height, FXDIB_Rgb)) {
         delete pDIBitmap;
         DeleteDC(hDC);
         return NULL;
     }
     CFX_ByteString info = GetBitmapInfo(pDIBitmap);
-    int ret = GetDIBits(hDC, hBitmap, 0, height, pDIBitmap->GetBuffer(), (BITMAPINFO*)(FX_LPCSTR)info, DIB_RGB_COLORS);
+    int ret = GetDIBits(hDC, hBitmap, 0, height, pDIBitmap->GetBuffer(), (BITMAPINFO*)info.c_str(), DIB_RGB_COLORS);
     if (!ret) {
         if (pDIBitmap) {
             delete pDIBitmap;
@@ -206,10 +189,7 @@ CFX_DIBitmap* CFX_WindowsDIB::LoadFromDDB(HDC hDC, HBITMAP hBitmap, FX_DWORD* pP
     int height = abs(bmih.biHeight);
     bmih.biHeight = -height;
     bmih.biCompression = BI_RGB;
-    CFX_DIBitmap* pDIBitmap = FX_NEW CFX_DIBitmap;
-    if (!pDIBitmap) {
-        return NULL;
-    }
+    CFX_DIBitmap* pDIBitmap = new CFX_DIBitmap;
     int ret = 0;
     if (bmih.biBitCount == 1 || bmih.biBitCount == 8) {
         int size = sizeof (BITMAPINFOHEADER) + 8;
@@ -217,13 +197,6 @@ CFX_DIBitmap* CFX_WindowsDIB::LoadFromDDB(HDC hDC, HBITMAP hBitmap, FX_DWORD* pP
             size += sizeof (FX_DWORD) * 254;
         }
         BITMAPINFO* pbmih = (BITMAPINFO*)FX_Alloc(FX_BYTE, size);
-        if (!pbmih) {
-            delete pDIBitmap;
-            if (bCreatedDC) {
-                DeleteDC(hDC);
-            }
-            return NULL;
-        }
         pbmih->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         pbmih->bmiHeader.biBitCount = bmih.biBitCount;
         pbmih->bmiHeader.biCompression = BI_RGB;

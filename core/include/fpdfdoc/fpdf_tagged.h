@@ -13,7 +13,7 @@ class CPDF_Document;
 class CPDF_Page;
 class IPDF_ReflowEngine;
 class IPDF_ReflowedPage;
-class CPDF_StructTree : public CFX_Object
+class CPDF_StructTree 
 {
 public:
 
@@ -65,9 +65,10 @@ struct CPDF_StructKid {
         } m_Object;
     };
 };
-class CPDF_StructElement : public CFX_Object
+class CPDF_StructElement 
 {
 public:
+    virtual ~CPDF_StructElement() { }
 
     virtual CPDF_StructTree*	GetTree() const = 0;
 

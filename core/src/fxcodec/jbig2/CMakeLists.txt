@@ -24,16 +24,16 @@ set(jbig2_HEADERS
 )
 
 set(jbig2_SOURCES
-  JBig2_ArithIntDecoder.cpp        
-  JBig2_Context.cpp        
-  JBig2_GeneralDecoder.cpp        
+  JBig2_ArithIntDecoder.cpp
+  JBig2_Context.cpp
+  JBig2_GeneralDecoder.cpp
   JBig2_HuffmanDecoder.cpp
-  JBig2_HuffmanTable.cpp        
-  JBig2_Image.cpp        
-  JBig2_Object.cpp        
+  JBig2_HuffmanTable.cpp
+  JBig2_Image.cpp
+  JBig2_Object.cpp
   JBig2_PatternDict.cpp
   JBig2_Segment.cpp
   JBig2_SymbolDict.cpp
 )
 
-add_library(jbig2 STATIC ${jbig2_HEADERS} ${jbig2_SOURCES})
+add_library(jbig2 OBJECT ${jbig2_HEADERS} ${jbig2_SOURCES})

@@ -7,10 +7,10 @@
 #ifndef _FFL_UTILS_H_
 #define _FFL_UTILS_H_
 
-#define FFL_BASE_USERUNIT			1.0f / 72.0f
+#include "../../../core/include/fpdfapi/fpdf_parser.h"
+#include "../../../core/include/fxcrt/fx_memory.h"
 
-template<class T> T FFL_MIN (const T & i, const T & j) { return ((i < j) ? i : j); }
-template<class T> T FFL_MAX (const T & i, const T & j) { return ((i > j) ? i : j); }
+#define FFL_BASE_USERUNIT			(1.0f / 72.0f)
 
 class CFFL_Utils
 {

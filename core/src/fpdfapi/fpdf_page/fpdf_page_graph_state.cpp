@@ -33,9 +33,7 @@ CPDF_ClipPathData::CPDF_ClipPathData()
 CPDF_ClipPathData::~CPDF_ClipPathData()
 {
     int i;
-    if (m_pPathList) {
-        FX_DELETE_VECTOR(m_pPathList, CPDF_Path, m_PathCount);
-    }
+    delete[] m_pPathList;
     if (m_pTypeList) {
         FX_Free(m_pTypeList);
     }
@@ -58,7 +56,7 @@ CPDF_ClipPathData::CPDF_ClipPathData(const CPDF_ClipPathData& src)
         if (alloc_size % 8) {
             alloc_size += 8 - (alloc_size % 8);
         }
-        FX_NEW_VECTOR(m_pPathList, CPDF_Path, alloc_size);
+        m_pPathList = new CPDF_Path[alloc_size];
         for (int i = 0; i < m_PathCount; i ++) {
             m_pPathList[i] = src.m_pPathList[i];
         }
@@ -73,7 +71,7 @@ CPDF_ClipPathData::CPDF_ClipPathData(const CPDF_ClipPathData& src)
         m_pTextList = FX_Alloc(CPDF_TextObject*, m_TextCount);
         for (int i = 0; i < m_TextCount; i ++) {
             if (src.m_pTextList[i]) {
-                m_pTextList[i] = FX_NEW CPDF_TextObject;
+                m_pTextList[i] = new CPDF_TextObject;
                 m_pTextList[i]->Copy(src.m_pTextList[i]);
             } else {
                 m_pTextList[i] = NULL;
@@ -89,7 +87,7 @@ void CPDF_ClipPathData::SetCount(int path_count, int text_count)
     if (path_count) {
         m_PathCount = path_count;
         int alloc_size = (path_count + 7) / 8 * 8;
-        FX_NEW_VECTOR(m_pPathList, CPDF_Path, alloc_size);
+        m_pPathList = new CPDF_Path[alloc_size];
         m_pTypeList = FX_Alloc(FX_BYTE, alloc_size);
     }
     if (text_count) {
@@ -152,14 +150,11 @@ void CPDF_ClipPath::AppendPath(CPDF_Path path, int type, FX_BOOL bAutoMerge)
         }
     }
     if (pData->m_PathCount % 8 == 0) {
-        CPDF_Path* pNewPath;
-        FX_NEW_VECTOR(pNewPath, CPDF_Path, pData->m_PathCount + 8);
+        CPDF_Path* pNewPath = new CPDF_Path[pData->m_PathCount + 8];
         for (int i = 0; i < pData->m_PathCount; i ++) {
             pNewPath[i] = pData->m_pPathList[i];
         }
-        if (pData->m_pPathList) {
-            FX_DELETE_VECTOR(pData->m_pPathList, CPDF_Path, pData->m_PathCount);
-        }
+        delete[] pData->m_pPathList;
         FX_BYTE* pNewType = FX_Alloc(FX_BYTE, pData->m_PathCount + 8);
         FXSYS_memcpy32(pNewType, pData->m_pTypeList, pData->m_PathCount);
         if (pData->m_pTypeList) {
@@ -192,8 +187,7 @@ void CPDF_ClipPath::AppendTexts(CPDF_TextObject** pTexts, int count)
     CPDF_ClipPathData* pData = GetModify();
     if (pData->m_TextCount + count > FPDF_CLIPPATH_MAX_TEXTS) {
         for (int i = 0; i < count; i ++) {
-            if (pTexts[i])
-                pTexts[i]->Release();
+            delete pTexts[i];
         }
         return;
     }
@@ -355,7 +349,7 @@ FX_FLOAT CPDF_TextState::GetShearAngle() const
 CPDF_GeneralStateData::CPDF_GeneralStateData()
 {
     FXSYS_memset32(this, 0, sizeof(CPDF_GeneralStateData));
-    FXSYS_strcpy((FX_LPSTR)m_BlendMode, (FX_LPCSTR)"Normal");
+    FXSYS_strcpy((FX_LPSTR)m_BlendMode, "Normal");
     m_StrokeAlpha = 1.0f;
     m_FillAlpha = 1.0f;
     m_Flatness = 1.0f;
@@ -428,7 +422,7 @@ void CPDF_GeneralStateData::SetBlendMode(FX_BSTR blend_mode)
     if (blend_mode.GetLength() > 15) {
         return;
     }
-    FXSYS_memcpy32(m_BlendMode, (FX_LPCBYTE)blend_mode, blend_mode.GetLength());
+    FXSYS_memcpy32(m_BlendMode, blend_mode.GetPtr(), blend_mode.GetLength());
     m_BlendMode[blend_mode.GetLength()] = 0;
     m_BlendType = ::GetBlendType(blend_mode);
 }

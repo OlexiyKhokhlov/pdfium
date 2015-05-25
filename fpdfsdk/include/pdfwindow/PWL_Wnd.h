@@ -7,15 +7,19 @@
 #ifndef _PWL_WND_H_
 #define _PWL_WND_H_
 
-class IPWL_Provider;
-class CPWL_Wnd;
+#include "../../../core/include/fxcrt/fx_basic.h"
+#include "../../../core/include/fpdfdoc/fpdf_doc.h"
+#include "../fx_systemhandler.h"
+
 class CPWL_MsgControl;
-class CPWL_Wnd;
 class CPWL_ScrollBar;
 class CPWL_Timer;
 class CPWL_TimerHandler;
-class IPWL_SpellCheck;
+class CPWL_Wnd;
+class IFX_Edit_FontMap;
 class IFX_SystemHandler;
+class IPWL_Provider;
+class IPWL_SpellCheck;
 
 #ifdef FX_READER_DLL
 	#ifdef PWL_EXPORT
@@ -168,6 +172,7 @@ inline FX_BOOL operator != (const CPWL_Color &c1, const CPWL_Color &c2)
 class IPWL_SpellCheck
 {
 public:
+        virtual ~IPWL_SpellCheck() { }
 	virtual FX_BOOL							CheckWord(FX_LPCSTR sWord) = 0;
 	virtual void							SuggestWords(FX_LPCSTR sWord, CFX_ByteStringArray & sSuggest) = 0;	
 };
@@ -175,6 +180,8 @@ public:
 class IPWL_Provider
 {
 public:
+        virtual ~IPWL_Provider() { }
+
 	//get a matrix which map user space to CWnd client space
 	virtual CPDF_Matrix						GetWindowMatrix(void* pAttachedData) = 0;
 
@@ -193,6 +200,7 @@ public:
 class IPWL_FocusHandler
 {
 public:
+        virtual ~IPWL_FocusHandler() { }
 	virtual void							OnSetFocus(CPWL_Wnd* pWnd) = 0;
 	virtual void							OnKillFocus(CPWL_Wnd* pWnd) = 0;
 };

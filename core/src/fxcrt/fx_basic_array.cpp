@@ -5,7 +5,7 @@
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/fxcrt/fx_basic.h"
-#include "../../../third_party/numerics/safe_math.h"
+#include "../../../third_party/base/numerics/safe_math.h"
 
 CFX_BasicArray::CFX_BasicArray(int unit_size)
     : m_pData(NULL)
@@ -32,17 +32,13 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize)
     }
 
     if (m_pData == NULL) {
-        base::CheckedNumeric<int> totalSize = nNewSize;
+        pdfium::base::CheckedNumeric<int> totalSize = nNewSize;
         totalSize *= m_nUnitSize;
         if (!totalSize.IsValid()) {
             m_nSize = m_nMaxSize = 0;
             return FALSE;
         }
         m_pData = FX_Alloc(FX_BYTE, totalSize.ValueOrDie());
-        if (!m_pData) {
-            m_nSize = m_nMaxSize = 0;
-            return FALSE;
-        }
         m_nSize = m_nMaxSize = nNewSize;
     } else if (nNewSize <= m_nMaxSize) {
         if (nNewSize > m_nSize) {
@@ -51,7 +47,7 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize)
         m_nSize = nNewSize;
     } else {
         int nNewMax = nNewSize < m_nMaxSize ? m_nMaxSize : nNewSize;
-        base::CheckedNumeric<int> totalSize = nNewMax;
+        pdfium::base::CheckedNumeric<int> totalSize = nNewMax;
         totalSize *= m_nUnitSize;
         if (!totalSize.IsValid() || nNewMax < m_nSize) {
             return FALSE;
@@ -70,7 +66,7 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize)
 FX_BOOL CFX_BasicArray::Append(const CFX_BasicArray& src)
 {
     int nOldSize = m_nSize;
-    base::CheckedNumeric<int> newSize = m_nSize;
+    pdfium::base::CheckedNumeric<int> newSize = m_nSize;
     newSize += src.m_nSize;
     if (m_nUnitSize != src.m_nUnitSize || !newSize.IsValid() || !SetSize(newSize.ValueOrDie())) {
         return FALSE;
@@ -189,10 +185,7 @@ void* CFX_BaseSegmentedArray::Add()
     if (m_DataSize % m_SegmentSize) {
         return GetAt(m_DataSize ++);
     }
-    void* pSegment = FX_Alloc(FX_BYTE, m_UnitSize * m_SegmentSize);
-    if (!pSegment) {
-        return NULL;
-    }
+    void* pSegment = FX_Alloc2D(FX_BYTE, m_UnitSize, m_SegmentSize);
     if (m_pIndex == NULL) {
         m_pIndex = pSegment;
         m_DataSize ++;
@@ -200,10 +193,6 @@ void* CFX_BaseSegmentedArray::Add()
     }
     if (m_IndexDepth == 0) {
         void** pIndex = (void**)FX_Alloc(void*, m_IndexSize);
-        if (pIndex == NULL) {
-            FX_Free(pSegment);
-            return NULL;
-        }
         pIndex[0] = m_pIndex;
         pIndex[1] = pSegment;
         m_pIndex = pIndex;
@@ -225,10 +214,6 @@ void* CFX_BaseSegmentedArray::Add()
     }
     if (m_DataSize == tree_size * m_SegmentSize) {
         void** pIndex = (void**)FX_Alloc(void*, m_IndexSize);
-        if (pIndex == NULL) {
-            FX_Free(pSegment);
-            return NULL;
-        }
         pIndex[0] = m_pIndex;
         m_pIndex = pIndex;
         m_IndexDepth ++;
@@ -239,9 +224,6 @@ void* CFX_BaseSegmentedArray::Add()
     for (i = 1; i < m_IndexDepth; i ++) {
         if (pSpot[seg_index / tree_size] == NULL) {
             pSpot[seg_index / tree_size] = (void*)FX_Alloc(void*, m_IndexSize);
-            if (pSpot[seg_index / tree_size] == NULL) {
-                break;
-            }
         }
         pSpot = (void**)pSpot[seg_index / tree_size];
         seg_index = seg_index % tree_size;

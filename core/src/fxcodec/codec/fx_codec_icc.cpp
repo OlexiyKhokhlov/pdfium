@@ -23,7 +23,7 @@ FX_BOOL MD5ComputeID( FX_LPCVOID buf, FX_DWORD dwSize, FX_BYTE ID[16] )
 {
     return cmsMD5computeIDExt(buf, dwSize, ID);
 }
-struct CLcmsCmm : public CFX_Object {
+struct CLcmsCmm  {
     cmsHTRANSFORM m_hTransform;
     int			m_nSrcComponents;
     int			m_nDstComponents;
@@ -154,10 +154,7 @@ void* IccLib_CreateTransform(const unsigned char* pSrcProfileData, FX_DWORD dwSr
         cmsCloseProfile(dstProfile);
         return NULL;
     }
-    pCmm = FX_NEW CLcmsCmm;
-    if (pCmm == NULL) {
-        return NULL;
-    }
+    pCmm = new CLcmsCmm;
     pCmm->m_nSrcComponents = nSrcComponents;
     pCmm->m_nDstComponents = nDstComponents;
     pCmm->m_hTransform = hTransform;
@@ -294,9 +291,6 @@ ICodec_IccModule::IccCS CCodec_IccModule::GetProfileCS(IFX_FileRead* pFile)
     ICodec_IccModule::IccCS cs;
     FX_DWORD dwSize = (FX_DWORD)pFile->GetSize();
     FX_LPBYTE pBuf = FX_Alloc(FX_BYTE, dwSize);
-    if (pBuf == NULL) {
-        return IccCS_Unknown;
-    }
     pFile->ReadBlock(pBuf, 0, dwSize);
     cs = GetProfileCS(pBuf, dwSize);
     FX_Free(pBuf);
@@ -348,7 +342,7 @@ FX_DWORD TransferProfileType(FX_LPVOID pProfile, FX_DWORD dwFormat)
             return 0;
     }
 }
-class CFX_IccProfileCache : public CFX_Object
+class CFX_IccProfileCache 
 {
 public:
     CFX_IccProfileCache();
@@ -372,7 +366,7 @@ CFX_IccProfileCache::~CFX_IccProfileCache()
 void CFX_IccProfileCache::Purge()
 {
 }
-class CFX_IccTransformCache : public CFX_Object
+class CFX_IccTransformCache 
 {
 public:
     CFX_IccTransformCache(CLcmsCmm* pCmm = NULL);
@@ -444,10 +438,7 @@ FX_LPVOID CCodec_IccModule::CreateProfile(ICodec_IccModule::IccParam* pIccParam,
     ASSERT(pTransformKey);
     pTransformKey->AppendBlock(ProfileKey.GetBuffer(0), ProfileKey.GetLength());
     if (!m_MapProfile.Lookup(ProfileKey, (FX_LPVOID&)pCache)) {
-        pCache = FX_NEW CFX_IccProfileCache;
-        if (pCache == NULL) {
-            return NULL;
-        }
+        pCache = new CFX_IccProfileCache;
         switch (pIccParam->dwProfileType) {
             case Icc_PARAMTYPE_BUFFER:
                 pCache->m_pProfile = cmsOpenProfileFromMem(pIccParam->pProfileData, pIccParam->dwProfileSize);
@@ -503,17 +494,10 @@ FX_LPVOID CCodec_IccModule::CreateTransform(ICodec_IccModule::IccParam* pInputPa
     CFX_IccTransformCache* pTransformCache;
     if (!m_MapTranform.Lookup(TransformKey, (FX_LPVOID&)pTransformCache)) {
         pCmm = FX_Alloc(CLcmsCmm, 1);
-        if (pCmm == NULL) {
-            return NULL;
-        }
         pCmm->m_nSrcComponents = T_CHANNELS(dwInputProfileType);
         pCmm->m_nDstComponents = T_CHANNELS(dwOutputProfileType);
         pCmm->m_bLab = T_COLORSPACE(pInputParam->dwFormat) == PT_Lab;
-        pTransformCache = FX_NEW CFX_IccTransformCache(pCmm);
-        if (pTransformCache == NULL) {
-            FX_Free(pCmm);
-            return NULL;
-        }
+        pTransformCache = new CFX_IccTransformCache(pCmm);
         if (pProofProfile) {
             pTransformCache->m_pIccTransform = cmsCreateProofingTransform(pInputProfile, dwInputProfileType, pOutputProfile, dwOutputProfileType,
                                                pProofProfile, dwIntent, dwPrfIntent, dwPrfFlag);

@@ -35,16 +35,16 @@ class CPDF_CryptoHandler;
 #define PDFOBJ_NULL			8
 #define PDFOBJ_REFERENCE	9
 typedef IFX_FileStream* (*FPDF_LPFCloneStreamCallback)(CPDF_Stream *pStream, FX_LPVOID pUserData);
-class CPDF_Object : public CFX_Object
+class CPDF_Object 
 {
 public:
 
-    int						GetType() const
+    int                                 GetType() const
     {
         return m_Type;
     }
 
-    FX_DWORD				GetObjNum() const
+    FX_DWORD                            GetObjNum() const
     {
         return m_ObjNum;
     }
@@ -54,57 +54,52 @@ public:
         return m_GenNum;
     }
 
-    FX_BOOL					IsIdentical(CPDF_Object* pObj) const;
+    FX_BOOL                             IsIdentical(CPDF_Object* pObj) const;
 
-    CPDF_Object*			Clone(FX_BOOL bDirect = FALSE) const;
+    CPDF_Object*                        Clone(FX_BOOL bDirect = FALSE) const;
 
-    CPDF_Object*			CloneRef(CPDF_IndirectObjects* pObjs) const;
+    CPDF_Object*                        CloneRef(CPDF_IndirectObjects* pObjs) const;
 
-    CPDF_Object*			GetDirect() const;
+    CPDF_Object*                        GetDirect() const;
 
-    void					Release();
+    void                                Release();
 
-    CFX_ByteString			GetString() const;
+    CFX_ByteString                      GetString() const;
 
-    CFX_ByteStringC			GetConstString() const;
+    CFX_ByteStringC                     GetConstString() const;
 
-    CFX_WideString			GetUnicodeText(CFX_CharMap* pCharMap = NULL) const;
+    CFX_WideString                      GetUnicodeText(CFX_CharMap* pCharMap = NULL) const; 
+    FX_FLOAT                            GetNumber() const;
 
-    FX_FLOAT				GetNumber() const;
+    FX_FLOAT                            GetNumber16() const;
 
-    FX_FLOAT				GetNumber16() const;
+    int                                 GetInteger() const;
 
-    int						GetInteger() const;
+    CPDF_Dictionary*                    GetDict() const;
 
-    CPDF_Dictionary*		GetDict() const;
+    CPDF_Array*                         GetArray() const;
 
-    CPDF_Array*				GetArray() const;
+    void                                SetString(const CFX_ByteString& str);
 
-    void					SetString(const CFX_ByteString& str);
+    void                                SetUnicodeText(FX_LPCWSTR pUnicodes, int len = -1);
 
-    void					SetUnicodeText(FX_LPCWSTR pUnicodes, int len = -1);
+    int                                 GetDirectType() const;
 
-    int						GetDirectType() const;
-
-    FX_BOOL					IsModified() const
+    FX_BOOL                             IsModified() const
     {
         return FALSE;
     }
 protected:
-    FX_DWORD				m_Type;
-    CPDF_Object()
-    {
-        m_ObjNum = 0;
-        m_GenNum = 0;
-    }
+    CPDF_Object(FX_DWORD type) : m_Type(type), m_ObjNum(0), m_GenNum(0) { }
+    ~CPDF_Object() { }
+    void                                Destroy();
 
-    FX_DWORD 				m_ObjNum;
-    FX_DWORD				m_GenNum;
+    static const int                    OBJECT_REF_MAX_DEPTH = 128;
+    static int                          s_nCurRefDepth;
+    FX_DWORD                            m_Type;
+    FX_DWORD                            m_ObjNum;
+    FX_DWORD                            m_GenNum;
 
-    void					Destroy();
-
-
-    ~CPDF_Object() {}
     friend class			CPDF_IndirectObjects;
     friend class			CPDF_Parser;
     friend class			CPDF_SyntaxParser;
@@ -118,19 +113,11 @@ public:
 
     static CPDF_Boolean*	Create(FX_BOOL value)
     {
-        return FX_NEW CPDF_Boolean(value);
+        return new CPDF_Boolean(value);
     }
 
-    CPDF_Boolean()
-    {
-        m_Type = PDFOBJ_BOOLEAN;
-    }
-
-    CPDF_Boolean(FX_BOOL value)
-    {
-        m_Type = PDFOBJ_BOOLEAN;
-        m_bValue = value;
-    }
+    CPDF_Boolean() : CPDF_Object(PDFOBJ_BOOLEAN), m_bValue(false) { }
+    CPDF_Boolean(FX_BOOL value) : CPDF_Object(PDFOBJ_BOOLEAN), m_bValue(value) { }
 
     FX_BOOL					Identical(CPDF_Boolean* pOther) const
     {
@@ -147,28 +134,25 @@ public:
 
     static CPDF_Number*		Create(int value)
     {
-        return FX_NEW CPDF_Number(value);
+        return new CPDF_Number(value);
     }
 
     static CPDF_Number*		Create(FX_FLOAT value)
     {
-        return FX_NEW CPDF_Number(value);
+        return new CPDF_Number(value);
     }
 
     static CPDF_Number*		Create(FX_BSTR str)
     {
-        return FX_NEW CPDF_Number(str);
+        return new CPDF_Number(str);
     }
 
     static CPDF_Number*		Create(FX_BOOL bInteger, void* pData)
     {
-        return FX_NEW CPDF_Number(bInteger, pData);
+        return new CPDF_Number(bInteger, pData);
     }
 
-    CPDF_Number()
-    {
-        m_Type = PDFOBJ_NUMBER;
-    }
+    CPDF_Number() : CPDF_Object(PDFOBJ_NUMBER), m_bInteger(false), m_Integer(0) { }
 
     CPDF_Number(FX_BOOL bInteger, void* pData);
 
@@ -228,24 +212,18 @@ public:
 
     static CPDF_String*		Create(const CFX_ByteString& str, FX_BOOL bHex = FALSE)
     {
-        return FX_NEW CPDF_String(str, bHex);
+        return new CPDF_String(str, bHex);
     }
 
     static CPDF_String*		Create(const CFX_WideString& str)
     {
-        return FX_NEW CPDF_String(str);
+        return new CPDF_String(str);
     }
 
-    CPDF_String()
-    {
-        m_Type = PDFOBJ_STRING;
-        m_bHex = FALSE;
-    }
+    CPDF_String() : CPDF_Object(PDFOBJ_STRING), m_bHex(FALSE) { }
 
-    CPDF_String(const CFX_ByteString& str, FX_BOOL bHex = FALSE) : m_String(str)
-    {
-        m_Type = PDFOBJ_STRING;
-        m_bHex = bHex;
+    CPDF_String(const CFX_ByteString& str, FX_BOOL bHex = FALSE)
+        : CPDF_Object(PDFOBJ_STRING), m_String(str), m_bHex(bHex) {
     }
 
     CPDF_String(const CFX_WideString& str);
@@ -277,33 +255,22 @@ public:
 
     static CPDF_Name*		Create(const CFX_ByteString& str)
     {
-        return FX_NEW CPDF_Name(str);
+        return new CPDF_Name(str);
     }
 
     static CPDF_Name*		Create(FX_BSTR str)
     {
-        return FX_NEW CPDF_Name(str);
+        return new CPDF_Name(str);
     }
 
     static CPDF_Name*		Create(FX_LPCSTR str)
     {
-        return FX_NEW CPDF_Name(str);
+        return new CPDF_Name(str);
     }
 
-    CPDF_Name(const CFX_ByteString& str) : m_Name(str)
-    {
-        m_Type = PDFOBJ_NAME;
-    }
-
-    CPDF_Name(FX_BSTR str) : m_Name(str)
-    {
-        m_Type = PDFOBJ_NAME;
-    }
-
-    CPDF_Name(FX_LPCSTR str) : m_Name(str)
-    {
-        m_Type = PDFOBJ_NAME;
-    }
+    CPDF_Name(const CFX_ByteString& str) : CPDF_Object(PDFOBJ_NAME), m_Name(str) { }
+    CPDF_Name(FX_BSTR str) : CPDF_Object(PDFOBJ_NAME), m_Name(str) { }
+    CPDF_Name(FX_LPCSTR str) : CPDF_Object(PDFOBJ_NAME), m_Name(str) { }
 
     CFX_ByteString&			GetString()
     {
@@ -325,13 +292,10 @@ public:
 
     static CPDF_Array*		Create()
     {
-        return FX_NEW CPDF_Array();
+        return new CPDF_Array();
     }
 
-    CPDF_Array()
-    {
-        m_Type = PDFOBJ_ARRAY;
-    }
+    CPDF_Array() : CPDF_Object(PDFOBJ_ARRAY) { }
 
     FX_DWORD				GetCount() const
     {
@@ -425,15 +389,10 @@ public:
 
     static CPDF_Dictionary*	Create()
     {
-        return FX_NEW CPDF_Dictionary();
+        return new CPDF_Dictionary();
     }
 
-    CPDF_Dictionary()
-    {
-        m_Type = PDFOBJ_DICTIONARY;
-    }
-
-
+    CPDF_Dictionary() : CPDF_Object(PDFOBJ_DICTIONARY) { }
 
     CPDF_Object*			GetElement(FX_BSTR key) const;
 
@@ -547,7 +506,7 @@ public:
 
     static CPDF_Stream*		Create(FX_LPBYTE pData, FX_DWORD size, CPDF_Dictionary* pDict)
     {
-        return FX_NEW CPDF_Stream(pData, size, pDict);
+        return new CPDF_Stream(pData, size, pDict);
     }
 
     CPDF_Stream(FX_LPBYTE pData, FX_DWORD size, CPDF_Dictionary* pDict);
@@ -609,7 +568,7 @@ protected:
     friend class			CPDF_StreamAcc;
     friend class			CPDF_AttachmentAcc;
 };
-class CPDF_StreamAcc : public CFX_Object
+class CPDF_StreamAcc 
 {
 public:
 
@@ -663,7 +622,7 @@ protected:
 };
 CFX_DataFilter* FPDF_CreateFilter(FX_BSTR name, const CPDF_Dictionary* pParam, int width = 0, int height = 0);
 #define FPDF_FILTER_BUFFER_SIZE		20480
-class CPDF_StreamFilter : public CFX_Object
+class CPDF_StreamFilter 
 {
 public:
 
@@ -705,13 +664,10 @@ public:
 
     static CPDF_Null*		Create()
     {
-        return FX_NEW CPDF_Null();
+        return new CPDF_Null();
     }
 
-    CPDF_Null()
-    {
-        m_Type = PDFOBJ_NULL;
-    }
+    CPDF_Null() : CPDF_Object(PDFOBJ_NULL) { }
 };
 class CPDF_Reference : public CPDF_Object
 {
@@ -719,14 +675,11 @@ public:
 
     static CPDF_Reference*	Create(CPDF_IndirectObjects* pDoc, int objnum)
     {
-        return FX_NEW CPDF_Reference(pDoc, objnum);
+        return new CPDF_Reference(pDoc, objnum);
     }
 
     CPDF_Reference(CPDF_IndirectObjects* pDoc, int objnum)
-    {
-        m_Type = PDFOBJ_REFERENCE;
-        m_pObjList = pDoc;
-        m_RefObjNum = objnum;
+        : CPDF_Object(PDFOBJ_REFERENCE), m_pObjList(pDoc), m_RefObjNum(objnum) {
     }
 
     CPDF_IndirectObjects*	GetObjList() const
@@ -752,7 +705,7 @@ protected:
     FX_DWORD				m_RefObjNum;
     friend class			CPDF_Object;
 };
-class CPDF_IndirectObjects : public CFX_Object
+class CPDF_IndirectObjects 
 {
 public:
 

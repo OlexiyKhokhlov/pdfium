@@ -422,7 +422,7 @@ static void _DrawLatticeGouraudShading(CFX_DIBitmap* pBitmap, CFX_AffineMatrix* 
     if (!stream.Load(pShadingStream, pFuncs, nFuncs, pCS)) {
         return;
     }
-    CPDF_MeshVertex* vertex = FX_Alloc(CPDF_MeshVertex, row_verts * 2);
+    CPDF_MeshVertex* vertex = FX_Alloc2D(CPDF_MeshVertex, row_verts, 2);
     if (!stream.GetVertexRow(vertex, row_verts, pObject2Bitmap)) {
         FX_Free(vertex);
         return;
@@ -881,18 +881,13 @@ FX_BOOL CPDF_RenderStatus::ProcessShading(CPDF_ShadingObject* pShadingObj, const
     matrix.Concat(*pObj2Device);
     DrawShading(pShadingObj->m_pShading, &matrix, rect, pShadingObj->m_GeneralState.GetAlpha(FALSE),
                 m_Options.m_ColorMode == RENDER_COLOR_ALPHA);
-#ifdef _FPDFAPI_MINI_
-    if (m_DitherBits) {
-        DitherObjectArea(pShadingObj, pObj2Device);
-    }
-#endif
     return TRUE;
 }
 static CFX_DIBitmap* DrawPatternBitmap(CPDF_Document* pDoc, CPDF_PageRenderCache* pCache,
                                        CPDF_TilingPattern* pPattern, const CFX_AffineMatrix* pObject2Device,
                                        int width, int height, int flags)
 {
-    CFX_DIBitmap* pBitmap = FX_NEW CFX_DIBitmap;
+    CFX_DIBitmap* pBitmap = new CFX_DIBitmap;
     if (!pBitmap->Create(width, height, pPattern->m_bColored ? FXDIB_Argb : FXDIB_8bppMask)) {
         delete pBitmap;
         return NULL;
@@ -993,7 +988,7 @@ void CPDF_RenderStatus::DrawTilingPattern(CPDF_TilingPattern* pPattern, CPDF_Pag
                 matrix.Translate(orig_x - mtPattern2Device.e, orig_y - mtPattern2Device.f);
                 m_pDevice->SaveState();
                 CPDF_RenderStatus status;
-                status.Initialize(m_Level + 1, m_pContext, m_pDevice, NULL, NULL, this, pStates, &m_Options,
+                status.Initialize(m_pContext, m_pDevice, NULL, NULL, this, pStates, &m_Options,
                                   pPattern->m_pForm->m_Transparency, m_bDropObjects, pFormResource);
                 status.RenderObjectList(pPattern->m_pForm, &matrix);
                 m_pDevice->RestoreState();
@@ -1100,13 +1095,11 @@ void CPDF_RenderStatus::DrawPathWithPattern(CPDF_PathObject* pPathObj, const CFX
 }
 void CPDF_RenderStatus::ProcessPathPattern(CPDF_PathObject* pPathObj, const CFX_AffineMatrix* pObj2Device, int& filltype, FX_BOOL& bStroke)
 {
-    FX_BOOL bPattern = FALSE;
     if(filltype) {
         CPDF_Color& FillColor = *pPathObj->m_ColorState.GetFillColor();
         if(FillColor.m_pCS && FillColor.m_pCS->GetFamily() == PDFCS_PATTERN) {
             DrawPathWithPattern(pPathObj, pObj2Device, &FillColor, FALSE);
             filltype = 0;
-            bPattern = TRUE;
         }
     }
     if(bStroke) {
@@ -1114,12 +1107,6 @@ void CPDF_RenderStatus::ProcessPathPattern(CPDF_PathObject* pPathObj, const CFX_
         if(StrokeColor.m_pCS && StrokeColor.m_pCS->GetFamily() == PDFCS_PATTERN) {
             DrawPathWithPattern(pPathObj, pObj2Device, &StrokeColor, TRUE);
             bStroke = FALSE;
-            bPattern = TRUE;
         }
     }
-#ifdef _FPDFAPI_MINI_
-    if (bPattern && m_DitherBits) {
-        DitherObjectArea(pPathObj, pObj2Device);
-    }
-#endif
 }

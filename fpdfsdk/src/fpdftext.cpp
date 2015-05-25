@@ -4,8 +4,8 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../public/fpdf_text.h"
 #include "../include/fsdk_define.h"
-#include "../include/fpdftext.h"
 
 #ifdef _WIN32
 #include <tchar.h>
@@ -235,12 +235,13 @@ DLLEXPORT void STDCALL FPDFLink_GetRect(FPDF_PAGELINK link_page,int link_index, 
 	IPDF_LinkExtract* pageLink=(IPDF_LinkExtract*)link_page;
 	CFX_RectArray rectArray;
 	pageLink->GetRects(link_index,rectArray);
-	CFX_FloatRect rect;
-	rect=rectArray.GetAt(rect_index);
-	*left=rect.left;
-	*right=rect.right;
-	*top=rect.top;
-	*bottom=rect.bottom;
+	if (rect_index >= 0 && rect_index < rectArray.GetSize()) {
+		CFX_FloatRect rect=rectArray.GetAt(rect_index);
+		*left=rect.left;
+		*right=rect.right;
+		*top=rect.top;
+		*bottom=rect.bottom;
+	}
 }
 DLLEXPORT void	STDCALL	FPDFLink_CloseWebLinks(FPDF_PAGELINK link_page)
 {

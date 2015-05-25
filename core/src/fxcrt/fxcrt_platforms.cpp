@@ -9,7 +9,7 @@
 #if (_FXM_PLATFORM_ != _FXM_PLATFORM_WINDOWS_ && _FXM_PLATFORM_ != _FXM_PLATFORM_LINUX_ && _FXM_PLATFORM_ != _FXM_PLATFORM_APPLE_ && _FXM_PLATFORM_ != _FXM_PLATFORM_ANDROID_)
 IFXCRT_FileAccess* FXCRT_FileAccess_Create()
 {
-    return FX_NEW CFXCRT_FileAccess_CRT;
+    return new CFXCRT_FileAccess_CRT;
 }
 void FXCRT_GetFileModeString(FX_DWORD dwModes, CFX_ByteString &bsMode)
 {
@@ -46,7 +46,7 @@ FX_BOOL CFXCRT_FileAccess_CRT::Open(FX_BSTR fileName, FX_DWORD dwMode)
     }
     CFX_ByteString strMode;
     FXCRT_GetFileModeString(dwMode, strMode);
-    m_hFile = FXSYS_fopen(fileName.GetCStr(), (FX_LPCSTR)strMode);
+    m_hFile = FXSYS_fopen(fileName.GetCStr(), strMode.c_str());
     return m_hFile != NULL;
 }
 FX_BOOL CFXCRT_FileAccess_CRT::Open(FX_WSTR fileName, FX_DWORD dwMode)
@@ -169,9 +169,6 @@ FX_BOOL FX_File_Copy(FX_BSTR fileNameSrc, FX_BSTR fileNameDst)
     }
     FX_FILESIZE num = 0;
     FX_LPBYTE pBuffer = FX_Alloc(FX_BYTE, 32768);
-    if (!pBuffer) {
-        return FALSE;
-    }
     while (num = src.Read(pBuffer, 32768)) {
         if (dst.Write(pBuffer, num) != num) {
             break;

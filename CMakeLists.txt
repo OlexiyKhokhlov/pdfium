@@ -156,89 +156,19 @@ if(USE_SYSTEM_OPENJPEG)
   add_library(openjpeg OBJECT empty.c)
 else(USE_SYSTEM_OPENJPEG)
   add_subdirectory(core/src/fxcodec/fx_libopenjpeg)
+  add_definitions(-DOPJ_STATIC)
 endif(USE_SYSTEM_OPENJPEG)
 
-#  add_subdirectory(core/src/fxge/fx_freetype)
-#  set(FREETYPE_LIBRARY freetype)
-set(freetype_HEADERS
-  core/src/fxge/fx_freetype/include/fxft_cffobjs.h
-  core/src/fxge/fx_freetype/include/fxft_cfftypes.h
-  core/src/fxge/fx_freetype/include/fxft_freetype.h
-  core/src/fxge/fx_freetype/include/fxft_ft2build.h
-  core/src/fxge/fx_freetype/include/fxft_ftmm.h
-  core/src/fxge/fx_freetype/include/fxft_ftobjs.h
-  core/src/fxge/fx_freetype/include/fxft_ftotval.h
-  core/src/fxge/fx_freetype/include/fxft_ftoutln.h
-  core/src/fxge/fx_freetype/include/fxft_ftstream.h
-  core/src/fxge/fx_freetype/include/fxft_tttables.h
-  core/src/fxge/fx_freetype/include/fxft_tttypes.h
-)
-
-set(freetype_SOURCES
-  core/src/fxge/fx_freetype/src/fxft_cff.c
-  core/src/fxge/fx_freetype/src/fxft_ftbase.c
-  core/src/fxge/fx_freetype/src/fxft_ftbitmap.c
-  core/src/fxge/fx_freetype/src/fxft_ftglyph.c
-  core/src/fxge/fx_freetype/src/fxft_ftinit.c
-  core/src/fxge/fx_freetype/src/fxft_ftlcdfil.c
-  core/src/fxge/fx_freetype/src/fxft_ftmm.c
-  core/src/fxge/fx_freetype/src/fxft_ftsystem.c
-  core/src/fxge/fx_freetype/src/fxft_psaux.c
-  core/src/fxge/fx_freetype/src/fxft_pshinter.c
-  core/src/fxge/fx_freetype/src/fxft_psmodule.c
-  core/src/fxge/fx_freetype/src/fxft_raster.c
-  core/src/fxge/fx_freetype/src/fxft_sfnt.c
-  core/src/fxge/fx_freetype/src/fxft_smooth.c
-  core/src/fxge/fx_freetype/src/fxft_truetype.c
-  core/src/fxge/fx_freetype/src/fxft_type1.c
-  core/src/fxge/fx_freetype/src/fxft_type1cid.c
-)
+#Use own FreeType in anytime
+add_subdirectory(third_party/freetype)
+include_directories(third_party/freetype/include)
 
 #Use own jbig2 in anytime
-#add_subdirectory(core/src/fxcodec/jbig2)
-#set(JBIG2DEC_LIBRARIES jbig2)
-
-set(jbig2_HEADERS
-  core/src/fxcodec/jbig2/JBig2_ArithDecoder.h
-  core/src/fxcodec/jbig2/JBig2_ArithIntDecoder.h
-  core/src/fxcodec/jbig2/JBig2_ArithQe.h
-  core/src/fxcodec/jbig2/JBig2_BitStream.h
-  core/src/fxcodec/jbig2/JBig2_Context.h
-  core/src/fxcodec/jbig2/JBig2_Define.h
-  core/src/fxcodec/jbig2/JBig2_GeneralDecoder.h
-  core/src/fxcodec/jbig2/JBig2_HuffmanDecoder.h
-  core/src/fxcodec/jbig2/JBig2_HuffmanTable.h
-  core/src/fxcodec/jbig2/JBig2_HuffmanTable_Standard.h
-  core/src/fxcodec/jbig2/JBig2_Image.h
-  core/src/fxcodec/jbig2/JBig2_List.h
-  core/src/fxcodec/jbig2/JBig2_Module.h
-  core/src/fxcodec/jbig2/JBig2_Object.h
-  core/src/fxcodec/jbig2/JBig2_Page.h
-  core/src/fxcodec/jbig2/JBig2_PatternDict.h
-  core/src/fxcodec/jbig2/JBig2_Segment.h
-  core/src/fxcodec/jbig2/JBig2_SymbolDict.h
-)
-
-set(jbig2_SOURCES
-  core/src/fxcodec/jbig2/JBig2_ArithIntDecoder.cpp
-  core/src/fxcodec/jbig2/JBig2_Context.cpp
-  core/src/fxcodec/jbig2/JBig2_GeneralDecoder.cpp
-  core/src/fxcodec/jbig2/JBig2_HuffmanDecoder.cpp
-  core/src/fxcodec/jbig2/JBig2_HuffmanTable.cpp
-  core/src/fxcodec/jbig2/JBig2_Image.cpp
-  core/src/fxcodec/jbig2/JBig2_Object.cpp
-  core/src/fxcodec/jbig2/JBig2_PatternDict.cpp
-  core/src/fxcodec/jbig2/JBig2_Segment.cpp
-  core/src/fxcodec/jbig2/JBig2_SymbolDict.cpp
-)
-
+add_subdirectory(core/src/fxcodec/jbig2)
 
 add_definitions(
-  -DFOXIT_CHROME_BUILD
-  -D_FXFT_VERSION_=2501 
   -D_FPDFSDK_LIB
   -D_NO_GDIPLUS_ # workaround text rendering issues on Windows
-  -DOPJ_STATIC
   )
 
 if(TARGET_ARCH STREQUAL "x86_64")
@@ -324,7 +254,6 @@ set(FPDFAPI_SOURCES
   core/src/fpdfapi/fpdf_font/fpdf_font.cpp
   core/src/fpdfapi/fpdf_font/fpdf_font_charset.cpp
   core/src/fpdfapi/fpdf_font/fpdf_font_cid.cpp
-  core/src/fpdfapi/fpdf_font/fpdf_font_utility.cpp
   core/src/fpdfapi/fpdf_font/ttgsubtable.cpp
   core/src/fpdfapi/fpdf_font/ttgsubtable.h
   core/src/fpdfapi/fpdf_page/fpdf_page.cpp
@@ -334,7 +263,6 @@ set(FPDFAPI_SOURCES
   core/src/fpdfapi/fpdf_page/fpdf_page_graph_state.cpp
   core/src/fpdfapi/fpdf_page/fpdf_page_image.cpp
   core/src/fpdfapi/fpdf_page/fpdf_page_parser.cpp
-  core/src/fpdfapi/fpdf_page/fpdf_page_parser_new.cpp
   core/src/fpdfapi/fpdf_page/fpdf_page_parser_old.cpp
   core/src/fpdfapi/fpdf_page/fpdf_page_path.cpp
   core/src/fpdfapi/fpdf_page/fpdf_page_pattern.cpp
@@ -512,6 +440,7 @@ set(FXGE_SOURCES
   core/src/fxge/fontdata/chromefontdata/FoxitSerifItalic.c
   core/src/fxge/fontdata/chromefontdata/FoxitSerifMM.c
   core/src/fxge/fontdata/chromefontdata/FoxitSymbol.c
+  core/src/fxge/freetype/fx_freetype.c
   core/src/fxge/ge/fx_ge.cpp
   core/src/fxge/ge/fx_ge_device.cpp
   core/src/fxge/ge/fx_ge_font.cpp
@@ -520,23 +449,6 @@ set(FXGE_SOURCES
   core/src/fxge/ge/fx_ge_path.cpp
   core/src/fxge/ge/fx_ge_ps.cpp
   core/src/fxge/ge/fx_ge_text.cpp
-  core/src/fxge/fx_freetype/src/fxft_cff.c
-  core/src/fxge/fx_freetype/src/fxft_ftbase.c
-  core/src/fxge/fx_freetype/src/fxft_ftbitmap.c
-  core/src/fxge/fx_freetype/src/fxft_ftglyph.c
-  core/src/fxge/fx_freetype/src/fxft_ftinit.c
-  core/src/fxge/fx_freetype/src/fxft_ftlcdfil.c
-  core/src/fxge/fx_freetype/src/fxft_ftmm.c
-  core/src/fxge/fx_freetype/src/fxft_ftsystem.c
-  core/src/fxge/fx_freetype/src/fxft_psaux.c
-  core/src/fxge/fx_freetype/src/fxft_pshinter.c
-  core/src/fxge/fx_freetype/src/fxft_psmodule.c
-  core/src/fxge/fx_freetype/src/fxft_raster.c
-  core/src/fxge/fx_freetype/src/fxft_sfnt.c
-  core/src/fxge/fx_freetype/src/fxft_smooth.c
-  core/src/fxge/fx_freetype/src/fxft_truetype.c
-  core/src/fxge/fx_freetype/src/fxft_type1.c
-  core/src/fxge/fx_freetype/src/fxft_type1cid.c
 )
 
 #add_library(fxge STATIC ${FXGE_HEDAERS} ${FXGE_SOURCES})
@@ -638,33 +550,33 @@ set(FORMFILLER_SOURCES
 
 ######################### FPDFSDK #############################################
 set(FPDFSDK_HEDAERS
-  fpdfsdk/include/fpdfdoc.h
-  fpdfsdk/include/fpdfedit.h
-  fpdfsdk/include/fpdfformfill.h
-  fpdfsdk/include/fpdfoom.h
-  fpdfsdk/include/fpdftext.h
-  fpdfsdk/include/fpdfview.h
-  fpdfsdk/include/fpdf_dataavail.h
-  fpdfsdk/include/fpdf_flatten.h
-  fpdfsdk/include/fpdf_progressive.h
-  fpdfsdk/include/fpdf_searchex.h
-  fpdfsdk/include/fpdf_sysfontinfo.h
-  fpdfsdk/include/fpdf_ext.h
-  fpdfsdk/include/fpdf_sysfontinfo.h
+  fpdfsdk/src/resource.h  
+  public/fpdf_dataavail.h  
+  public/fpdf_doc.h  
+  public/fpdf_edit.h  
+  public/fpdf_ext.h  
+  public/fpdf_flatten.h  
+  public/fpdf_formfill.h  
+  public/fpdf_fwlevent.h  
+  public/fpdf_ppo.h  
+  public/fpdf_progressive.h  
+  public/fpdf_save.h  
+  public/fpdf_searchex.h  
+  public/fpdf_sysfontinfo.h  
+  public/fpdf_text.h  
+  public/fpdf_transformpage.h  
+  public/fpdfview.h
+)
+
+set(FPDFSDK_SOURCES
   fpdfsdk/include/fsdk_actionhandler.h
   fpdfsdk/include/fsdk_annothandler.h
   fpdfsdk/include/fsdk_baseannot.h
   fpdfsdk/include/fsdk_baseform.h
-  fpdfsdk/src/resource.h
-  fpdfsdk/include/fpdf_transformpage.h
-)
-
-set(FPDFSDK_SOURCES
   fpdfsdk/src/fpdfdoc.cpp
   fpdfsdk/src/fpdfeditimg.cpp
   fpdfsdk/src/fpdfeditpage.cpp
   fpdfsdk/src/fpdfformfill.cpp
-  fpdfsdk/src/fpdfoom.cpp
   fpdfsdk/src/fpdfppo.cpp
   fpdfsdk/src/fpdfsave.cpp
   fpdfsdk/src/fpdftext.cpp
@@ -675,13 +587,13 @@ set(FPDFSDK_SOURCES
   fpdfsdk/src/fpdf_progressive.cpp
   fpdfsdk/src/fpdf_searchex.cpp
   fpdfsdk/src/fpdf_sysfontinfo.cpp
+  fpdfsdk/src/fpdf_transformpage.cpp
   fpdfsdk/src/fsdk_actionhandler.cpp
   fpdfsdk/src/fsdk_annothandler.cpp
   fpdfsdk/src/fsdk_baseannot.cpp
   fpdfsdk/src/fsdk_baseform.cpp
   fpdfsdk/src/fsdk_mgr.cpp
   fpdfsdk/src/fsdk_rendercontext.cpp
-  fpdfsdk/src/fpdf_transformpage.cpp
 )
 
 
@@ -698,8 +610,6 @@ set(ALL_SOURCES
   ${PDFWINDOW_HEDAERS} ${PDFWINDOW_SOURCES}
   ${FORMFILLER_HEDAERS} ${FORMFILLER_SOURCES}
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
-  ${jbig2_HEADERS} ${jbig2_SOURCES}
-  ${freetype_HEADERS} ${freetype_SOURCES}
 )
 
 if(USE_STATIC_LIBRARY)
@@ -709,6 +619,8 @@ if(USE_STATIC_LIBRARY)
 	$<TARGET_OBJECTS:zlib>
 	$<TARGET_OBJECTS:lcms2>
 	$<TARGET_OBJECTS:openjpeg>
+	$<TARGET_OBJECTS:jbig2>
+	$<TARGET_OBJECTS:freetype>
     )
 else(USE_STATIC_LIBRARY)
     add_library(pdfium SHARED
@@ -717,6 +629,8 @@ else(USE_STATIC_LIBRARY)
 	$<TARGET_OBJECTS:zlib>
 	$<TARGET_OBJECTS:lcms2>
 	$<TARGET_OBJECTS:openjpeg>
+	$<TARGET_OBJECTS:jbig2>
+	$<TARGET_OBJECTS:freetype>
     )
 endif(USE_STATIC_LIBRARY)
 
@@ -727,16 +641,10 @@ target_link_libraries(pdfium
   ${OPENJPEG_LIBRARY}
 )
 
-#add_executable(pdfium_test samples/pdfium_test.cc)
-#target_link_libraries(pdfium_test pdfium )
-  
 include_directories(./fpdfsdk/include)
 
 #Install
 file(GLOB INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/fpdfsdk/include/*.h)
 install(FILES ${INSTALL_HEADERS} DESTINATION include/pdfium)
-
-file(GLOB FPDFDOC_INSTALL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/core/include/fpdfdoc/*.h)
-install(FILES ${FPDFDOC_INSTALL_HEADERS} DESTINATION include/pdfium/fpdfdoc)
 
 install (TARGETS pdfium DESTINATION lib)

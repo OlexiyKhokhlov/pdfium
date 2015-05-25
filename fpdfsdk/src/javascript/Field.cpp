@@ -11,7 +11,6 @@
 #include "../../include/javascript/JS_Value.h"
 #include "../../include/javascript/Field.h"
 #include "../../include/javascript/JS_EventHandler.h"
-//#include "../include/JS_ResMgr.h"
 #include "../../include/javascript/JS_Context.h"
 #include "../../include/javascript/JS_Runtime.h"
 #include "../../include/javascript/Document.h"
@@ -81,32 +80,32 @@ BEGIN_JS_STATIC_PROP(CJS_Field)
 END_JS_STATIC_PROP()
 
 BEGIN_JS_STATIC_METHOD(CJS_Field)
-	JS_STATIC_METHOD_ENTRY(browseForFileToSubmit,      0)
-	JS_STATIC_METHOD_ENTRY(buttonGetCaption,           1)
-	JS_STATIC_METHOD_ENTRY(buttonGetIcon,              1)
-	JS_STATIC_METHOD_ENTRY(buttonImportIcon,           0)
-	JS_STATIC_METHOD_ENTRY(buttonSetCaption,           2)
-	JS_STATIC_METHOD_ENTRY(buttonSetIcon,              2)
-	JS_STATIC_METHOD_ENTRY(checkThisBox,               2)
-	JS_STATIC_METHOD_ENTRY(clearItems,                 0)
-	JS_STATIC_METHOD_ENTRY(defaultIsChecked,           2)
-	JS_STATIC_METHOD_ENTRY(deleteItemAt,               1)
-	JS_STATIC_METHOD_ENTRY(getArray ,                  0)
-	JS_STATIC_METHOD_ENTRY(getItemAt,                  0)
-	JS_STATIC_METHOD_ENTRY(getLock,                    0)
-	JS_STATIC_METHOD_ENTRY(insertItemAt,               0)
-	JS_STATIC_METHOD_ENTRY(isBoxChecked,               1)
-	JS_STATIC_METHOD_ENTRY(isDefaultChecked,           1)
-	JS_STATIC_METHOD_ENTRY(setAction,                  2)
-	JS_STATIC_METHOD_ENTRY(setFocus,                   0)
-	JS_STATIC_METHOD_ENTRY(setItems,                   1)
-	JS_STATIC_METHOD_ENTRY(setLock,                    0)
-	JS_STATIC_METHOD_ENTRY(signatureGetModifications,  0)
-	JS_STATIC_METHOD_ENTRY(signatureGetSeedValue,      0)
-	JS_STATIC_METHOD_ENTRY(signatureInfo,              0)
-	JS_STATIC_METHOD_ENTRY(signatureSetSeedValue,      0)
-	JS_STATIC_METHOD_ENTRY(signatureSign,              0)
-	JS_STATIC_METHOD_ENTRY(signatureValidate,          0)
+	JS_STATIC_METHOD_ENTRY(browseForFileToSubmit)
+	JS_STATIC_METHOD_ENTRY(buttonGetCaption)
+	JS_STATIC_METHOD_ENTRY(buttonGetIcon)
+	JS_STATIC_METHOD_ENTRY(buttonImportIcon)
+	JS_STATIC_METHOD_ENTRY(buttonSetCaption)
+	JS_STATIC_METHOD_ENTRY(buttonSetIcon)
+	JS_STATIC_METHOD_ENTRY(checkThisBox)
+	JS_STATIC_METHOD_ENTRY(clearItems)
+	JS_STATIC_METHOD_ENTRY(defaultIsChecked)
+	JS_STATIC_METHOD_ENTRY(deleteItemAt)
+	JS_STATIC_METHOD_ENTRY(getArray )
+	JS_STATIC_METHOD_ENTRY(getItemAt)
+	JS_STATIC_METHOD_ENTRY(getLock)
+	JS_STATIC_METHOD_ENTRY(insertItemAt)
+	JS_STATIC_METHOD_ENTRY(isBoxChecked)
+	JS_STATIC_METHOD_ENTRY(isDefaultChecked)
+	JS_STATIC_METHOD_ENTRY(setAction)
+	JS_STATIC_METHOD_ENTRY(setFocus)
+	JS_STATIC_METHOD_ENTRY(setItems)
+	JS_STATIC_METHOD_ENTRY(setLock)
+	JS_STATIC_METHOD_ENTRY(signatureGetModifications)
+	JS_STATIC_METHOD_ENTRY(signatureGetSeedValue)
+	JS_STATIC_METHOD_ENTRY(signatureInfo)
+	JS_STATIC_METHOD_ENTRY(signatureSetSeedValue)
+	JS_STATIC_METHOD_ENTRY(signatureSign)
+	JS_STATIC_METHOD_ENTRY(signatureValidate)
 END_JS_STATIC_METHOD()
 
 IMPLEMENT_JS_CLASS(CJS_Field, Field)
@@ -259,7 +258,7 @@ void Field::UpdateFormField(CPDFSDK_Document* pDocument, CPDF_FormField* pFormFi
 				FX_BOOL bFormated = FALSE;
 				CFX_WideString sValue = pWidget->OnFormat(0, bFormated);
 				if (bFormated)
-					pWidget->ResetAppearance(sValue, FALSE);
+					pWidget->ResetAppearance(sValue.c_str(), FALSE);
 				else
 					pWidget->ResetAppearance(NULL, FALSE);
 			}
@@ -316,7 +315,7 @@ void Field::UpdateFormControl(CPDFSDK_Document* pDocument, CPDF_FormControl* pFo
 				FX_BOOL bFormated = FALSE;
 				CFX_WideString sValue = pWidget->OnFormat(0, bFormated);
 				if (bFormated)
-					pWidget->ResetAppearance(sValue, FALSE);
+					pWidget->ResetAppearance(sValue.c_str(), FALSE);
 				else
 					pWidget->ResetAppearance(NULL, FALSE);
 			}
@@ -377,7 +376,7 @@ CPDF_FormControl* Field::GetSmartFieldControl(CPDF_FormField* pFormField)
 
 /* ---------------------------------------- property ---------------------------------------- */
 
-FX_BOOL Field::alignment(OBJ_PROP_PARAMS)
+FX_BOOL Field::alignment(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -437,7 +436,7 @@ void Field::SetAlignment(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	//Not supported.
 }
 
-FX_BOOL Field::borderStyle(OBJ_PROP_PARAMS)
+FX_BOOL Field::borderStyle(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {	
 	ASSERT(m_pDocument != NULL);
 
@@ -558,7 +557,7 @@ void Field::SetBorderStyle(CPDFSDK_Document* pDocument, const CFX_WideString& sw
 	}
 }
 
-FX_BOOL Field::buttonAlignX(OBJ_PROP_PARAMS)
+FX_BOOL Field::buttonAlignX(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -609,7 +608,7 @@ void Field::SetButtonAlignX(CPDFSDK_Document* pDocument, const CFX_WideString& s
 	//Not supported.
 }
 
-FX_BOOL Field::buttonAlignY(OBJ_PROP_PARAMS)
+FX_BOOL Field::buttonAlignY(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -660,7 +659,7 @@ void Field::SetButtonAlignY(CPDFSDK_Document* pDocument, const CFX_WideString& s
 	//Not supported.
 }
 
-FX_BOOL Field::buttonFitBounds(OBJ_PROP_PARAMS)
+FX_BOOL Field::buttonFitBounds(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -707,7 +706,7 @@ void Field::SetButtonFitBounds(CPDFSDK_Document* pDocument, const CFX_WideString
 	//Not supported.
 }
 
-FX_BOOL Field::buttonPosition(OBJ_PROP_PARAMS)
+FX_BOOL Field::buttonPosition(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -752,7 +751,7 @@ void Field::SetButtonPosition(CPDFSDK_Document* pDocument, const CFX_WideString&
 	//Not supported.
 }
 
-FX_BOOL Field::buttonScaleHow(OBJ_PROP_PARAMS)
+FX_BOOL Field::buttonScaleHow(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -802,7 +801,7 @@ void Field::SetButtonScaleHow(CPDFSDK_Document* pDocument, const CFX_WideString&
 	//Not supported.
 }
 
-FX_BOOL Field::buttonScaleWhen(OBJ_PROP_PARAMS)
+FX_BOOL Field::buttonScaleWhen(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -864,7 +863,7 @@ void Field::SetButtonScaleWhen(CPDFSDK_Document* pDocument, const CFX_WideString
 	//Not supported.
 }
 
-FX_BOOL Field::calcOrderIndex(OBJ_PROP_PARAMS)
+FX_BOOL Field::calcOrderIndex(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -913,7 +912,7 @@ void Field::SetCalcOrderIndex(CPDFSDK_Document* pDocument, const CFX_WideString&
 	//Not supported.
 }
 
-FX_BOOL Field::charLimit(OBJ_PROP_PARAMS)
+FX_BOOL Field::charLimit(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -955,7 +954,7 @@ void Field::SetCharLimit(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	//Not supported.
 }
 
-FX_BOOL Field::comb(OBJ_PROP_PARAMS)
+FX_BOOL Field::comb(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1001,7 +1000,7 @@ void Field::SetComb(CPDFSDK_Document* pDocument, const CFX_WideString& swFieldNa
 	//Not supported.
 }
 
-FX_BOOL Field::commitOnSelChange(OBJ_PROP_PARAMS)
+FX_BOOL Field::commitOnSelChange(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1047,7 +1046,7 @@ void Field::SetCommitOnSelChange(CPDFSDK_Document* pDocument, const CFX_WideStri
 	//Not supported.
 }
 
-FX_BOOL Field::currentValueIndices(OBJ_PROP_PARAMS)
+FX_BOOL Field::currentValueIndices(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1072,7 +1071,7 @@ FX_BOOL Field::currentValueIndices(OBJ_PROP_PARAMS)
 			for (int i=0,sz=SelArray.GetLength(); i<sz; i++)
 			{
 				SelArray.GetElement(i,SelValue);
-				iSelecting = (FX_INT32)SelValue;
+				iSelecting = SelValue.ToInt();
 				array.Add(iSelecting);
 			}
 		}
@@ -1152,7 +1151,7 @@ void Field::SetCurrentValueIndices(CPDFSDK_Document* pDocument, const CFX_WideSt
 	}
 }
 
-FX_BOOL Field::defaultStyle(OBJ_PROP_PARAMS)
+FX_BOOL Field::defaultStyle(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	// MQG sError = JSGetStringFromID(IDS_STRING_NOTSUPPORT);
 	return FALSE;
@@ -1175,7 +1174,7 @@ void Field::SetDefaultStyle(CPDFSDK_Document* pDocument, const CFX_WideString& s
 	//Not supported.
 }
 
-FX_BOOL Field::defaultValue(OBJ_PROP_PARAMS)
+FX_BOOL Field::defaultValue(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1219,7 +1218,7 @@ void Field::SetDefaultValue(CPDFSDK_Document* pDocument, const CFX_WideString& s
 	//Not supported.
 }
 
-FX_BOOL Field::doNotScroll(OBJ_PROP_PARAMS)
+FX_BOOL Field::doNotScroll(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1265,7 +1264,7 @@ void Field::SetDoNotScroll(CPDFSDK_Document* pDocument, const CFX_WideString& sw
 	//Not supported.
 }
 
-FX_BOOL Field::doNotSpellCheck(OBJ_PROP_PARAMS)
+FX_BOOL Field::doNotSpellCheck(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1309,7 +1308,7 @@ void Field::SetDelay(FX_BOOL bDelay)
 	}
 }
 
-FX_BOOL Field::delay(OBJ_PROP_PARAMS)
+FX_BOOL Field::delay(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	if (vp.IsSetting())
 	{
@@ -1327,7 +1326,7 @@ FX_BOOL Field::delay(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::display(OBJ_PROP_PARAMS)
+FX_BOOL Field::display(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1498,28 +1497,24 @@ void Field::SetDisplay(CPDFSDK_Document* pDocument, const CFX_WideString& swFiel
 	}
 }
 
-FX_BOOL Field::doc(OBJ_PROP_PARAMS)
+FX_BOOL Field::doc(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
-	ASSERT(m_pJSDoc != NULL);
-
-	if (!vp.IsGetting())return FALSE;
-
-	vp << (CJS_Object*)(*m_pJSDoc);
-
+	if (!vp.IsGetting()) {
+		return FALSE;
+	}
+	vp << m_pJSDoc->GetCJSDoc();
 	return TRUE;
 }
 
-FX_BOOL Field::editable(OBJ_PROP_PARAMS)
+FX_BOOL Field::editable(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
-
 	if (vp.IsSetting())
 	{
 		if (!m_bCanSet) return FALSE;
 
 		bool bVP;
 		vp >> bVP;
-
 	}
 	else
 	{
@@ -1542,7 +1537,7 @@ FX_BOOL Field::editable(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::exportValues(OBJ_PROP_PARAMS)
+FX_BOOL Field::exportValues(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1591,7 +1586,7 @@ FX_BOOL Field::exportValues(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::fileSelect(OBJ_PROP_PARAMS)
+FX_BOOL Field::fileSelect(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1624,7 +1619,7 @@ FX_BOOL Field::fileSelect(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::fillColor(OBJ_PROP_PARAMS)
+FX_BOOL Field::fillColor(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1702,7 +1697,7 @@ void Field::SetFillColor(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	//Not supported.
 }
 
-FX_BOOL Field::hidden(OBJ_PROP_PARAMS)
+FX_BOOL Field::hidden(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1833,7 +1828,7 @@ void Field::SetHidden(CPDFSDK_Document* pDocument, const CFX_WideString& swField
 	}
 }
 
-FX_BOOL Field::highlight(OBJ_PROP_PARAMS)
+FX_BOOL Field::highlight(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1897,7 +1892,7 @@ void Field::SetHighlight(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	//Not supported.
 }
 
-FX_BOOL Field::lineWidth(OBJ_PROP_PARAMS)
+FX_BOOL Field::lineWidth(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -1995,7 +1990,7 @@ void Field::SetLineWidth(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	}
 }
 
-FX_BOOL Field::multiline(OBJ_PROP_PARAMS)
+FX_BOOL Field::multiline(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2041,7 +2036,7 @@ void Field::SetMultiline(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	//Not supported.
 }
 
-FX_BOOL Field::multipleSelection(OBJ_PROP_PARAMS)
+FX_BOOL Field::multipleSelection(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2087,7 +2082,7 @@ void Field::SetMultipleSelection(CPDFSDK_Document* pDocument, const CFX_WideStri
 	//Not supported.
 }
 
-FX_BOOL Field::name(OBJ_PROP_PARAMS)
+FX_BOOL Field::name(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	if (!vp.IsGetting()) return FALSE;
 
@@ -2100,7 +2095,7 @@ FX_BOOL Field::name(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::numItems(OBJ_PROP_PARAMS)
+FX_BOOL Field::numItems(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {	
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName, FieldArray);
@@ -2120,7 +2115,7 @@ FX_BOOL Field::numItems(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::page(OBJ_PROP_PARAMS)
+FX_BOOL Field::page(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	if (!vp.IsGetting()) return FALSE;
 
@@ -2165,7 +2160,7 @@ FX_BOOL Field::page(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::password(OBJ_PROP_PARAMS)
+FX_BOOL Field::password(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2211,7 +2206,7 @@ void Field::SetPassword(CPDFSDK_Document* pDocument, const CFX_WideString& swFie
 	//Not supported.
 }
 
-FX_BOOL Field::print(OBJ_PROP_PARAMS)
+FX_BOOL Field::print(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2298,7 +2293,7 @@ FX_BOOL Field::print(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::radiosInUnison(OBJ_PROP_PARAMS)
+FX_BOOL Field::radiosInUnison(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2331,7 +2326,7 @@ FX_BOOL Field::radiosInUnison(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::readonly(OBJ_PROP_PARAMS)
+FX_BOOL Field::readonly(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2361,7 +2356,7 @@ FX_BOOL Field::readonly(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::rect(OBJ_PROP_PARAMS)
+FX_BOOL Field::rect(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2379,10 +2374,10 @@ FX_BOOL Field::rect(OBJ_PROP_PARAMS)
 		rcArray.GetElement(3, Lower_Righty);
 
 		FX_FLOAT pArray[4] = {0.0f,0.0f,0.0f,0.0f};
-		pArray[0] = (FX_FLOAT)(FX_INT32)Upper_Leftx;
-		pArray[1] = (FX_FLOAT)(FX_INT32)Lower_Righty;
-		pArray[2] = (FX_FLOAT)(FX_INT32)Lower_Rightx;
-		pArray[3] = (FX_FLOAT)(FX_INT32)Upper_Lefty;
+		pArray[0] = (FX_FLOAT)Upper_Leftx.ToInt();
+		pArray[1] = (FX_FLOAT)Lower_Righty.ToInt();
+		pArray[2] = (FX_FLOAT)Lower_Rightx.ToInt();
+		pArray[3] = (FX_FLOAT)Upper_Lefty.ToInt();
 
 		CPDF_Rect crRect(pArray);
 
@@ -2516,7 +2511,7 @@ void Field::SetRect(CPDFSDK_Document* pDocument, const CFX_WideString& swFieldNa
 	}
 }
 
-FX_BOOL Field::required(OBJ_PROP_PARAMS)
+FX_BOOL Field::required(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2550,7 +2545,7 @@ FX_BOOL Field::required(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::richText(OBJ_PROP_PARAMS)
+FX_BOOL Field::richText(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2596,7 +2591,7 @@ void Field::SetRichText(CPDFSDK_Document* pDocument, const CFX_WideString& swFie
 	//Not supported.
 }
 
-FX_BOOL Field::richValue(OBJ_PROP_PARAMS)
+FX_BOOL Field::richValue(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	return TRUE;
 	if (vp.IsSetting())
@@ -2616,7 +2611,7 @@ void Field::SetRichValue(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	//Not supported.
 }
 
-FX_BOOL Field::rotation(OBJ_PROP_PARAMS)
+FX_BOOL Field::rotation(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2659,7 +2654,7 @@ void Field::SetRotation(CPDFSDK_Document* pDocument, const CFX_WideString& swFie
 	//Not supported.
 }
 
-FX_BOOL Field::strokeColor(OBJ_PROP_PARAMS)
+FX_BOOL Field::strokeColor(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2738,7 +2733,7 @@ void Field::SetStrokeColor(CPDFSDK_Document* pDocument, const CFX_WideString& sw
 	//Not supported.
 }
 
-FX_BOOL Field::style(OBJ_PROP_PARAMS)
+FX_BOOL Field::style(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2810,12 +2805,12 @@ void Field::SetStyle(CPDFSDK_Document* pDocument, const CFX_WideString& swFieldN
 	//Not supported.
 }
 
-FX_BOOL Field::submitName(OBJ_PROP_PARAMS)
+FX_BOOL Field::submitName(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	return TRUE;
 }
 
-FX_BOOL Field::textColor(OBJ_PROP_PARAMS)
+FX_BOOL Field::textColor(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2878,7 +2873,7 @@ void Field::SetTextColor(CPDFSDK_Document* pDocument, const CFX_WideString& swFi
 	//Not supported.
 }
 
-FX_BOOL Field::textFont(OBJ_PROP_PARAMS)
+FX_BOOL Field::textFont(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2935,7 +2930,7 @@ void Field::SetTextFont(CPDFSDK_Document* pDocument, const CFX_WideString& swFie
 	//Not supported.
 }
 
-FX_BOOL Field::textSize(OBJ_PROP_PARAMS)
+FX_BOOL Field::textSize(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -2984,7 +2979,7 @@ void Field::SetTextSize(CPDFSDK_Document* pDocument, const CFX_WideString& swFie
 	//Not supported.
 }
 
-FX_BOOL Field::type(OBJ_PROP_PARAMS)
+FX_BOOL Field::type(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -3031,7 +3026,7 @@ FX_BOOL Field::type(OBJ_PROP_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::userName(OBJ_PROP_PARAMS)
+FX_BOOL Field::userName(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -3071,7 +3066,7 @@ void Field::SetUserName(CPDFSDK_Document* pDocument, const CFX_WideString& swFie
 	//Not supported.
 }
 
-FX_BOOL Field::value(OBJ_PROP_PARAMS)
+FX_BOOL Field::value(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -3089,7 +3084,7 @@ FX_BOOL Field::value(OBJ_PROP_PARAMS)
 			{
 				CJS_Value ElementValue(m_isolate);
 				ValueArray.GetElement(i, ElementValue);
-				strArray.Add(ElementValue.operator CFX_WideString());
+				strArray.Add(ElementValue.ToCFXWideString());
 			}
 		}
 		else
@@ -3131,7 +3126,7 @@ FX_BOOL Field::value(OBJ_PROP_PARAMS)
 
 				double dRet;
 				FX_BOOL bDot;
-				if (CJS_PublicMethods::ConvertStringToNumber(swValue,dRet,bDot))
+				if (CJS_PublicMethods::ConvertStringToNumber(swValue.c_str(), dRet, bDot))
 				{
 					if (bDot)
 						vp << dRet;
@@ -3152,9 +3147,9 @@ FX_BOOL Field::value(OBJ_PROP_PARAMS)
 					for (int i = 0, sz = pFormField->CountSelectedItems(); i < sz; i++)
 					{
 						iIndex = pFormField->GetSelectedIndex(i);
-						ElementValue = pFormField->GetOptionValue(iIndex);
-						if (FXSYS_wcslen((FX_LPCWSTR)ElementValue.operator CFX_WideString()) == 0)
-							ElementValue = pFormField->GetOptionLabel(iIndex);
+						ElementValue = pFormField->GetOptionValue(iIndex).c_str();
+						if (FXSYS_wcslen(ElementValue.ToCFXWideString().c_str()) == 0)
+							ElementValue = pFormField->GetOptionLabel(iIndex).c_str();
 						ValueArray.SetElement(i, ElementValue);
 					}
 					vp << ValueArray;
@@ -3165,7 +3160,7 @@ FX_BOOL Field::value(OBJ_PROP_PARAMS)
 				
 					double dRet;
 					FX_BOOL bDot;
-					if (CJS_PublicMethods::ConvertStringToNumber(swValue,dRet,bDot))
+					if (CJS_PublicMethods::ConvertStringToNumber(swValue.c_str(), dRet, bDot))
 					{
 						if (bDot)
 							vp << dRet;
@@ -3186,10 +3181,9 @@ FX_BOOL Field::value(OBJ_PROP_PARAMS)
 					if (pFormField->GetControl(i)->IsChecked())
 					{
 						CFX_WideString swValue = pFormField->GetControl(i)->GetExportValue();
-						
 						double dRet;
 						FX_BOOL bDot;
-						if (CJS_PublicMethods::ConvertStringToNumber(swValue,dRet,bDot))
+						if (CJS_PublicMethods::ConvertStringToNumber(swValue.c_str(), dRet, bDot))
 						{
 							if (bDot)
 								vp << dRet;
@@ -3291,7 +3285,7 @@ void Field::SetValue(CPDFSDK_Document* pDocument, const CFX_WideString& swFieldN
 	}
 }
 
-FX_BOOL Field::valueAsString(OBJ_PROP_PARAMS)
+FX_BOOL Field::valueAsString(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -3341,7 +3335,7 @@ FX_BOOL Field::valueAsString(OBJ_PROP_PARAMS)
 
 /* --------------------------------- methods --------------------------------- */
 
-FX_BOOL Field::browseForFileToSubmit(OBJ_METHOD_PARAMS)
+FX_BOOL Field::browseForFileToSubmit(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -3372,14 +3366,14 @@ FX_BOOL Field::browseForFileToSubmit(OBJ_METHOD_PARAMS)
 }
 
 
-FX_BOOL Field::buttonGetCaption(OBJ_METHOD_PARAMS)
+FX_BOOL Field::buttonGetCaption(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
 	int nface = 0;
 	int iSize = params.size();
-	if ( iSize >= 1)
-		nface = (FX_INT32) params[0];
+	if (iSize >= 1)
+		nface = params[0].ToInt();
 
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName,FieldArray);
@@ -3395,11 +3389,11 @@ FX_BOOL Field::buttonGetCaption(OBJ_METHOD_PARAMS)
 	if (!pFormControl)return FALSE;
 	
 	if (nface == 0)
-		vRet = pFormControl->GetNormalCaption();
+		vRet = pFormControl->GetNormalCaption().c_str();
 	else if (nface == 1)
-		vRet = pFormControl->GetDownCaption();
+		vRet = pFormControl->GetDownCaption().c_str();
 	else if (nface == 2)
-		vRet = pFormControl->GetRolloverCaption();
+		vRet = pFormControl->GetRolloverCaption().c_str();
 	else
 		return FALSE;
 
@@ -3408,14 +3402,14 @@ FX_BOOL Field::buttonGetCaption(OBJ_METHOD_PARAMS)
 
 //#pragma warning(disable: 4800)
 
-FX_BOOL Field::buttonGetIcon(OBJ_METHOD_PARAMS)
+FX_BOOL Field::buttonGetIcon(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
 	int nface = 0;
 	int iSize = params.size();
-	if ( iSize >= 1)
-		nface = (FX_INT32) params[0];
+	if (iSize >= 1)
+		nface = params[0].ToInt();
 	
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName,FieldArray);
@@ -3463,7 +3457,7 @@ FX_BOOL Field::buttonGetIcon(OBJ_METHOD_PARAMS)
 
 //#pragma warning(default: 4800)
 
-FX_BOOL Field::buttonImportIcon(OBJ_METHOD_PARAMS)
+FX_BOOL Field::buttonImportIcon(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 #if 0  
 	ASSERT(m_pDocument != NULL);
@@ -3506,32 +3500,31 @@ FX_BOOL Field::buttonImportIcon(OBJ_METHOD_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::buttonSetCaption(OBJ_METHOD_PARAMS)
+FX_BOOL Field::buttonSetCaption(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::buttonSetIcon(OBJ_METHOD_PARAMS)
+FX_BOOL Field::buttonSetIcon(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::checkThisBox(OBJ_METHOD_PARAMS)
+FX_BOOL Field::checkThisBox(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
 	if (!m_bCanSet) return FALSE;
 
 	int iSize = params.size();
-	int nWidget = -1;
-	if ( iSize >= 1)
-		nWidget= (FX_INT32) params[0];
-	else
+	if (iSize < 1)
 		return FALSE;
-	FX_BOOL bCheckit = TRUE;
-	if ( iSize >= 2)
-		bCheckit = params[1];
 
+	int nWidget = params[0].ToInt();
+
+	FX_BOOL bCheckit = TRUE;
+	if (iSize >= 2)
+		bCheckit = params[1].ToBool();
 
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName,FieldArray);
@@ -3539,9 +3532,9 @@ FX_BOOL Field::checkThisBox(OBJ_METHOD_PARAMS)
 
 	CPDF_FormField* pFormField = (CPDF_FormField*)FieldArray.ElementAt(0);
 	ASSERT(pFormField != NULL);
-	
+
 	if (pFormField->GetFieldType() != FIELDTYPE_CHECKBOX && pFormField->GetFieldType() != FIELDTYPE_RADIOBUTTON)
-		return FALSE;	
+		return FALSE;
 	if(nWidget <0 || nWidget >= pFormField->CountControls())
 		return FALSE;
 	if (pFormField->GetFieldType() == FIELDTYPE_RADIOBUTTON)
@@ -3550,30 +3543,25 @@ FX_BOOL Field::checkThisBox(OBJ_METHOD_PARAMS)
 		pFormField->CheckControl(nWidget, bCheckit, TRUE);
 
 	UpdateFormField(m_pDocument, pFormField, TRUE, TRUE, TRUE);
-
 	return TRUE;
 }
 
-FX_BOOL Field::clearItems(OBJ_METHOD_PARAMS)
+FX_BOOL Field::clearItems(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return TRUE;
 }
 
-FX_BOOL Field::defaultIsChecked(OBJ_METHOD_PARAMS)
+FX_BOOL Field::defaultIsChecked(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
 	if (!m_bCanSet) return FALSE;
 
 	int iSize = params.size();
-	int nWidget = -1;
-	if ( iSize >= 1)
-		nWidget= (FX_INT32) params[0];
-	else
+	if (iSize < 1)
 		return FALSE;
-	//FX_BOOL bIsDefaultChecked = TRUE;
-	//if ( iSize >= 2)
-	//	bIsDefaultChecked =  params[1];
+
+	int nWidget = params[0].ToInt();
 
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName,FieldArray);
@@ -3599,7 +3587,7 @@ FX_BOOL Field::defaultIsChecked(OBJ_METHOD_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::deleteItemAt(OBJ_METHOD_PARAMS)
+FX_BOOL Field::deleteItemAt(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return TRUE;
 }
@@ -3613,7 +3601,7 @@ int JS_COMPARESTRING(CFX_WideString* ps1, CFX_WideString* ps2)
 }
 
 
-FX_BOOL Field::getArray(OBJ_METHOD_PARAMS)
+FX_BOOL Field::getArray(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -3666,19 +3654,18 @@ FX_BOOL Field::getArray(OBJ_METHOD_PARAMS)
 	return TRUE;
 }
 	
-FX_BOOL Field::getItemAt(OBJ_METHOD_PARAMS)
+FX_BOOL Field::getItemAt(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
+	int iSize = params.size();
 
 	int nIdx = -1;
-	if (params.size() >=1)
-		nIdx = (FX_INT32) params[0];
+	if (iSize >= 1)
+		nIdx = params[0].ToInt();
+
 	FX_BOOL bExport = TRUE;
-	int iSize = params.size();
-	if ( iSize >= 2)
-	{
-		bExport =(FX_BOOL) params[1];
-	}
+	if (iSize >= 2)
+		bExport = params[1].ToBool();
 
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName,FieldArray);
@@ -3696,12 +3683,12 @@ FX_BOOL Field::getItemAt(OBJ_METHOD_PARAMS)
 		{
 			CFX_WideString strval = pFormField->GetOptionValue(nIdx);
 			if (strval.IsEmpty())
-				vRet = pFormField->GetOptionLabel(nIdx);
+				vRet = pFormField->GetOptionLabel(nIdx).c_str();
 			else
-				vRet = strval;
+				vRet = strval.c_str();
 		}
 		else
-			vRet = pFormField->GetOptionLabel(nIdx);
+			vRet = pFormField->GetOptionLabel(nIdx).c_str();
 	}
 	else
 		return FALSE;
@@ -3709,23 +3696,23 @@ FX_BOOL Field::getItemAt(OBJ_METHOD_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::getLock(OBJ_METHOD_PARAMS)
+FX_BOOL Field::getLock(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::insertItemAt(OBJ_METHOD_PARAMS)
+FX_BOOL Field::insertItemAt(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return TRUE;
 }
 
-FX_BOOL Field::isBoxChecked(OBJ_METHOD_PARAMS)
+FX_BOOL Field::isBoxChecked(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
 	int nIndex = -1;
-	if (params.size() >=1)
-		nIndex = (FX_INT32) params[0];
+	if (params.size() >= 1)
+		nIndex = params[0].ToInt();
 
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName,FieldArray);
@@ -3754,13 +3741,13 @@ FX_BOOL Field::isBoxChecked(OBJ_METHOD_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::isDefaultChecked(OBJ_METHOD_PARAMS)
+FX_BOOL Field::isDefaultChecked(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
 	int nIndex = -1;
-	if (params.size() >=1)
-		nIndex = (FX_INT32) params[0];
+	if (params.size() >= 1)
+		nIndex = params[0].ToInt();
 
 	CFX_PtrArray FieldArray;
 	GetFormFields(m_FieldName,FieldArray);
@@ -3788,12 +3775,12 @@ FX_BOOL Field::isDefaultChecked(OBJ_METHOD_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::setAction(OBJ_METHOD_PARAMS)
+FX_BOOL Field::setAction(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return TRUE;
 }
 
-FX_BOOL Field::setFocus(OBJ_METHOD_PARAMS)
+FX_BOOL Field::setFocus(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	ASSERT(m_pDocument != NULL);
 
@@ -3847,47 +3834,47 @@ FX_BOOL Field::setFocus(OBJ_METHOD_PARAMS)
 	return TRUE;
 }
 
-FX_BOOL Field::setItems(OBJ_METHOD_PARAMS)
+FX_BOOL Field::setItems(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return TRUE;
 }
 
-FX_BOOL Field::setLock(OBJ_METHOD_PARAMS)
+FX_BOOL Field::setLock(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::signatureGetModifications(OBJ_METHOD_PARAMS)
+FX_BOOL Field::signatureGetModifications(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::signatureGetSeedValue(OBJ_METHOD_PARAMS)
+FX_BOOL Field::signatureGetSeedValue(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::signatureInfo(OBJ_METHOD_PARAMS)
+FX_BOOL Field::signatureInfo(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::signatureSetSeedValue(OBJ_METHOD_PARAMS)
+FX_BOOL Field::signatureSetSeedValue(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::signatureSign(OBJ_METHOD_PARAMS)
+FX_BOOL Field::signatureSign(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::signatureValidate(OBJ_METHOD_PARAMS)
+FX_BOOL Field::signatureValidate(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError)
 {
 	return FALSE;
 }
 
-FX_BOOL Field::source(OBJ_PROP_PARAMS)
+FX_BOOL Field::source(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
 	if (vp.IsGetting())
 	{

@@ -7,6 +7,34 @@
 #ifndef _FX_EDIT_H_
 #define _FX_EDIT_H_
 
+#include "../../../core/include/fxcrt/fx_basic.h"
+#include "../../../core/include/fxge/fx_dib.h"
+
+class CFX_RenderDevice;
+class CPDF_Font;
+class CPDF_Matrix;
+class CPDF_PageObjects;
+class CPDF_Point;
+class CPDF_Rect;
+class CPDF_TextObject;
+class IFX_Edit;
+class IFX_Edit_FontMap;
+class IFX_Edit_Iterator;
+class IFX_Edit_Notify;
+class IFX_Edit_UndoItem;
+class IFX_List;
+class IFX_List_Notify;
+class IFX_SystemHandler;
+class IPDF_VariableText;
+class IPDF_VariableText_Provider;
+struct CPVT_Line;
+struct CPVT_SecProps;
+struct CPVT_Section;
+struct CPVT_Word;
+struct CPVT_WordPlace;
+struct CPVT_WordProps;
+struct CPVT_WordRange;
+
 #define PVTWORD_STYLE_NORMAL				0x0000L
 #define PVTWORD_STYLE_HIGHLIGHT				0x0001L
 #define PVTWORD_STYLE_UNDERLINE				0x0002L
@@ -32,18 +60,10 @@
 #define DEFAULT_CHARSET         1
 #endif 
 
-class IFX_Edit_FontMap;
-class IFX_Edit_Notify;
-class IFX_Edit_Iterator;
-class IFX_Edit_UndoItem;
-class IFX_Edit;
-class IFX_List_Notify;
-class IFX_List;
-class IFX_SystemHandler;
-
 class IFX_Edit_FontMap
 {
 public:
+        virtual ~IFX_Edit_FontMap() { }
 	//map a fontindex to pdf font.
 	virtual CPDF_Font *						GetPDFFont(FX_INT32 nFontIndex) = 0;
 	//get the alias of a pdf font.
@@ -58,8 +78,8 @@ public:
 
 class IFX_Edit_Notify
 {
-	//this class is implemented by user
 public:
+        virtual ~IFX_Edit_Notify() { }
 	//set the horizontal scrollbar information.
 	virtual void							IOnSetScrollInfoX(FX_FLOAT fPlateMin, FX_FLOAT fPlateMax, 
 												FX_FLOAT fContentMin, FX_FLOAT fContentMax, 
@@ -84,8 +104,9 @@ public:
 
 class IFX_Edit_OprNotify
 {
-	//this class is implemented by user
 public:
+        virtual ~IFX_Edit_OprNotify() { }
+
 	//OprType: 0
 	virtual void							OnInsertWord(const CPVT_WordPlace& place, const CPVT_WordPlace& oldplace) = 0;
 	//OprType: 1
@@ -143,10 +164,11 @@ public:
 class IFX_Edit_UndoItem
 {
 public:
+	virtual ~IFX_Edit_UndoItem() { }
+
 	virtual void							Undo() = 0;
 	virtual void							Redo() = 0;
 	virtual CFX_WideString					GetUndoTitle() = 0;
-	virtual void							Release() = 0;
 };
 
 class FXET_CLASS IFX_Edit
@@ -155,8 +177,7 @@ public:
 	static IFX_Edit*						NewEdit();
 	static	void							DelEdit(IFX_Edit* pEdit);
 
-public:
-	//set a IFX_Edit_FontMap pointer implemented by user.
+        //set a IFX_Edit_FontMap pointer implemented by user.
 	virtual void							SetFontMap(IFX_Edit_FontMap* pFontMap) = 0;
 	//if user don't like to use FontMap, implement VTProvider and set it directly.
 	virtual void							SetVTProvider(IPDF_VariableText_Provider* pProvider) = 0;
@@ -371,7 +392,6 @@ public:
 
 	virtual void							AddUndoItem(IFX_Edit_UndoItem* pUndoItem) = 0;
 
-public:
 	static CFX_ByteString					GetEditAppearanceStream(IFX_Edit* pEdit, const CPDF_Point & ptOffset, 
 													const CPVT_WordRange* pRange = NULL, 
 													FX_BOOL bContinuous = TRUE, FX_WORD SubWord = 0);
@@ -388,12 +408,15 @@ public:
 													const CPDF_Point& ptOffset, const CPVT_WordRange* pRange, CFX_ArrayTemplate<CPDF_TextObject*>& ObjArray);
 	static void								GenerateUnderlineObjects(CPDF_PageObjects* pPageObjects, IFX_Edit* pEdit,
 													const CPDF_Point& ptOffset, const CPVT_WordRange* pRange, FX_COLORREF color);
+
+protected:
+    ~IFX_Edit() { }
 };
 
 class IFX_List_Notify
 {
-	//this class is implemented by user
 public:
+        virtual ~IFX_List_Notify() { }
 	//set the horizontal scrollbar information.
 	virtual void							IOnSetScrollInfoX(FX_FLOAT fPlateMin, FX_FLOAT fPlateMax, 
 												FX_FLOAT fContentMin, FX_FLOAT fContentMax, 
@@ -416,7 +439,6 @@ public:
 	static IFX_List*						NewList();
 	static void								DelList(IFX_List* pList);
 
-public:
 	virtual void							SetFontMap(IFX_Edit_FontMap * pFontMap) = 0;
 	virtual void							SetNotify(IFX_List_Notify * pNotify) = 0;
 
@@ -465,7 +487,10 @@ public:
 	virtual void							OnVK_END(FX_BOOL bShift,FX_BOOL bCtrl) = 0;
 	virtual void							OnVK(FX_INT32 nItemIndex,FX_BOOL bShift,FX_BOOL bCtrl) = 0;
 	virtual FX_BOOL							OnChar(FX_WORD nChar,FX_BOOL bShift,FX_BOOL bCtrl) = 0;
+
+protected:
+        ~IFX_List() { }
 };
 
-#endif 
+#endif
 

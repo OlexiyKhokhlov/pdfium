@@ -13,10 +13,21 @@
 #include <ctime>
 #endif
 
+#include "../../core/include/fpdfdoc/fpdf_doc.h"
+#include "../../core/include/fxcrt/fx_basic.h"
+#include "fx_systemhandler.h"
+
 class CPDFSDK_PageView;
+class CPDF_Annot;
+class CPDF_Page;
+class CPDF_Rect;
+class CPDF_Matrix;
+class CPDF_RenderOptions;
+class CFX_RenderDevice;
+
 #define CFX_IntArray				CFX_ArrayTemplate<int>
 
-class  CPDFSDK_DateTime : public CFX_Object
+class  CPDFSDK_DateTime 
 {
 public:
 	CPDFSDK_DateTime();

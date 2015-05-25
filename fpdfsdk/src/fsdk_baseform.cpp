@@ -4,6 +4,7 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../third_party/base/nonstd_unique_ptr.h"
 #include "../include/fsdk_define.h"
 #include "../include/fsdk_mgr.h"
 #include "../include/fsdk_baseannot.h"
@@ -1564,13 +1565,13 @@ void CPDFSDK_Widget::AddImageToAppearance(const CFX_ByteString& sAPType, CPDF_St
 	CPDF_Dictionary* pStreamResList = pStreamDict->GetDict("Resources");
 	if (!pStreamResList)
 	{
-		pStreamResList = FX_NEW CPDF_Dictionary();
+		pStreamResList = new CPDF_Dictionary();
 		pStreamDict->SetAt("Resources", pStreamResList);
 	}
 
-	if (pStreamResList) 
+	if (pStreamResList)
 	{
-		CPDF_Dictionary* pXObject = FX_NEW CPDF_Dictionary;			
+		CPDF_Dictionary* pXObject = new CPDF_Dictionary;
 		pXObject->SetAtReference(sImageAlias, pDoc, pImage);
 		pStreamResList->SetAt("XObject", pXObject);
 	}
@@ -1623,24 +1624,23 @@ CPDF_Action	CPDFSDK_Widget::GetAAction(CPDF_AAction::AActionType eAAT)
 	case CPDF_AAction::PageVisible:
 	case CPDF_AAction::PageInvisible:
 		return CPDFSDK_Annot::GetAAction(eAAT);
+
 	case CPDF_AAction::KeyStroke:
 	case CPDF_AAction::Format:
 	case CPDF_AAction::Validate:
 	case CPDF_AAction::Calculate:
 		{
 			CPDF_FormField* pField = this->GetFormField();
-			ASSERT(pField != NULL);
-
 			if (CPDF_AAction aa = pField->GetAdditionalAction())
 				return aa.GetAction(eAAT);
-			else 
-				return CPDFSDK_Annot::GetAAction(eAAT);
+
+			return CPDFSDK_Annot::GetAAction(eAAT);
 		}
 	default:
-		return NULL;
+		break;
 	}
 
-	return NULL;
+	return CPDF_Action();
 }
 
 
@@ -1728,22 +1728,13 @@ FX_BOOL CPDFSDK_InterForm::HighlightWidgets()
 
 CPDFSDK_Widget* CPDFSDK_InterForm::GetSibling(CPDFSDK_Widget* pWidget, FX_BOOL bNext) const
 {
-	ASSERT(pWidget != NULL);
+    nonstd::unique_ptr<CBA_AnnotIterator> pIterator(
+        new CBA_AnnotIterator(pWidget->GetPageView(), "Widget", ""));
 
-	CBA_AnnotIterator* pIterator = new CBA_AnnotIterator(pWidget->GetPageView(), "Widget", "");
-	ASSERT(pIterator != NULL);
-
-	CPDFSDK_Widget* pRet = NULL;
-
-	if (bNext)
-		pRet = (CPDFSDK_Widget*)pIterator->GetNextAnnot(pWidget);
-	else
-		pRet = (CPDFSDK_Widget*)pIterator->GetPrevAnnot(pWidget);
-
-	pIterator->Release();
-	
-	return pRet;
-
+    if (bNext) {
+        return (CPDFSDK_Widget*)pIterator->GetNextAnnot(pWidget);
+    }
+    return (CPDFSDK_Widget*)pIterator->GetPrevAnnot(pWidget);
 }
 
 CPDFSDK_Widget*	CPDFSDK_InterForm::GetWidget(CPDF_FormControl* pControl) const
@@ -1871,7 +1862,7 @@ CPDF_Stream* CPDFSDK_InterForm::LoadImageFromFile(const CFX_WideString& sFile)
 
 	CPDF_Stream* pRetStream = NULL;
 
-	if (CFX_DIBitmap* pBmp = CFX_WindowsDIB::LoadFromFile(sFile))
+	if (CFX_DIBitmap* pBmp = CFX_WindowsDIB::LoadFromFile(sFile.c_str()))
 	{
 		int nWidth = pBmp->GetWidth();
 		int nHeight = pBmp->GetHeight();
@@ -1916,7 +1907,7 @@ CPDF_Stream* CPDFSDK_InterForm::LoadImageFromFile(const CFX_WideString& sFile)
 			pRetStream = new CPDF_Stream(NULL, 0, NULL);
 			CFX_ByteString csStream;
 			csStream.Format("q\n%d 0 0 %d 0 0 cm\n/Img Do\nQ", nWidth, nHeight);
-			pRetStream->InitStream((FX_BYTE*)(FX_LPCSTR)csStream, csStream.GetLength(), pStreamDict);
+			pRetStream->InitStream((FX_BYTE*)csStream.c_str(), csStream.GetLength(), pStreamDict);
 			pDocument->AddIndirectObject(pRetStream);
 		}
 
@@ -2161,7 +2152,7 @@ void CPDFSDK_InterForm::OnValidate(CPDF_FormField* pFormField, CFX_WideString& c
 
 FX_BOOL CPDFSDK_InterForm::DoAction_Hide(const CPDF_Action& action)
 {
-	ASSERT(action != NULL);
+	ASSERT(action);
 
 	CPDF_ActionFields af = action.GetWidgets();
 	CFX_PtrArray fieldObjects;
@@ -2217,13 +2208,13 @@ FX_BOOL CPDFSDK_InterForm::DoAction_Hide(const CPDF_Action& action)
 
 FX_BOOL CPDFSDK_InterForm::DoAction_SubmitForm(const CPDF_Action& action)
 {
-	ASSERT(action != NULL);
+	ASSERT(action);
 	ASSERT(m_pInterForm != NULL);
 
 	CFX_WideString sDestination = action.GetFilePath();
 	if (sDestination.IsEmpty()) return FALSE;
 
-	CPDF_Dictionary* pActionDict = action;
+	CPDF_Dictionary* pActionDict = action.GetDict();
 	if (pActionDict->KeyExist("Fields"))
 	{
 		CPDF_ActionFields af = action.GetWidgets();
@@ -2361,31 +2352,14 @@ FX_BOOL CPDFSDK_InterForm::FDFToURLEncodedData(FX_LPBYTE& pBuf, FX_STRSIZE& nBuf
   			if(i != pFields->GetCount()-1)
   				fdfEncodedData = fdfEncodedData<<"&";
  		}
-		
+
 		nBufSize = fdfEncodedData.GetLength();
 		pBuf = FX_Alloc(FX_BYTE, nBufSize);
-		if(!pBuf)
-			return FALSE;
 		FXSYS_memcpy(pBuf, fdfEncodedData.GetBuffer(), nBufSize);
- 		
  	}
 	return TRUE;
 }
 
-FX_BOOL CPDFSDK_InterForm::ExportFieldsToFDFFile(const CFX_WideString& sFDFFileName, 
-												 const CFX_PtrArray& fields, FX_BOOL bIncludeOrExclude)
-{
-	if (sFDFFileName.IsEmpty()) return FALSE;
-	ASSERT(m_pDocument != NULL);
-	ASSERT(m_pInterForm != NULL);
-
- 	CFDF_Document* pFDF = m_pInterForm->ExportToFDF(m_pDocument->GetPath(),(CFX_PtrArray&)fields, bIncludeOrExclude);
- 	if (!pFDF) return FALSE;
- 	FX_BOOL bRet = pFDF->WriteFile(sFDFFileName.UTF8Encode()); // = FALSE;//
-	delete pFDF;
-
-	return bRet;
-}
 FX_BOOL CPDFSDK_InterForm::ExportFieldsToFDFTextBuf(const CFX_PtrArray& fields,FX_BOOL bIncludeOrExclude, CFX_ByteTextBuf& textBuf)
 {
 	ASSERT(m_pDocument != NULL);
@@ -2444,22 +2418,6 @@ FX_BOOL CPDFSDK_InterForm::SubmitForm(const CFX_WideString& sDestination, FX_BOO
 	return TRUE;
 }
 
-FX_BOOL	CPDFSDK_InterForm::ExportFormToFDFFile(const CFX_WideString& sFDFFileName)
-{
-	if (sFDFFileName.IsEmpty()) return FALSE;
-
-	ASSERT(m_pInterForm != NULL);
-	ASSERT(m_pDocument != NULL);
-
-	CFDF_Document* pFDF = m_pInterForm->ExportToFDF(m_pDocument->GetPath());
-	if (!pFDF) return FALSE;
-
-	FX_BOOL bRet = pFDF->WriteFile(sFDFFileName.UTF8Encode());
-	delete pFDF;
-
-	return bRet;
-}
-
 FX_BOOL CPDFSDK_InterForm::ExportFormToFDFTextBuf(CFX_ByteTextBuf& textBuf)
 {
 
@@ -2475,89 +2433,28 @@ FX_BOOL CPDFSDK_InterForm::ExportFormToFDFTextBuf(CFX_ByteTextBuf& textBuf)
 	return bRet;
 }
 
-FX_BOOL CPDFSDK_InterForm::ExportFormToTxtFile(const CFX_WideString& sTxtFileName)
-{
-	ASSERT(m_pInterForm != NULL);
-
-	CFX_WideString sFieldNames;
-	CFX_WideString sFieldValues;
-
-	int nSize = m_pInterForm->CountFields();
-
-	if (nSize > 0)
-	{
-		for (int i=0; i<nSize; i++)
-		{
-			CPDF_FormField* pField = m_pInterForm->GetField(i);
-			ASSERT(pField != NULL);
-
-			if (i != 0)
-			{
-				sFieldNames += L"\t";
-				sFieldValues += L"\t";
-			}
-			sFieldNames += pField->GetFullName();
-			sFieldValues += pField->GetValue();
-		}
-
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-FX_BOOL	CPDFSDK_InterForm::ImportFormFromTxtFile(const CFX_WideString& sTxtFileName)
-{
-	ASSERT(m_pInterForm != NULL);
-
-	return TRUE;
-}
 
 FX_BOOL CPDFSDK_InterForm::DoAction_ResetForm(const CPDF_Action& action)
 {
-	ASSERT(action != NULL);
+	ASSERT(action);
 
-	CPDF_Dictionary* pActionDict = action;
-
+	CPDF_Dictionary* pActionDict = action.GetDict();
 	if (pActionDict->KeyExist("Fields"))
 	{
 		CPDF_ActionFields af = action.GetWidgets();
 		FX_DWORD dwFlags = action.GetFlags();
-		
+
 		CFX_PtrArray fieldObjects;
 		af.GetAllFields(fieldObjects);
 		CFX_PtrArray fields;
 		GetFieldFromObjects(fieldObjects, fields);
-		
-		ASSERT(m_pInterForm != NULL);
-
 		return m_pInterForm->ResetForm(fields, !(dwFlags & 0x01), TRUE);
 	}
-	else
-	{
-		ASSERT(m_pInterForm != NULL);
-		return m_pInterForm->ResetForm(TRUE);
-	}
+
+	return m_pInterForm->ResetForm(TRUE);
 }
 
 FX_BOOL CPDFSDK_InterForm::DoAction_ImportData(const CPDF_Action& action)
-{
-	ASSERT(action != NULL);
-
-	CFX_WideString sFilePath = action.GetFilePath();
-	if (sFilePath.IsEmpty())
-		return FALSE;
-
-	if (!ImportFormFromFDFFile(sFilePath, TRUE))
-	{
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-FX_BOOL	CPDFSDK_InterForm::ImportFormFromFDFFile(const CFX_WideString& csFDFFileName,
-												 FX_BOOL bNotify)
 {
 	return FALSE;
 }
@@ -2629,7 +2526,7 @@ int	CPDFSDK_InterForm::AfterValueChange(const CPDF_FormField* pField)
 		FX_BOOL bFormated = FALSE;
 		CFX_WideString sValue = this->OnFormat(pFormField, 0, bFormated);
 		if (bFormated)
-			this->ResetFieldAppearance(pFormField, sValue, TRUE);
+			this->ResetFieldAppearance(pFormField, sValue.c_str(), TRUE);
 		else
 			this->ResetFieldAppearance(pFormField, NULL, TRUE);
 		this->UpdateField(pFormField);

@@ -4,37 +4,8 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-//#include "../include/FormFiller.h"
-//#include "../include/FFL_FormFiller.h"
 #include "../../include/formfiller/FFL_TextField.h"
 #include "../../include/formfiller/FFL_CBA_Fontmap.h"
-//#include "../include/FFL_Notify.h"
-
-CFFL_EditUndoItem::CFFL_EditUndoItem(CPWL_Edit* pEdit)
-{
-}
-
-CFFL_EditUndoItem::~CFFL_EditUndoItem()
-{
-}
-
-void CFFL_EditUndoItem::Undo()
-{
-}
-
-void CFFL_EditUndoItem::Redo()
-{
-}
-
-CFX_WideString CFFL_EditUndoItem::GetDescr()
-{
-	return L"Input";
-}
-
-void CFFL_EditUndoItem::Release()
-{
-	delete this;
-}
 
 /* ------------------------------- CFFL_TextField ------------------------------- */
 
@@ -158,9 +129,8 @@ CPWL_Wnd* CFFL_TextField::NewPDFWindow(const PWL_CREATEPARAM& cp, CPDFSDK_PageVi
 			pWnd->SetLimitChar(nMaxLen);
 		}
 	}
-	
-	pWnd->SetText(swValue);
-	
+
+	pWnd->SetText(swValue.c_str());
 	return pWnd;
 }
 
@@ -280,7 +250,7 @@ void CFFL_TextField::SetActionData(CPDFSDK_PageView* pPageView, CPDF_AAction::AA
 		{
 			pEdit->SetFocus();
 			pEdit->SetSel(fa.nSelStart, fa.nSelEnd);
-			pEdit->ReplaceSel(fa.sChange);
+			pEdit->ReplaceSel(fa.sChange.c_str());
 		}
 		break;
 	default:
@@ -321,7 +291,7 @@ void CFFL_TextField::RestoreState(CPDFSDK_PageView* pPageView)
 
 	if (CPWL_Edit* pWnd = (CPWL_Edit*)GetPDFWindow(pPageView, TRUE))
 	{
-		pWnd->SetText(m_State.sValue);
+		pWnd->SetText(m_State.sValue.c_str());
 		pWnd->SetSel(m_State.nStart, m_State.nEnd);
 	}
 }
@@ -364,7 +334,7 @@ void CFFL_TextField::OnSetFocus(CPWL_Wnd* pWnd)
 		CFX_WideString wsText = pEdit->GetText();
 		int nCharacters = wsText.GetLength();
 		CFX_ByteString bsUTFText = wsText.UTF16LE_Encode();
-		unsigned short* pBuffer = (unsigned short*)(FX_LPCSTR)bsUTFText;
+		unsigned short* pBuffer = (unsigned short*)bsUTFText.c_str();
 		m_pApp->FFI_OnSetFieldInputFocus(m_pWidget->GetFormField(), pBuffer, nCharacters, TRUE);
  
  		pEdit->SetEditNotify(this);

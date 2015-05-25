@@ -8,13 +8,13 @@
 #include "codec_int.h"
 CCodec_ModuleMgr::CCodec_ModuleMgr()
 {
-    m_pBasicModule = FX_NEW CCodec_BasicModule;
-    m_pFaxModule = FX_NEW CCodec_FaxModule;
-    m_pJpegModule = FX_NEW CCodec_JpegModule;
-    m_pJpxModule = FX_NEW CCodec_JpxModule;
-    m_pJbig2Module = FX_NEW CCodec_Jbig2Module;
-    m_pIccModule = FX_NEW CCodec_IccModule;
-    m_pFlateModule = FX_NEW CCodec_FlateModule;
+    m_pBasicModule = new CCodec_BasicModule;
+    m_pFaxModule = new CCodec_FaxModule;
+    m_pJpegModule = new CCodec_JpegModule;
+    m_pJpxModule = new CCodec_JpxModule;
+    m_pJbig2Module = new CCodec_Jbig2Module;
+    m_pIccModule = new CCodec_IccModule;
+    m_pFlateModule = new CCodec_FlateModule;
 }
 CCodec_ModuleMgr::~CCodec_ModuleMgr()
 {
@@ -119,7 +119,7 @@ void CCodec_ScanlineDecoder::DownScale(int dest_width, int dest_height)
         FX_Free(m_pDataCache);
         m_pDataCache = NULL;
     }
-    m_pDataCache = (CCodec_ImageDataCache*)FX_AllocNL(FX_BYTE, sizeof(CCodec_ImageDataCache) + m_Pitch * m_OutputHeight);
+    m_pDataCache = (CCodec_ImageDataCache*)FX_TryAlloc(FX_BYTE, sizeof(CCodec_ImageDataCache) + m_Pitch * m_OutputHeight);
     if (m_pDataCache == NULL) {
         return;
     }
@@ -243,7 +243,7 @@ FX_BOOL CCodec_BasicModule::A85Encode(const FX_BYTE* src_buf, FX_DWORD src_size,
 }
 CCodec_ModuleMgr* CCodec_ModuleMgr::Create()
 {
-    return FX_NEW CCodec_ModuleMgr;
+    return new CCodec_ModuleMgr;
 }
 void CCodec_ModuleMgr::Destroy()
 {
@@ -333,9 +333,6 @@ FX_BOOL CCodec_RLScanlineDecoder::Create(FX_LPCBYTE src_buf, FX_DWORD src_size, 
     m_Pitch = (width * nComps * bpc + 31) / 32 * 4;
     m_dwLineBytes = (width * nComps * bpc + 7) / 8;
     m_pScanline = FX_Alloc(FX_BYTE, m_Pitch);
-    if (m_pScanline == NULL) {
-        return FALSE;
-    }
     return CheckDestSize();
 }
 FX_BOOL CCodec_RLScanlineDecoder::v_Rewind()
@@ -433,10 +430,7 @@ void CCodec_RLScanlineDecoder::UpdateOperator(FX_BYTE used_bytes)
 ICodec_ScanlineDecoder* CCodec_BasicModule::CreateRunLengthDecoder(FX_LPCBYTE src_buf, FX_DWORD src_size, int width, int height,
         int nComps, int bpc)
 {
-    CCodec_RLScanlineDecoder* pRLScanlineDecoder = FX_NEW CCodec_RLScanlineDecoder;
-    if (pRLScanlineDecoder == NULL) {
-        return NULL;
-    }
+    CCodec_RLScanlineDecoder* pRLScanlineDecoder = new CCodec_RLScanlineDecoder;
     if (!pRLScanlineDecoder->Create(src_buf, src_size, width, height, nComps, bpc)) {
         delete pRLScanlineDecoder;
         return NULL;

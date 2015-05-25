@@ -4,8 +4,8 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../public/fpdf_ext.h"
 #include "../include/fsdk_define.h"
-#include "../include/fpdf_ext.h"
 
 #define  FPDFSDK_UNSUPPORT_CALL 100
 
@@ -204,17 +204,13 @@ void CheckUnSupportError(CPDF_Document * pDoc, FX_DWORD err_code)
 	if(pElement)
 		CheckSharedForm(pElement, "workflowType");
 
-	
 	// XFA Forms
-	CPDF_InterForm * pInterForm = FX_NEW CPDF_InterForm(pDoc,FALSE);
-	if (pInterForm)
+	CPDF_InterForm * pInterForm = new CPDF_InterForm(pDoc,FALSE);
+	if (pInterForm->HasXFAForm())
 	{
-		if(pInterForm->HasXFAForm())
-		{
-			FPDF_UnSupportError(FPDF_UNSP_DOC_XFAFORM);
-		}
-		delete pInterForm;
+		FPDF_UnSupportError(FPDF_UNSP_DOC_XFAFORM);
 	}
+	delete pInterForm;
 }
 
 DLLEXPORT int FPDFDoc_GetPageMode(FPDF_DOCUMENT document)

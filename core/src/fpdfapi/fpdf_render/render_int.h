@@ -9,7 +9,7 @@
 #endif
 class CPDF_QuickStretcher;
 #define TYPE3_MAX_BLUES		16
-class CPDF_Type3Glyphs : public CFX_Object
+class CPDF_Type3Glyphs 
 {
 public:
     CPDF_Type3Glyphs()
@@ -25,7 +25,7 @@ public:
     int						m_TopBlueCount, m_BottomBlueCount;
 };
 class CFX_GlyphBitmap;
-class CPDF_Type3Cache : public CFX_Object
+class CPDF_Type3Cache 
 {
 public:
     CPDF_Type3Cache(CPDF_Type3Font* pFont)
@@ -39,7 +39,7 @@ protected:
     CPDF_Type3Font*			m_pFont;
     CFX_MapByteStringToPtr	m_SizeMap;
 };
-class CPDF_TransferFunc : public CFX_Object
+class CPDF_TransferFunc 
 {
 public:
     CPDF_Document*	m_pPDFDoc;
@@ -51,7 +51,7 @@ public:
 };
 typedef CFX_MapPtrTemplate<CPDF_Font*, CPDF_CountedObject<CPDF_Type3Cache*>*> CPDF_Type3CacheMap;
 typedef CFX_MapPtrTemplate<CPDF_Object*, CPDF_CountedObject<CPDF_TransferFunc*>*> CPDF_TransferFuncMap;
-class CPDF_DocRenderData : public CFX_Object
+class CPDF_DocRenderData 
 {
 public:
     CPDF_DocRenderData(CPDF_Document* pPDFDoc = NULL);
@@ -78,7 +78,7 @@ public:
     CFX_AffineMatrix			m_Matrix;
 };
 typedef CFX_ArrayTemplate<_PDF_RenderItem>	CPDF_RenderLayer;
-class IPDF_ObjectRenderer : public CFX_Object
+class IPDF_ObjectRenderer 
 {
 public:
     static IPDF_ObjectRenderer* Create(int type);
@@ -87,12 +87,12 @@ public:
     virtual FX_BOOL Continue(IFX_Pause* pPause) = 0;
     FX_BOOL		m_Result;
 };
-class CPDF_RenderStatus : public CFX_Object
+class CPDF_RenderStatus 
 {
 public:
     CPDF_RenderStatus();
     ~CPDF_RenderStatus();
-    FX_BOOL			Initialize(int level, class CPDF_RenderContext* pContext, CFX_RenderDevice* pDevice, const CFX_AffineMatrix* pDeviceMatrix,
+    FX_BOOL			Initialize(class CPDF_RenderContext* pContext, CFX_RenderDevice* pDevice, const CFX_AffineMatrix* pDeviceMatrix,
                                const CPDF_PageObject* pStopObj, const CPDF_RenderStatus* pParentStatus,
                                const CPDF_GraphicStates* pInitialStates, const CPDF_RenderOptions* pOptions,
                                int transparency, FX_BOOL bDropObjects, CPDF_Dictionary* pFormResource = NULL,
@@ -155,8 +155,11 @@ protected:
     void			DitherObjectArea(const CPDF_PageObject* pObj, const CFX_AffineMatrix* pObj2Device);
     FX_BOOL			GetObjectClippedRect(const CPDF_PageObject* pObj, const CFX_AffineMatrix* pObj2Device, FX_BOOL bLogical, FX_RECT &rect) const;
     void			GetScaledMatrix(CFX_Matrix &matrix) const;
+
 protected:
-    int						m_Level;
+    static const int kRenderMaxRecursionDepth = 64;
+    static int s_CurrentRecursionDepth;
+
     CFX_RenderDevice*		m_pDevice;
     CFX_AffineMatrix		m_DeviceMatrix;
     CPDF_ClipPath			m_LastClipPath;
@@ -176,7 +179,7 @@ protected:
     FX_ARGB					m_T3FillColor;
     int                     m_curBlend;
 };
-class CPDF_ImageLoader : public CFX_Object
+class CPDF_ImageLoader 
 {
 public:
     CPDF_ImageLoader()
@@ -202,7 +205,7 @@ protected:
     FX_INT32                m_nDownsampleWidth;
     FX_INT32                m_nDownsampleHeight;
 };
-class CPDF_ProgressiveImageLoaderHandle : public CFX_Object
+class CPDF_ProgressiveImageLoaderHandle 
 {
 public:
     CPDF_ProgressiveImageLoaderHandle();
@@ -255,7 +258,7 @@ protected:
     FX_BOOL				DrawMaskedImage();
     FX_BOOL				DrawPatternImage(const CFX_Matrix* pObj2Device);
 };
-class CPDF_ScaledRenderBuffer : public CFX_Object
+class CPDF_ScaledRenderBuffer 
 {
 public:
     CPDF_ScaledRenderBuffer();
@@ -280,7 +283,7 @@ private:
     CFX_AffineMatrix	m_Matrix;
 };
 class ICodec_ScanlineDecoder;
-class CPDF_QuickStretcher : public CFX_Object
+class CPDF_QuickStretcher 
 {
 public:
     CPDF_QuickStretcher();
@@ -297,7 +300,7 @@ public:
     CPDF_StreamAcc m_StreamAcc;
     int			m_LineIndex;
 };
-class CPDF_DeviceBuffer : public CFX_Object
+class CPDF_DeviceBuffer 
 {
 public:
     CPDF_DeviceBuffer();
@@ -321,7 +324,7 @@ private:
     CFX_DIBitmap*		m_pBitmap;
     CFX_AffineMatrix	m_Matrix;
 };
-class CPDF_ImageCache : public CFX_Object
+class CPDF_ImageCache 
 {
 public:
     CPDF_ImageCache(CPDF_Document* pDoc, CPDF_Stream* pStream);
@@ -416,9 +419,8 @@ protected:
     CPDF_DIBSource*		LoadMask(FX_DWORD& MatteColor);
     CPDF_DIBSource*		LoadMaskDIB(CPDF_Stream* pMask);
     void				LoadJpxBitmap();
-    void				LoadJbig2Bitmap();
     void				LoadPalette();
-    FX_BOOL				CreateDecoder();
+    int					CreateDecoder();
     void				TranslateScanline24bpp(FX_LPBYTE dest_scan, FX_LPCBYTE src_scan) const;
     void                ValidateDictParam();
     CPDF_Document*		m_pDocument;
@@ -426,20 +428,23 @@ protected:
     CPDF_StreamAcc*		m_pStreamAcc;
     const CPDF_Dictionary*	m_pDict;
     CPDF_ColorSpace*	m_pColorSpace;
-    FX_DWORD			m_Family, m_bpc, m_bpc_orig, m_nComponents, m_GroupFamily;
+    FX_DWORD			m_Family;
+    FX_DWORD			m_bpc;
+    FX_DWORD			m_bpc_orig;
+    FX_DWORD			m_nComponents;
+    FX_DWORD			m_GroupFamily;
     FX_BOOL				m_bLoadMask;
-    FX_BOOL				m_bDefaultDecode, m_bImageMask, m_bColorKey;
+    FX_BOOL				m_bDefaultDecode;
+    FX_BOOL				m_bImageMask;
+    FX_BOOL				m_bDoBpcCheck;
+    FX_BOOL				m_bColorKey;
     DIB_COMP_DATA*		m_pCompData;
     FX_LPBYTE			m_pLineBuf;
     FX_LPBYTE			m_pMaskedLine;
     CFX_DIBitmap*		m_pCachedBitmap;
     ICodec_ScanlineDecoder*	m_pDecoder;
 };
-#ifdef _FPDFAPI_MINI_
-#define FPDF_HUGE_IMAGE_SIZE	3000000
-#else
 #define FPDF_HUGE_IMAGE_SIZE	60000000
-#endif
 class CPDF_DIBTransferFunc : public CFX_FilteredDIB
 {
 public:

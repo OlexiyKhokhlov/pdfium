@@ -59,7 +59,7 @@ class IPDF_ReflowedPage;
 #define FPDFTEXT_WRITINGMODE_LRTB	1
 #define FPDFTEXT_WRITINGMODE_RLTB	2
 #define FPDFTEXT_WRITINGMODE_TBRL	3
-class CPDFText_ParseOptions : public CFX_Object
+class CPDFText_ParseOptions 
 {
 public:
 
@@ -68,7 +68,7 @@ public:
     FX_BOOL			m_bNormalizeObjs;
     FX_BOOL			m_bOutputHyphen;
 };
-class IPDF_TextPage : public CFX_Object
+class IPDF_TextPage 
 {
 public:
 
@@ -105,9 +105,9 @@ public:
 
     virtual	int				GetOrderByDirection(int index, int direction) const = 0;
 
-    virtual CFX_WideString	GetTextByRect(CFX_FloatRect rect) const = 0;
+    virtual CFX_WideString	GetTextByRect(const CFX_FloatRect& rect) const = 0;
 
-    virtual void			GetRectsArrayByRect(CFX_FloatRect rect, CFX_RectArray& resRectArray) const = 0;
+    virtual void			GetRectsArrayByRect(const CFX_FloatRect& rect, CFX_RectArray& resRectArray) const = 0;
 
 
     virtual int				CountRects(int start, int nCount) = 0;
@@ -116,7 +116,7 @@ public:
 
     virtual FX_BOOL			GetBaselineRotate(int rectIndex, int& Rotate) = 0;
 
-    virtual FX_BOOL			GetBaselineRotate(CFX_FloatRect rect, int& Rotate) = 0;
+    virtual FX_BOOL			GetBaselineRotate(const CFX_FloatRect& rect, int& Rotate) = 0;
 
     virtual	int				CountBoundedSegments(FX_FLOAT left, FX_FLOAT top, FX_FLOAT right, FX_FLOAT bottom, FX_BOOL bContains = FALSE) = 0;
 
@@ -130,7 +130,7 @@ public:
 #define FPDFTEXT_MATCHCASE      0x00000001
 #define FPDFTEXT_MATCHWHOLEWORD 0x00000002
 #define FPDFTEXT_CONSECUTIVE	0x00000004
-class IPDF_TextPageFind : public CFX_Object
+class IPDF_TextPageFind 
 {
 public:
 
@@ -139,7 +139,7 @@ public:
     static	IPDF_TextPageFind*	CreatePageFind(const IPDF_TextPage* pTextPage);
 public:
 
-    virtual	FX_BOOL				FindFirst(CFX_WideString findwhat, int flags, int startPos = 0) = 0;
+    virtual	FX_BOOL				FindFirst(const CFX_WideString& findwhat, int flags, int startPos = 0) = 0;
 
     virtual	FX_BOOL				FindNext() = 0;
 
@@ -151,7 +151,7 @@ public:
 
     virtual int					GetMatchedCount() const = 0;
 };
-class IPDF_LinkExtract : public CFX_Object
+class IPDF_LinkExtract 
 {
 public:
 

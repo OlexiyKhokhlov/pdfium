@@ -7,25 +7,24 @@
 #include "../../../include/fpdfapi/fpdf_page.h"
 #include "../../../include/fpdfapi/fpdf_module.h"
 #include "pageint.h"
-void CPDF_PageObject::Release()
-{
-    delete this;
-}
 CPDF_PageObject* CPDF_PageObject::Create(int type)
 {
     switch (type) {
         case PDFPAGE_TEXT:
-            return FX_NEW CPDF_TextObject;
+            return new CPDF_TextObject;
         case PDFPAGE_IMAGE:
-            return FX_NEW CPDF_ImageObject;
+            return new CPDF_ImageObject;
         case PDFPAGE_PATH:
-            return FX_NEW CPDF_PathObject;
+            return new CPDF_PathObject;
         case PDFPAGE_SHADING:
-            return FX_NEW CPDF_ShadingObject;
+            return new CPDF_ShadingObject;
         case PDFPAGE_FORM:
-            return FX_NEW CPDF_FormObject;
+            return new CPDF_FormObject;
     }
     return NULL;
+}
+CPDF_PageObject::~CPDF_PageObject()
+{
 }
 CPDF_PageObject* CPDF_PageObject::Clone() const
 {
@@ -205,11 +204,10 @@ void CPDF_TextObject::CopyData(const CPDF_PageObject* pSrc)
     if (m_nChars > 1) {
         m_pCharCodes = FX_Alloc(FX_DWORD, m_nChars);
         m_pCharPos = FX_Alloc(FX_FLOAT, m_nChars - 1);
-        int i;
-        for (i = 0; i < m_nChars; i ++) {
+        for (int i = 0; i < m_nChars; i ++) {
             m_pCharCodes[i] = pSrcObj->m_pCharCodes[i];
         }
-        for (i = 0; i < m_nChars - 1; i ++) {
+        for (int i = 0; i < m_nChars - 1; i ++) {
             m_pCharPos[i] = pSrcObj->m_pCharPos[i];
         }
     } else {
@@ -247,7 +245,7 @@ void CPDF_TextObject::SetSegments(const CFX_ByteString* pStrs, FX_FLOAT* pKernin
             FX_LPCSTR segment = pStrs[i];
             int offset = 0, len = pStrs[i].GetLength();
             while (offset < len) {
-                m_pCharCodes[index++] = pFont->GetNextChar(segment, offset);
+                m_pCharCodes[index++] = pFont->GetNextChar(segment, len, offset);
             }
             if (i != nsegs - 1) {
                 m_pCharPos[index - 1] = pKerning[i];
@@ -256,7 +254,7 @@ void CPDF_TextObject::SetSegments(const CFX_ByteString* pStrs, FX_FLOAT* pKernin
         }
     } else {
         int offset = 0;
-        m_pCharCodes = (FX_DWORD*)(FX_UINTPTR)pFont->GetNextChar(pStrs[0], offset);
+        m_pCharCodes = (FX_DWORD*)(FX_UINTPTR)pFont->GetNextChar(pStrs[0], pStrs[0].GetLength(), offset);
     }
 }
 void CPDF_TextObject::SetText(const CFX_ByteString& str)
@@ -689,11 +687,7 @@ CPDF_PageObjects::~CPDF_PageObjects()
     }
     FX_POSITION pos = m_ObjectList.GetHeadPosition();
     while (pos) {
-        CPDF_PageObject* pPageObj = (CPDF_PageObject*)m_ObjectList.GetNext(pos);
-        if (!pPageObj) {
-            continue;
-        }
-        pPageObj->Release();
+        delete (CPDF_PageObject*)m_ObjectList.GetNext(pos);
     }
 }
 void CPDF_PageObjects::ContinueParse(IFX_Pause* pPause)
@@ -808,11 +802,7 @@ void CPDF_PageObjects::ClearCacheObjects()
     if (m_bReleaseMembers) {
         FX_POSITION pos = m_ObjectList.GetHeadPosition();
         while (pos) {
-            CPDF_PageObject* pPageObj = (CPDF_PageObject*)m_ObjectList.GetNext(pos);
-            if (!pPageObj) {
-                continue;
-            }
-            pPageObj->Release();
+            delete (CPDF_PageObject*)m_ObjectList.GetNext(pos);
         }
     }
     m_ObjectList.RemoveAll();
@@ -896,7 +886,7 @@ void CPDF_Page::StartParse(CPDF_ParseOptions* pOptions, FX_BOOL bReParse)
     if (m_ParseState == PDF_CONTENT_PARSED || m_ParseState == PDF_CONTENT_PARSING) {
         return;
     }
-    m_pParser = FX_NEW CPDF_ContentParser;
+    m_pParser = new CPDF_ContentParser;
     m_pParser->Start(this, pOptions);
     m_ParseState = PDF_CONTENT_PARSING;
 }
@@ -960,7 +950,7 @@ void CPDF_Form::StartParse(CPDF_AllStates* pGraphicStates, CFX_AffineMatrix* pPa
     if (m_ParseState == PDF_CONTENT_PARSED || m_ParseState == PDF_CONTENT_PARSING) {
         return;
     }
-    m_pParser = FX_NEW CPDF_ContentParser;
+    m_pParser = new CPDF_ContentParser;
     m_pParser->Start(this, pGraphicStates, pParentMatrix, pType3Char, pOptions, level);
     m_ParseState = PDF_CONTENT_PARSING;
 }
@@ -972,7 +962,7 @@ void CPDF_Form::ParseContent(CPDF_AllStates* pGraphicStates, CFX_AffineMatrix* p
 }
 CPDF_Form* CPDF_Form::Clone() const
 {
-    CPDF_Form* pClone = FX_NEW CPDF_Form(m_pDocument, m_pPageResources, m_pFormStream, m_pResources);
+    CPDF_Form* pClone = new CPDF_Form(m_pDocument, m_pPageResources, m_pFormStream, m_pResources);
     FX_POSITION pos = m_ObjectList.GetHeadPosition();
     while (pos) {
         CPDF_PageObject* pObj = (CPDF_PageObject*)m_ObjectList.GetNext(pos);

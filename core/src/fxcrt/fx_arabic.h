@@ -6,7 +6,7 @@
 
 #ifndef _FX_ARABIC_IMP
 #define _FX_ARABIC_IMP
-class CFX_BidiChar FX_FINAL : public IFX_BidiChar, public CFX_Object
+class CFX_BidiChar FX_FINAL : public IFX_BidiChar
 {
 public:
     CFX_BidiChar();
@@ -22,7 +22,9 @@ public:
     virtual FX_BOOL		EndChar() FX_OVERRIDE;
     virtual FX_INT32	GetBidiInfo(FX_INT32 &iStart, FX_INT32 &iCount) FX_OVERRIDE;
     virtual void		Reset() FX_OVERRIDE;
-protected:
+
+private:
+    ~CFX_BidiChar() { }
     FX_BOOL		m_bSeparateNeutral;
     FX_INT32	m_iCurStart;
     FX_INT32	m_iCurCount;
