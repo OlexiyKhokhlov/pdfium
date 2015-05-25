@@ -18,6 +18,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
 set(USE_STATIC_LIBRARY ON CACHE BOOL "build as static library. Otherwise - shared")
 
 #3dparty libraries
+set(USE_SYSTEM_FREETYPE ON CACHE BOOL "use system freetype")
 set(USE_SYSTEM_JPEG ON CACHE BOOL "use system libjpeg")
 set(USE_SYSTEM_ZLIB ON CACHE BOOL "use system zlib")
 set(USE_SYSTEM_LCMS2 ON CACHE BOOL "use system lcms2")
@@ -122,6 +123,16 @@ if(USE_KOREA_MAPS)
   )
 endif(USE_KOREA_MAPS)
 
+if(USE_SYSTEM_FREETYPE)
+  find_package(Freetype REQUIRED)
+  include_directories(${FREETYPE_INCLUDE_DIRS})
+  add_definitions(-DUSE_SYSTEM_FREETYPE)
+  add_library(freetype OBJECT empty.c)
+else(USE_SYSTEM_FREETYPE)
+  add_subdirectory(third_party/freetype)
+  include_directories(third_party/freetype/include)
+endif(USE_SYSTEM_FREETYPE)
+
 if(USE_SYSTEM_JPEG)
   find_package(JPEG REQUIRED)
   include_directories(${JPEG_INCLUDE_DIRS})
@@ -158,10 +169,6 @@ else(USE_SYSTEM_OPENJPEG)
   add_subdirectory(core/src/fxcodec/fx_libopenjpeg)
   add_definitions(-DOPJ_STATIC)
 endif(USE_SYSTEM_OPENJPEG)
-
-#Use own FreeType in anytime
-add_subdirectory(third_party/freetype)
-include_directories(third_party/freetype/include)
 
 #Use own jbig2 in anytime
 add_subdirectory(core/src/fxcodec/jbig2)
@@ -635,6 +642,7 @@ else(USE_STATIC_LIBRARY)
 endif(USE_STATIC_LIBRARY)
 
 target_link_libraries(pdfium
+  ${FREETYPE_LIBRARIES}
   ${JPEG_LIBRARY}
   ${LCMS2_LIBRARY}
   ${ZLIB_LIBRARY}
