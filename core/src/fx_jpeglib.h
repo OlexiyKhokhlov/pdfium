@@ -4,11 +4,11 @@
  
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _FX_SRC_JPEGLIB_H_
-#define _FX_SRC_JPEGLIB_H_
+#ifndef CORE_SRC_FX_JPEGLIB_H_
+#define CORE_SRC_FX_JPEGLIB_H_
 #ifdef USE_SYSTEM_JPEG
     #include <jpeglib.h>
 #else
     #include "./fxcodec/libjpeg/jpeglib.h"
 #endif
-#endif
+#endif  // CORE_SRC_FX_JPEGLIB_H_
