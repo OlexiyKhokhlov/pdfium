@@ -11,7 +11,6 @@
 #include "fpdf_objects.h"
 
 class CPDF_Document;
-class IPDF_DocParser;
 class CPDF_Parser;
 class CPDF_SecurityHandler;
 class CPDF_StandardSecurityHandler;
@@ -52,23 +51,15 @@ class CFX_PrivateData;
 //   'R' - otherwise.
 extern const char PDF_CharType[256];
 
-class IPDF_EnumPageHandler
-{
-public:
-    virtual ~IPDF_EnumPageHandler() { }
-    virtual FX_BOOL EnumPage(CPDF_Dictionary* pPageDict) = 0;
-};
 class CPDF_Document : public CFX_PrivateData, public CPDF_IndirectObjects
 {
 public:
-
-    CPDF_Document(IPDF_DocParser* pParser);
-
     CPDF_Document();
+    explicit CPDF_Document(CPDF_Parser* pParser);
 
     ~CPDF_Document();
 
-    IPDF_DocParser*			GetParser() const
+    CPDF_Parser*			GetParser() const
     {
         return m_pParser;
     }
@@ -94,8 +85,6 @@ public:
     CPDF_Dictionary*		GetPage(int iPage);
 
     int						GetPageIndex(FX_DWORD objnum);
-
-    void					EnumPages(IPDF_EnumPageHandler* pHandler);
 
     FX_DWORD				GetUserPermissions(FX_BOOL bCheckRevision = FALSE) const;
 
@@ -370,33 +359,6 @@ struct PARSE_CONTEXT {
 
     FX_FILESIZE	m_DataEnd;
 };
-class IPDF_DocParser 
-{
-public:
-    virtual ~IPDF_DocParser() { }
-    virtual FX_DWORD	GetRootObjNum() = 0;
-
-    virtual FX_DWORD	GetInfoObjNum() = 0;
-
-    virtual CPDF_Object*	ParseIndirectObject(CPDF_IndirectObjects* pObjList, FX_DWORD objnum, PARSE_CONTEXT* pContext = NULL) = 0;
-
-    virtual FX_DWORD	GetLastObjNum() = 0;
-
-    virtual CPDF_Array*	GetIDArray() = 0;
-
-    virtual CPDF_Dictionary*	GetEncryptDict() = 0;
-
-    FX_BOOL				IsEncrypted()
-    {
-        return GetEncryptDict() != NULL;
-    }
-
-    virtual FX_DWORD	GetPermissions(FX_BOOL bCheckRevision = FALSE) = 0;
-
-    virtual FX_BOOL		IsOwner() = 0;
-
-    virtual FX_BOOL		IsFormStream(FX_DWORD objnum, FX_BOOL& bForm) = 0;
-};
 
 #define PDFPARSE_ERROR_SUCCESS		0
 #define PDFPARSE_ERROR_FILE			1
@@ -404,24 +366,22 @@ public:
 #define PDFPARSE_ERROR_PASSWORD		3
 #define PDFPARSE_ERROR_HANDLER		4
 #define PDFPARSE_ERROR_CERT			5
-class CPDF_Parser FX_FINAL : public IPDF_DocParser
+
+class CPDF_Parser
 {
 public:
-
     CPDF_Parser();
-    ~CPDF_Parser() override;
+    ~CPDF_Parser();
 
     FX_DWORD			StartParse(FX_LPCSTR filename, FX_BOOL bReParse = FALSE);
-
     FX_DWORD			StartParse(FX_LPCWSTR filename, FX_BOOL bReParse = FALSE);
-
     FX_DWORD			StartParse(IFX_FileRead* pFile, FX_BOOL bReParse = FALSE, FX_BOOL bOwnFileRead = TRUE);
 
     void				CloseParser(FX_BOOL bReParse = FALSE);
 
-    virtual FX_DWORD	GetPermissions(FX_BOOL bCheckRevision = FALSE) FX_OVERRIDE;
+    FX_DWORD	GetPermissions(FX_BOOL bCheckRevision = FALSE);
 
-    virtual FX_BOOL		IsOwner() FX_OVERRIDE;
+    FX_BOOL		IsOwner();
 
     void				SetPassword(const FX_CHAR* password)
     {
@@ -464,21 +424,30 @@ public:
     {
         return m_pDocument;
     }
-    CFX_ArrayTemplate<CPDF_Dictionary *> * GetOtherTrailers()
+
+    CFX_ArrayTemplate<CPDF_Dictionary*>* GetOtherTrailers()
     {
         return &m_Trailers;
     }
 
-    virtual FX_DWORD	GetRootObjNum() FX_OVERRIDE;
-    virtual FX_DWORD	GetInfoObjNum()  FX_OVERRIDE;
-    virtual CPDF_Array*	GetIDArray()  FX_OVERRIDE;
-    virtual CPDF_Dictionary*	GetEncryptDict()  FX_OVERRIDE
+    FX_DWORD	GetRootObjNum();
+    FX_DWORD	GetInfoObjNum() ;
+    CPDF_Array*	GetIDArray() ;
+
+    CPDF_Dictionary*	GetEncryptDict() 
     {
         return m_pEncryptDict;
     }
-    virtual CPDF_Object*		ParseIndirectObject(CPDF_IndirectObjects* pObjList, FX_DWORD objnum, PARSE_CONTEXT* pContext = NULL)  FX_OVERRIDE;
-    virtual FX_DWORD	GetLastObjNum() FX_OVERRIDE;
-    virtual FX_BOOL		IsFormStream(FX_DWORD objnum, FX_BOOL& bForm)  FX_OVERRIDE;
+
+    FX_BOOL				IsEncrypted()
+    {
+        return GetEncryptDict() != NULL;
+    }
+
+
+    CPDF_Object*		ParseIndirectObject(CPDF_IndirectObjects* pObjList, FX_DWORD objnum, PARSE_CONTEXT* pContext = NULL) ;
+    FX_DWORD			GetLastObjNum();
+    FX_BOOL				IsFormStream(FX_DWORD objnum, FX_BOOL& bForm);
 
     FX_FILESIZE			GetObjectOffset(FX_DWORD objnum);
 
