@@ -4,6 +4,7 @@
 /build/Release
 /build/release
 /build/gyp
+/buildtools
 /out
 /testing/corpus
 /testing/gmock
