@@ -723,7 +723,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
         return FALSE;
     }
     FXSYS_memset8(dest_buf, 0xff, image->y1 * pitch);
-    FX_BYTE** channel_bufs = FX_Alloc(FX_BYTE*, image->numcomps);
+    uint8_t** channel_bufs = FX_Alloc(uint8_t*, image->numcomps);
     FX_BOOL result = FALSE;
     int* adjust_comps = FX_Alloc(int, image->numcomps);
     for (i = 0; i < (int)image->numcomps; i ++) {
@@ -751,7 +751,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
                     if (adjust_comps[channel] > 0) {
                         *pPixel = 0;
                     } else {
-                        *pPixel = (FX_BYTE)(src << -adjust_comps[channel]);
+                        *pPixel = (uint8_t)(src << -adjust_comps[channel]);
                     }
                 }
             }
@@ -766,7 +766,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
                     src = image->comps[channel].data[row * wid + col];
                     src += image->comps[channel].sgnd ? 1 << (image->comps[channel].prec - 1) : 0;
                     if (adjust_comps[channel] - 1 < 0) {
-                        *pPixel = (FX_BYTE)((src >> adjust_comps[channel]));
+                        *pPixel = (uint8_t)((src >> adjust_comps[channel]));
                     } else {
                         int tmpPixel = (src >> adjust_comps[channel]) + ((src >> (adjust_comps[channel] - 1)) % 2);
                         if (tmpPixel > 255) {
@@ -774,7 +774,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
                         } else if (tmpPixel < 0) {
                             tmpPixel = 0;
                         }
-                        *pPixel = (FX_BYTE)tmpPixel;
+                        *pPixel = (uint8_t)tmpPixel;
                     }
                 }
             }
