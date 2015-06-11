@@ -600,7 +600,7 @@ void CPDFSDK_ActionHandler::DoAction_URI(CPDFSDK_Document* pDocument, const CPDF
  	ASSERT(pApp != NULL);
 
  	CFX_ByteString sURI = action.GetURI(pDocument->GetDocument());
- 	pApp->FFI_DoURIAction(FX_LPCSTR(sURI));
+ 	pApp->FFI_DoURIAction(sURI.c_str());
 }
 
 void CPDFSDK_ActionHandler::DoAction_Named(CPDFSDK_Document* pDocument, const CPDF_Action& action)
@@ -653,7 +653,7 @@ void CPDFSDK_ActionHandler::RunFieldJavaScript(CPDFSDK_Document* pDocument, CPDF
 		pContext->OnField_Blur(data.bModifier, data.bShift, pFormField, data.sValue);
 		break;
 	case CPDF_AAction::KeyStroke:
-		pContext->OnField_Keystroke(data.nCommitKey, data.sChange, data.sChangeEx, data.bKeyDown,
+		pContext->OnField_Keystroke(data.sChange, data.sChangeEx, data.bKeyDown,
 			data.bModifier, data.nSelEnd, data.nSelStart, data.bShift, pFormField, data.sValue,
 			data.bWillCommit, data.bFieldFull, data.bRC);
 		break;

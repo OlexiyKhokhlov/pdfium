@@ -10,7 +10,7 @@
 class CXML_DataBufAcc : public IFX_BufferRead
 {
 public:
-    CXML_DataBufAcc(FX_LPCBYTE pBuffer, size_t size)
+    CXML_DataBufAcc(const uint8_t* pBuffer, size_t size)
         : m_pBuffer(pBuffer)
         , m_dwSize(size)
         , m_dwCurPos(0)
@@ -44,7 +44,7 @@ public:
         }
         return FALSE;
     }
-    virtual FX_LPCBYTE		GetBlockBuffer()
+    virtual const uint8_t*		GetBlockBuffer()
     {
         return m_pBuffer;
     }
@@ -57,7 +57,7 @@ public:
         return 0;
     }
 protected:
-    FX_LPCBYTE		m_pBuffer;
+    const uint8_t*		m_pBuffer;
     size_t			m_dwSize;
     size_t			m_dwCurPos;
 };
@@ -111,9 +111,9 @@ public:
         }
         return m_pFileRead->ReadBlock(m_pBuffer, m_nStart, m_dwSize);
     }
-    virtual FX_LPCBYTE		GetBlockBuffer()
+    virtual const uint8_t*		GetBlockBuffer()
     {
-        return (FX_LPCBYTE)m_pBuffer;
+        return (const uint8_t*)m_pBuffer;
     }
     virtual size_t			GetBlockSize()
     {
@@ -125,7 +125,7 @@ public:
     }
 protected:
     IFX_FileRead	*m_pFileRead;
-    FX_LPBYTE		m_pBuffer;
+    uint8_t*		m_pBuffer;
     FX_FILESIZE		m_nStart;
     size_t			m_dwSize;
 };
@@ -137,11 +137,11 @@ public:
     FX_BOOL			m_bOwnedStream;
     FX_FILESIZE		m_nOffset;
     FX_BOOL			m_bSaveSpaceChars;
-    FX_LPCBYTE		m_pBuffer;
+    const uint8_t*		m_pBuffer;
     size_t			m_dwBufferSize;
     FX_FILESIZE		m_nBufferOffset;
     size_t			m_dwIndex;
-    FX_BOOL			Init(FX_LPBYTE pBuffer, size_t size);
+    FX_BOOL			Init(uint8_t* pBuffer, size_t size);
     FX_BOOL			Init(IFX_FileRead *pFileRead);
     FX_BOOL			Init(IFX_BufferRead *pBuffer);
     FX_BOOL			Init(FX_BOOL bOwndedStream);
@@ -153,11 +153,11 @@ public:
     void			GetAttrValue(CFX_WideString &value);
     FX_DWORD		GetCharRef();
     void			GetTagName(CFX_ByteString &space, CFX_ByteString &name, FX_BOOL &bEndTag, FX_BOOL bStartTag = FALSE);
-    void			SkipLiterals(FX_BSTR str);
+    void			SkipLiterals(const CFX_ByteStringC& str);
     CXML_Element*	ParseElement(CXML_Element* pParent, FX_BOOL bStartTag = FALSE);
-    void			InsertContentSegment(FX_BOOL bCDATA, FX_WSTR content, CXML_Element* pElement);
+    void			InsertContentSegment(FX_BOOL bCDATA, const CFX_WideStringC& content, CXML_Element* pElement);
     void			InsertCDATASegment(CFX_UTF8Decoder& decoder, CXML_Element* pElement);
 };
-void FX_XML_SplitQualifiedName(FX_BSTR bsFullName, CFX_ByteStringC &bsSpace, CFX_ByteStringC &bsName);
+void FX_XML_SplitQualifiedName(const CFX_ByteStringC& bsFullName, CFX_ByteStringC &bsSpace, CFX_ByteStringC &bsName);
 
 #endif  // CORE_SRC_FXCRT_XML_INT_H_

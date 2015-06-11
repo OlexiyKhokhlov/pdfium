@@ -349,7 +349,7 @@ FX_BOOL CPDFSDK_Widget::IsAppModified() const
 	return m_bAppModified;
 }
 
-void CPDFSDK_Widget::ResetAppearance(FX_LPCWSTR sValue, FX_BOOL bValueChanged)
+void CPDFSDK_Widget::ResetAppearance(const FX_WCHAR* sValue, FX_BOOL bValueChanged)
 {
 	SetAppModified();
 
@@ -387,15 +387,11 @@ void CPDFSDK_Widget::ResetAppearance(FX_LPCWSTR sValue, FX_BOOL bValueChanged)
 	m_pAnnot->ClearCachedAP();
 }
 
-CFX_WideString CPDFSDK_Widget::OnFormat(int nCommitKey, FX_BOOL& bFormated)
+CFX_WideString CPDFSDK_Widget::OnFormat(FX_BOOL& bFormated)
 {
- 	CPDF_FormField* pFormField = GetFormField();
- 	ASSERT(pFormField != NULL);
- 	
- 	ASSERT(m_pInterForm != NULL);
-	
-	return m_pInterForm->OnFormat(pFormField, nCommitKey, bFormated);
-
+    CPDF_FormField* pFormField = GetFormField();
+    ASSERT(pFormField != NULL);
+    return m_pInterForm->OnFormat(pFormField, bFormated);
 }
 
 void CPDFSDK_Widget::ResetFieldAppearance(FX_BOOL bValueChanged)
@@ -1024,7 +1020,7 @@ void CPDFSDK_Widget::ResetAppearance_RadioButton()
 		SetAppState("Off");
 }
 
-void CPDFSDK_Widget::ResetAppearance_ComboBox(FX_LPCWSTR sValue)
+void CPDFSDK_Widget::ResetAppearance_ComboBox(const FX_WCHAR* sValue)
 {
 	CPDF_FormControl* pControl = GetFormControl();
 	ASSERT(pControl != NULL);
@@ -1198,7 +1194,7 @@ void CPDFSDK_Widget::ResetAppearance_ListBox()
 	WriteAppearance("N", GetRotatedRect(), GetMatrix(), sAP);
 }
 
-void CPDFSDK_Widget::ResetAppearance_TextField(FX_LPCWSTR sValue)
+void CPDFSDK_Widget::ResetAppearance_TextField(const FX_WCHAR* sValue)
 {
 	CPDF_FormControl* pControl = GetFormControl();
 	ASSERT(pControl != NULL);
@@ -1979,7 +1975,7 @@ void CPDFSDK_InterForm::OnCalculate(CPDF_FormField* pFormField)
 	m_bBusy = FALSE;
 }
 
-CFX_WideString CPDFSDK_InterForm::OnFormat(CPDF_FormField* pFormField, int nCommitKey, FX_BOOL& bFormated)
+CFX_WideString CPDFSDK_InterForm::OnFormat(CPDF_FormField* pFormField, FX_BOOL& bFormated)
 {
 	ASSERT(m_pDocument != NULL);
 	ASSERT(pFormField != NULL);
@@ -2024,7 +2020,7 @@ CFX_WideString CPDFSDK_InterForm::OnFormat(CPDF_FormField* pFormField, int nComm
 				IFXJS_Context* pContext = pRuntime->NewContext();
 				ASSERT(pContext != NULL);
 
-				pContext->OnField_Format(nCommitKey, pFormField, Value, TRUE);
+				pContext->OnField_Format(pFormField, Value, TRUE);
 			
 				CFX_WideString sInfo;
  				FX_BOOL bRet = pContext->RunScript(script, sInfo);
@@ -2042,7 +2038,7 @@ CFX_WideString CPDFSDK_InterForm::OnFormat(CPDF_FormField* pFormField, int nComm
 	return sValue;
 }
 
-void CPDFSDK_InterForm::ResetFieldAppearance(CPDF_FormField* pFormField, FX_LPCWSTR sValue, FX_BOOL bValueChanged)
+void CPDFSDK_InterForm::ResetFieldAppearance(CPDF_FormField* pFormField, const FX_WCHAR* sValue, FX_BOOL bValueChanged)
 {
 	ASSERT(pFormField != NULL);
 
@@ -2255,7 +2251,7 @@ FX_BOOL CPDFSDK_InterForm::SubmitFields(const CFX_WideString& csDestination, con
 	CFX_ByteTextBuf textBuf;
 	ExportFieldsToFDFTextBuf(fields, bIncludeOrExclude, textBuf);
 
-	FX_LPBYTE pBuffer = textBuf.GetBuffer();
+	uint8_t* pBuffer = textBuf.GetBuffer();
 	FX_STRSIZE nBufSize = textBuf.GetLength();
 	
 	if (bUrlEncoded)
@@ -2310,7 +2306,7 @@ FX_BOOL CPDFSDK_InterForm::FDFToURLEncodedData(CFX_WideString csFDFFile, CFX_Wid
 	return TRUE;
 }
 
-FX_BOOL CPDFSDK_InterForm::FDFToURLEncodedData(FX_LPBYTE& pBuf, FX_STRSIZE& nBufSize)
+FX_BOOL CPDFSDK_InterForm::FDFToURLEncodedData(uint8_t*& pBuf, FX_STRSIZE& nBufSize)
 {
  	CFDF_Document* pFDF = CFDF_Document::ParseMemory(pBuf, nBufSize);
  	if (pFDF)
@@ -2389,7 +2385,7 @@ FX_BOOL CPDFSDK_InterForm::SubmitForm(const CFX_WideString& sDestination, FX_BOO
 	delete pFDFDoc;
 	if (!bRet) return FALSE;
 
-	FX_LPBYTE pBuffer = FdfBuffer.GetBuffer();
+	uint8_t* pBuffer = FdfBuffer.GetBuffer();
 	FX_STRSIZE nBufSize = FdfBuffer.GetLength();
 	
 	if (bUrlEncoded)
@@ -2515,7 +2511,7 @@ int	CPDFSDK_InterForm::AfterValueChange(const CPDF_FormField* pField)
 	{
 		this->OnCalculate(pFormField);
 		FX_BOOL bFormated = FALSE;
-		CFX_WideString sValue = this->OnFormat(pFormField, 0, bFormated);
+		CFX_WideString sValue = this->OnFormat(pFormField, bFormated);
 		if (bFormated)
 			this->ResetFieldAppearance(pFormField, sValue.c_str(), TRUE);
 		else

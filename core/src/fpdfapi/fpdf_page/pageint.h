@@ -1,18 +1,19 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #ifndef CORE_SRC_FPDFAPI_FPDF_PAGE_PAGEINT_H_
 #define CORE_SRC_FPDFAPI_FPDF_PAGE_PAGEINT_H_
 
+#include <map>
+
 #include "../../../include/fpdfapi/fpdf_pageobj.h"
 
 #define PARSE_STEP_LIMIT		100
-#define STREAM_PARSE_BUFSIZE	20480
-class CPDF_QuickFontCache;
-class CPDF_StreamParser 
+
+class CPDF_StreamParser
 {
 public:
 
@@ -23,7 +24,7 @@ public:
     typedef enum { EndOfData, Number, Keyword, Name, Others } SyntaxType;
 
     SyntaxType			ParseNextElement();
-    FX_LPBYTE			GetWordBuf()
+    uint8_t*			GetWordBuf()
     {
         return m_WordBuffer;
     }
@@ -119,7 +120,7 @@ typedef struct {
 #define _FPDF_MAX_FORM_LEVEL_		30
 #define _FPDF_MAX_TYPE3_FORM_LEVEL_	4
 #define _FPDF_MAX_OBJECT_STACK_SIZE_ 512
-class CPDF_StreamContentParser 
+class CPDF_StreamContentParser
 {
 public:
     CPDF_StreamContentParser();
@@ -142,9 +143,9 @@ public:
     _ContentParam		m_ParamBuf1[PARAM_BUF_SIZE];
     FX_DWORD			m_ParamStartPos;
     FX_DWORD			m_ParamCount;
-    void				AddNumberParam(FX_LPCSTR str, int len);
+    void				AddNumberParam(const FX_CHAR* str, int len);
     void				AddObjectParam(CPDF_Object* pObj);
-    void				AddNameParam(FX_LPCSTR name, int size);
+    void				AddNameParam(const FX_CHAR* name, int size);
     int					GetNextParamPos();
     void				ClearAllParams();
     CPDF_Object*		GetObject(FX_DWORD index);
@@ -155,7 +156,7 @@ public:
     {
         return (int32_t)(GetNumber(index));
     }
-    FX_BOOL				OnOperator(FX_LPCSTR op);
+    FX_BOOL				OnOperator(const FX_CHAR* op);
     void				BigCaseCaller(int index);
     FX_BOOL				m_bAbort;
     CPDF_StreamParser*	m_pSyntax;
@@ -173,7 +174,7 @@ public:
     void				ConvertUserSpace(FX_FLOAT& x, FX_FLOAT& y);
     void				ConvertTextSpace(FX_FLOAT& x, FX_FLOAT& y);
     void				OnChangeTextMatrix();
-    FX_DWORD			Parse(FX_LPCBYTE pData, FX_DWORD dwSize, FX_DWORD max_cost);
+    FX_DWORD			Parse(const uint8_t* pData, FX_DWORD dwSize, FX_DWORD max_cost);
     void				ParsePathObject();
     int					m_CompatCount;
     FX_PATHPOINT*		m_pPathPoints;
@@ -205,7 +206,7 @@ public:
     CPDF_Font*			FindFont(const CFX_ByteString& name);
     CPDF_ColorSpace*	FindColorSpace(const CFX_ByteString& name);
     CPDF_Pattern*		FindPattern(const CFX_ByteString& name, FX_BOOL bShading);
-    CPDF_Object*		FindResourceObj(FX_BSTR type, const CFX_ByteString& name);
+    CPDF_Object*		FindResourceObj(const CFX_ByteStringC& type, const CFX_ByteString& name);
     void Handle_CloseFillStrokePath();
     void Handle_FillStrokePath();
     void Handle_CloseEOFillStrokePath();
@@ -281,7 +282,7 @@ public:
     void Handle_NextLineShowText_Space();
     void Handle_Invalid();
 };
-class CPDF_ContentParser 
+class CPDF_ContentParser
 {
 public:
     CPDF_ContentParser();
@@ -307,7 +308,7 @@ protected:
     CPDF_StreamAcc*		m_pSingleStream;
     CPDF_StreamAcc**	m_pStreamArray;
     FX_DWORD			m_nStreams;
-    FX_LPBYTE			m_pData;
+    uint8_t*			m_pData;
     FX_DWORD			m_Size;
     class CPDF_StreamContentParser*	m_pParser;
     FX_DWORD			m_CurrentOffset;
@@ -326,48 +327,15 @@ public:
     FX_FLOAT				m_TextLeading, m_TextRise, m_TextHorzScale;
 };
 
-template <class KeyType, class ValueType>
-KeyType PDF_DocPageData_FindValue(const CFX_MapPtrTemplate<KeyType, CPDF_CountedObject<ValueType>*> &map, ValueType findValue, CPDF_CountedObject<ValueType>*& findData)
+class CPDF_DocPageData
 {
-    FX_POSITION pos = map.GetStartPosition();
-    while (pos) {
-        KeyType findKey;
-        map.GetNextAssoc(pos, findKey, findData);
-        if (findData->m_Obj == findValue) {
-            return findKey;
-        }
-    }
-    findData = NULL;
-    return (KeyType)(uintptr_t)NULL;
-}
-template <class KeyType, class ValueType>
-FX_BOOL PDF_DocPageData_Release(CFX_MapPtrTemplate<KeyType, CPDF_CountedObject<ValueType>*> &map, KeyType findKey, ValueType findValue, FX_BOOL bForce = FALSE)
-{
-    if (!findKey && !findValue) {
-        return FALSE;
-    }
-    CPDF_CountedObject<ValueType>* findData = NULL;
-    if (!findKey) {
-        findKey = PDF_DocPageData_FindValue<KeyType, ValueType>(map, findValue, findData);
-    } else if (!map.Lookup(findKey, findData)) {
-        return FALSE;
-    }
-    if (findData && ((-- findData->m_nCount) == 0 || bForce)) {
-        delete findData->m_Obj;
-        delete findData;
-        map.RemoveKey(findKey);
-        return TRUE;
-    }
-    return FALSE;
-}
-class CPDF_DocPageData 
-{
-public:
-    CPDF_DocPageData(CPDF_Document *pPDFDoc);
+  public:
+    explicit CPDF_DocPageData(CPDF_Document *pPDFDoc);
     ~CPDF_DocPageData();
+
     void                        Clear(FX_BOOL bRelease = FALSE);
     CPDF_Font*                  GetFont(CPDF_Dictionary* pFontDict, FX_BOOL findOnly);
-    CPDF_Font*                  GetStandardFont(FX_BSTR fontName, CPDF_FontEncoding* pEncoding);
+    CPDF_Font*                  GetStandardFont(const CFX_ByteStringC& fontName, CPDF_FontEncoding* pEncoding);
     void                        ReleaseFont(CPDF_Dictionary* pFontDict);
     CPDF_ColorSpace*            GetColorSpace(CPDF_Object* pCSObj, CPDF_Dictionary* pResources);
     CPDF_ColorSpace*            GetCopiedColorSpace(CPDF_Object* pCSObj);
@@ -377,24 +345,39 @@ public:
     CPDF_Image*                 GetImage(CPDF_Object* pImageStream);
     void                        ReleaseImage(CPDF_Object* pImageStream);
     CPDF_IccProfile*            GetIccProfile(CPDF_Stream* pIccProfileStream);
-    void                        ReleaseIccProfile(CPDF_Stream* pIccProfileStream, CPDF_IccProfile* pIccProfile);
+    void                        ReleaseIccProfile(CPDF_IccProfile* pIccProfile);
     CPDF_StreamAcc*             GetFontFileStreamAcc(CPDF_Stream* pFontStream);
     void                        ReleaseFontFileStreamAcc(CPDF_Stream* pFontStream, FX_BOOL bForce = FALSE);
     FX_BOOL                     IsForceClear() const {return m_bForceClear;}
     CPDF_CountedColorSpace*     FindColorSpacePtr(CPDF_Object* pCSObj) const;
     CPDF_CountedPattern*        FindPatternPtr(CPDF_Object* pPatternObj) const;
 
-    CPDF_Document*              m_pPDFDoc;
-    CPDF_FontMap                m_FontMap;
-    CPDF_ColorSpaceMap          m_ColorSpaceMap;
-    CPDF_PatternMap             m_PatternMap;
-    CPDF_ImageMap               m_ImageMap;
-    CPDF_IccProfileMap          m_IccProfileMap;
-    CFX_MapByteStringToPtr      m_HashProfileMap;
-    CPDF_FontFileMap            m_FontFileMap;
-    FX_BOOL                     m_bForceClear;
+  private:
+    using CPDF_CountedFont = CPDF_CountedObject<CPDF_Font*>;
+    using CPDF_CountedIccProfile = CPDF_CountedObject<CPDF_IccProfile*>;
+    using CPDF_CountedImage = CPDF_CountedObject<CPDF_Image*>;
+    using CPDF_CountedStreamAcc = CPDF_CountedObject<CPDF_StreamAcc*>;
+
+    using CPDF_ColorSpaceMap = std::map<CPDF_Object*, CPDF_CountedColorSpace*>;
+    using CPDF_FontFileMap = std::map<CPDF_Stream*, CPDF_CountedStreamAcc*>;
+    using CPDF_FontMap = std::map<CPDF_Dictionary*, CPDF_CountedFont*>;
+    using CPDF_IccProfileMap = std::map<CPDF_Stream*, CPDF_CountedIccProfile*>;
+    using CPDF_ImageMap = std::map<FX_DWORD, CPDF_CountedImage*>;
+    using CPDF_PatternMap = std::map<CPDF_Object*, CPDF_CountedPattern*>;
+
+    CPDF_Document* const m_pPDFDoc;
+    CFX_MapByteStringToPtr m_HashProfileMap;
+    FX_BOOL m_bForceClear;
+
+    CPDF_ColorSpaceMap m_ColorSpaceMap;
+    CPDF_FontFileMap m_FontFileMap;
+    CPDF_FontMap m_FontMap;
+    CPDF_IccProfileMap m_IccProfileMap;
+    CPDF_ImageMap m_ImageMap;
+    CPDF_PatternMap m_PatternMap;
 };
-class CPDF_Function 
+
+class CPDF_Function
 {
 public:
     static CPDF_Function*	Load(CPDF_Object* pFuncObj);
@@ -417,14 +400,14 @@ protected:
     virtual FX_BOOL	v_Init(CPDF_Object* pObj) = 0;
     virtual FX_BOOL	v_Call(FX_FLOAT* inputs, FX_FLOAT* results) const = 0;
 };
-class CPDF_IccProfile 
+class CPDF_IccProfile
 {
 public:
-    CPDF_IccProfile(FX_LPCBYTE pData, FX_DWORD dwSize);
+    CPDF_IccProfile(const uint8_t* pData, FX_DWORD dwSize);
     ~CPDF_IccProfile();
     int32_t GetComponents() const { return m_nSrcComponents; }
     FX_BOOL					m_bsRGB;
-    FX_LPVOID				m_pTransform;
+    void*				m_pTransform;
 private:
     int32_t                m_nSrcComponents;
 };
@@ -436,7 +419,7 @@ public:
     FX_BOOL	SetRGB(FX_FLOAT* pBuf, FX_FLOAT R, FX_FLOAT G, FX_FLOAT B) const;
     FX_BOOL	v_GetCMYK(FX_FLOAT* pBuf, FX_FLOAT& c, FX_FLOAT& m, FX_FLOAT& y, FX_FLOAT& k) const;
     FX_BOOL	v_SetCMYK(FX_FLOAT* pBuf, FX_FLOAT c, FX_FLOAT m, FX_FLOAT y, FX_FLOAT k) const;
-    virtual void	TranslateImageLine(FX_LPBYTE pDestBuf, FX_LPCBYTE pSrcBuf, int pixels, int image_width, int image_height, FX_BOOL bTransMask = FALSE) const;
+    virtual void	TranslateImageLine(uint8_t* pDestBuf, const uint8_t* pSrcBuf, int pixels, int image_width, int image_height, FX_BOOL bTransMask = FALSE) const;
 };
 class CPDF_PatternCS : public CPDF_ColorSpace
 {
@@ -453,7 +436,7 @@ public:
     CPDF_CountedColorSpace*	m_pCountedBaseCS;
 };
 #define	MAX_PAGE_OBJECTS_UNIFY_NAMING				4096
-class CPDF_ResourceNaming 
+class CPDF_ResourceNaming
 {
 public:
     struct _NamingState  {
@@ -461,7 +444,7 @@ public:
         int				m_nIndex;
     };
     ~CPDF_ResourceNaming();
-    CFX_ByteString		GetName(const CPDF_Dictionary* pResList, FX_LPCSTR szType);
+    CFX_ByteString		GetName(const CPDF_Dictionary* pResList, const FX_CHAR* szType);
 protected:
     CFX_MapByteStringToPtr	m_NamingCache;
 };

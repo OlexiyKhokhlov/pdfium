@@ -20,7 +20,7 @@ public:
 IFPF_DeviceModule*	FPF_GetDeviceModule();
 #define FPF_MATCHFONT_REPLACEANSI		1
 typedef struct FPF_HFONT_ {
-    FX_LPVOID pData;
+    void* pData;
 }* FPF_HFONT;
 class IFPF_Font
 {
@@ -44,7 +44,7 @@ public:
 
     virtual int32_t		GetHeight() const = 0;
     virtual int32_t		GetItalicAngle() const = 0;
-    virtual FX_DWORD		GetFontData(FX_DWORD dwTable, FX_LPBYTE pBuffer, FX_DWORD dwSize) = 0;
+    virtual FX_DWORD		GetFontData(FX_DWORD dwTable, uint8_t* pBuffer, FX_DWORD dwSize) = 0;
 
 protected:
     ~IFPF_Font() { }
@@ -55,10 +55,10 @@ public:
     virtual ~IFPF_FontMgr() { }
     virtual void			LoadSystemFonts() = 0;
     virtual void			LoadPrivateFont(IFX_FileRead* pFontFile) = 0;
-    virtual void			LoadPrivateFont(FX_BSTR bsFileName) = 0;
-    virtual void			LoadPrivateFont(FX_LPVOID pBuffer, size_t szBuffer) = 0;
+    virtual void			LoadPrivateFont(const CFX_ByteStringC& bsFileName) = 0;
+    virtual void			LoadPrivateFont(void* pBuffer, size_t szBuffer) = 0;
 
-    virtual IFPF_Font*		CreateFont(FX_BSTR bsFamilyname, uint8_t charset, FX_DWORD dwStyle, FX_DWORD dwMatch = 0) = 0;
+    virtual IFPF_Font*		CreateFont(const CFX_ByteStringC& bsFamilyname, uint8_t charset, FX_DWORD dwStyle, FX_DWORD dwMatch = 0) = 0;
 };
 
 #endif  // CORE_INCLUDE_FXGE_FPF_H_

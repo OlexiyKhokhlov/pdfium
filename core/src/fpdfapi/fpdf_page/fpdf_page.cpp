@@ -242,7 +242,7 @@ void CPDF_TextObject::SetSegments(const CFX_ByteString* pStrs, FX_FLOAT* pKernin
         m_pCharPos = FX_Alloc(FX_FLOAT, m_nChars - 1);
         int index = 0;
         for (int i = 0; i < nsegs; i ++) {
-            FX_LPCSTR segment = pStrs[i];
+            const FX_CHAR* segment = pStrs[i];
             int offset = 0, len = pStrs[i].GetLength();
             while (offset < len) {
                 m_pCharCodes[index++] = pFont->GetNextChar(segment, len, offset);
@@ -902,7 +902,7 @@ CPDF_Page::~CPDF_Page()
         pModule->DestroyPageCache(m_pPageRender);
     }
 }
-CPDF_Object* FPDFAPI_GetPageAttr(CPDF_Dictionary* pPageDict, FX_BSTR name)
+CPDF_Object* FPDFAPI_GetPageAttr(CPDF_Dictionary* pPageDict, const CFX_ByteStringC& name)
 {
     int level = 0;
     while (1) {
@@ -921,7 +921,7 @@ CPDF_Object* FPDFAPI_GetPageAttr(CPDF_Dictionary* pPageDict, FX_BSTR name)
         }
     }
 }
-CPDF_Object* CPDF_Page::GetPageAttr(FX_BSTR name) const
+CPDF_Object* CPDF_Page::GetPageAttr(const CFX_ByteStringC& name) const
 {
     return FPDFAPI_GetPageAttr(m_pFormDict, name);
 }

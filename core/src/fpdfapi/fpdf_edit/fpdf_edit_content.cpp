@@ -99,19 +99,19 @@ void CPDF_PageContentGenerate::ProcessImage(CFX_ByteTextBuf& buf, CPDF_ImageObje
         buf << "/" << PDF_NameEncode(name) << " Do Q\n";
     }
 }
-void CPDF_PageContentGenerate::ProcessForm(CFX_ByteTextBuf& buf, FX_LPCBYTE data, FX_DWORD size, CFX_Matrix& matrix)
+void CPDF_PageContentGenerate::ProcessForm(CFX_ByteTextBuf& buf, const uint8_t* data, FX_DWORD size, CFX_Matrix& matrix)
 {
     if (!data || !size) {
         return;
     }
     CPDF_Stream* pStream = new CPDF_Stream(NULL, 0, NULL);
     CPDF_Dictionary* pFormDict = CPDF_Dictionary::Create();
-    pFormDict->SetAtName(FX_BSTR("Type"), FX_BSTR("XObject"));
-    pFormDict->SetAtName(FX_BSTR("Subtype"), FX_BSTR("Form"));
+    pFormDict->SetAtName("Type", "XObject");
+    pFormDict->SetAtName("Subtype", "Form");
     CFX_FloatRect bbox = m_pPage->GetPageBBox();
     matrix.TransformRect(bbox);
-    pFormDict->SetAtRect(FX_BSTR("BBox"), bbox);
-    pStream->InitStream((FX_LPBYTE)data, size, pFormDict);
+    pFormDict->SetAtRect("BBox", bbox);
+    pStream->InitStream((uint8_t*)data, size, pFormDict);
     buf << "q " << matrix << " cm ";
     CFX_ByteString name = RealizeResource(pStream, "XObject");
     buf << "/" << PDF_NameEncode(name) << " Do Q\n";
@@ -142,7 +142,7 @@ void CPDF_PageContentGenerate::TransformContent(CFX_Matrix& matrix)
             size += pContentArray[i]->GetSize() + 1;
         }
         int pos = 0;
-        FX_LPBYTE pBuf = FX_Alloc(uint8_t, size);
+        uint8_t* pBuf = FX_Alloc(uint8_t, size);
         for (i = 0; i < iCount; ++i) {
             FXSYS_memcpy32(pBuf + pos, pContentArray[i]->GetData(), pContentArray[i]->GetSize());
             pos += pContentArray[i]->GetSize() + 1;

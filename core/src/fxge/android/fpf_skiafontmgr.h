@@ -26,7 +26,7 @@ public:
     {
         return FPF_SKIAFONTTYPE_Unknown;
     }
-    void				SetFamily(FX_LPCSTR pFamily)
+    void				SetFamily(const FX_CHAR* pFamily)
     {
         if (m_pFamily) {
             FX_Free(m_pFamily);
@@ -36,7 +36,7 @@ public:
         FXSYS_memcpy32(m_pFamily, pFamily, iSize * sizeof(FX_CHAR));
         m_pFamily[iSize] = 0;
     }
-    FX_LPSTR		m_pFamily;
+    FX_CHAR*		m_pFamily;
     FX_DWORD		m_dwStyle;
     int32_t		m_iFaceIndex;
     FX_DWORD		m_dwCharsets;
@@ -56,7 +56,7 @@ public:
     {
         return FPF_SKIAFONTTYPE_Path;
     }
-    void				SetPath(FX_LPCSTR pPath)
+    void				SetPath(const FX_CHAR* pPath)
     {
         if (m_pPath) {
             FX_Free(m_pPath);
@@ -66,7 +66,7 @@ public:
         FXSYS_memcpy32(m_pPath, pPath, iSize * sizeof(FX_CHAR));
         m_pPath[iSize] = 0;
     }
-    FX_LPSTR		m_pPath;
+    FX_CHAR*		m_pPath;
 };
 class CFPF_SkiaFileFont : public CFPF_SkiaFontDescriptor
 {
@@ -86,7 +86,7 @@ public:
     {
         return FPF_SKIAFONTTYPE_Buffer;
     }
-    FX_LPVOID			m_pBuffer;
+    void*			m_pBuffer;
     size_t				m_szBuffer;
 };
 class CFPF_SkiaFontMgr : public IFPF_FontMgr
@@ -97,16 +97,16 @@ public:
     FX_BOOL					InitFTLibrary();
     virtual void			LoadSystemFonts();
     virtual void			LoadPrivateFont(IFX_FileRead* pFontFile);
-    virtual void			LoadPrivateFont(FX_BSTR bsFileName);
-    virtual void			LoadPrivateFont(FX_LPVOID pBuffer, size_t szBuffer);
+    virtual void			LoadPrivateFont(const CFX_ByteStringC& bsFileName);
+    virtual void			LoadPrivateFont(void* pBuffer, size_t szBuffer);
 
-    virtual IFPF_Font*		CreateFont(FX_BSTR bsFamilyname, uint8_t uCharset, FX_DWORD dwStyle, FX_DWORD dwMatch = 0);
+    virtual IFPF_Font*		CreateFont(const CFX_ByteStringC& bsFamilyname, uint8_t uCharset, FX_DWORD dwStyle, FX_DWORD dwMatch = 0);
     FXFT_Face				GetFontFace(IFX_FileRead *pFileRead, int32_t iFaceIndex = 0);
-    FXFT_Face				GetFontFace(FX_BSTR bsFile, int32_t iFaceIndex = 0);
-    FXFT_Face				GetFontFace(FX_LPCBYTE pBuffer, size_t szBuffer, int32_t iFaceIndex = 0);
+    FXFT_Face				GetFontFace(const CFX_ByteStringC& bsFile, int32_t iFaceIndex = 0);
+    FXFT_Face				GetFontFace(const uint8_t* pBuffer, size_t szBuffer, int32_t iFaceIndex = 0);
 protected:
-    void				ScanPath(FX_BSTR path);
-    void				ScanFile(FX_BSTR file);
+    void				ScanPath(const CFX_ByteStringC& path);
+    void				ScanFile(const CFX_ByteStringC& file);
     void				ReportFace(FXFT_Face face, CFPF_SkiaFontDescriptor *pFontDesc);
     void				OutputSystemFonts();
     FX_BOOL				m_bLoaded;

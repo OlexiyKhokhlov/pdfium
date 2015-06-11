@@ -129,14 +129,15 @@ void CPDF_AnnotList::DisplayAnnots(const CPDF_Page* pPage, CFX_RenderDevice* pDe
 int CPDF_AnnotList::GetIndex(CPDF_Annot* pAnnot)
 {
     for (int i = 0; i < m_AnnotList.GetSize(); ++i)
-        if (m_AnnotList[i] == (FX_LPVOID)pAnnot) {
+        if (m_AnnotList[i] == (void*)pAnnot) {
             return i;
         }
     return -1;
 }
 CPDF_Annot::CPDF_Annot(CPDF_Dictionary* pDict, CPDF_AnnotList* pList)
-  : m_pAnnotDict(pDict),
-    m_pList(pList)
+    : m_pAnnotDict(pDict),
+      m_pList(pList),
+      m_sSubtype(m_pAnnotDict->GetConstString(FX_BSTRC("Subtype")))
 {
 }
 CPDF_Annot::~CPDF_Annot()
@@ -156,7 +157,7 @@ void CPDF_Annot::ClearCachedAP()
 }
 CFX_ByteString CPDF_Annot::GetSubType() const
 {
-    return m_pAnnotDict ? m_pAnnotDict->GetConstString(FX_BSTRC("Subtype")) : CFX_ByteStringC();
+    return m_sSubtype;
 }
 
 void CPDF_Annot::GetRect(CPDF_Rect& rect) const

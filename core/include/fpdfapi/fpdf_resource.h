@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #ifndef CORE_INCLUDE_FPDFAPI_FPDF_RESOURCE_H_
@@ -10,53 +10,41 @@
 #include "../fxge/fx_font.h"
 #include "fpdf_parser.h"
 
-class CPDF_Font;
-class CPDF_Type1Font;
-class CPDF_TrueTypeFont;
-class CPDF_CIDFont;
-class CPDF_Type3Font;
-class CPDF_FontEncoding;
-class CPDF_CMap;
-class CPDF_CID2UnicodeMap;
-class CPDF_ColorSpace;
-class CPDF_Color;
-class CPDF_Function;
-class CPDF_Pattern;
-class CPDF_TilingPattern;
-class CPDF_ShadingPattern;
-class CPDF_Image;
-class CPDF_Face;
-class CPDF_ToUnicodeMap;
-class CFX_SubstFont;
-class CFX_Font;
-class CPDF_RenderContext;
-class CPDF_Form;
-class CPDF_ImageObject;
-class CFX_DIBitmap;
-typedef struct FT_FaceRec_* FXFT_Face;
 class CFX_CTTGSUBTable;
+class CFX_DIBitmap;
+class CFX_Font;
+class CFX_SubstFont;
+class CPDF_CID2UnicodeMap;
+class CPDF_CIDFont;
+class CPDF_CMap;
+class CPDF_Color;
+class CPDF_ColorSpace;
+class CPDF_Face;
+class CPDF_Font;
+class CPDF_FontEncoding;
+class CPDF_Form;
+class CPDF_Function;
+class CPDF_Image;
+class CPDF_ImageObject;
 class CPDF_Page;
+class CPDF_Pattern;
+class CPDF_RenderContext;
+class CPDF_ShadingPattern;
+class CPDF_TilingPattern;
+class CPDF_ToUnicodeMap;
+class CPDF_TrueTypeFont;
+class CPDF_Type1Font;
+class CPDF_Type3Font;
+typedef struct FT_FaceRec_* FXFT_Face;
 
-template <class ObjClass> class CPDF_CountedObject 
+template <class ObjClass> class CPDF_CountedObject
 {
 public:
     ObjClass	m_Obj;
     FX_DWORD	m_nCount;
 };
-typedef CPDF_CountedObject<CPDF_Font*>          CPDF_CountedFont;
-typedef CPDF_CountedObject<CPDF_ColorSpace*>    CPDF_CountedColorSpace;
-typedef CPDF_CountedObject<CPDF_Pattern*>       CPDF_CountedPattern;
-typedef CPDF_CountedObject<CPDF_Image*>         CPDF_CountedImage;
-typedef CPDF_CountedObject<CPDF_IccProfile*>    CPDF_CountedICCProfile;
-typedef CPDF_CountedObject<CPDF_StreamAcc*>     CPDF_CountedStreamAcc;
-
-
-typedef CFX_MapPtrTemplate<CPDF_Dictionary*, CPDF_CountedFont*>     CPDF_FontMap;
-typedef CFX_MapPtrTemplate<CPDF_Object*, CPDF_CountedColorSpace*>   CPDF_ColorSpaceMap;
-typedef CFX_MapPtrTemplate<CPDF_Object*, CPDF_CountedPattern*>      CPDF_PatternMap;
-typedef CFX_MapPtrTemplate<FX_DWORD, CPDF_CountedImage*>            CPDF_ImageMap;
-typedef CFX_MapPtrTemplate<CPDF_Stream*, CPDF_CountedICCProfile*>   CPDF_IccProfileMap;
-typedef CFX_MapPtrTemplate<CPDF_Stream*, CPDF_CountedStreamAcc*>    CPDF_FontFileMap;
+using CPDF_CountedColorSpace = CPDF_CountedObject<CPDF_ColorSpace*>;
+using CPDF_CountedPattern = CPDF_CountedObject<CPDF_Pattern*>;
 
 #define PDFFONT_TYPE1			1
 #define PDFFONT_TRUETYPE		2
@@ -78,7 +66,7 @@ class CPDF_Font
 {
 public:
     static CPDF_Font*		CreateFontF(CPDF_Document* pDoc, CPDF_Dictionary* pFontDict);
-    static CPDF_Font*		GetStockFont(CPDF_Document* pDoc, FX_BSTR fontname);
+    static CPDF_Font*		GetStockFont(CPDF_Document* pDoc, const CFX_ByteStringC& fontname);
 
     virtual ~CPDF_Font();
 
@@ -155,7 +143,7 @@ public:
         return m_Font.GetFace();
     }
 
-    virtual FX_DWORD		GetNextChar(FX_LPCSTR pString, int nStrLen, int& offset) const
+    virtual FX_DWORD		GetNextChar(const FX_CHAR* pString, int nStrLen, int& offset) const
     {
         if (offset < 0 || nStrLen < 1) {
             return 0;
@@ -164,14 +152,14 @@ public:
         return static_cast<FX_DWORD>(ch);
     }
 
-    virtual int				CountChar(FX_LPCSTR pString, int size) const
+    virtual int				CountChar(const FX_CHAR* pString, int size) const
     {
         return size;
     }
 
     void					AppendChar(CFX_ByteString& str, FX_DWORD charcode) const;
 
-    virtual int				AppendChar(FX_LPSTR buf, FX_DWORD charcode) const
+    virtual int				AppendChar(FX_CHAR* buf, FX_DWORD charcode) const
     {
         *buf = (FX_CHAR)charcode;
         return 1;
@@ -314,7 +302,7 @@ private:
 #define PDFFONT_ENCODING_PDFDOC			7
 #define PDFFONT_ENCODING_MS_SYMBOL		8
 #define PDFFONT_ENCODING_UNICODE		9
-class CPDF_FontEncoding 
+class CPDF_FontEncoding
 {
 public:
 
@@ -427,7 +415,7 @@ protected:
     virtual FX_BOOL			_Load();
     virtual void			LoadGlyphMap();
 };
-class CPDF_Type3Char 
+class CPDF_Type3Char
 {
 public:
 
@@ -514,9 +502,9 @@ public:
         return !m_bType1;
     }
 
-    virtual FX_DWORD        GetNextChar(FX_LPCSTR pString, int nStrLen, int& offset) const override;
-    virtual int             CountChar(FX_LPCSTR pString, int size) const;
-    virtual int             AppendChar(FX_LPSTR str, FX_DWORD charcode) const;
+    virtual FX_DWORD        GetNextChar(const FX_CHAR* pString, int nStrLen, int& offset) const override;
+    virtual int             CountChar(const FX_CHAR* pString, int size) const;
+    virtual int             AppendChar(FX_CHAR* str, FX_DWORD charcode) const;
     virtual int             GetCharSize(FX_DWORD charcode) const;
 
     int                     GetCharset() const
@@ -524,7 +512,7 @@ public:
         return m_Charset;
     }
 
-    FX_LPCBYTE              GetCIDTransform(FX_WORD CID) const;
+    const uint8_t*              GetCIDTransform(FX_WORD CID) const;
     virtual FX_BOOL         IsVertWriting() const;
     short                   GetVertWidth(FX_WORD CID) const;
     void                    GetVertOrigin(FX_WORD CID, short& vx, short& vy) const;
@@ -624,7 +612,7 @@ public:
     FX_BOOL					SetCMYK(FX_FLOAT* pBuf, FX_FLOAT c, FX_FLOAT m, FX_FLOAT y, FX_FLOAT k) const;
 
 
-    virtual void			TranslateImageLine(FX_LPBYTE dest_buf, FX_LPCBYTE src_buf, int pixels,
+    virtual void			TranslateImageLine(uint8_t* dest_buf, const uint8_t* src_buf, int pixels,
             int image_width, int image_height, FX_BOOL bTransMask = FALSE) const;
 
     CPDF_Array*&			GetArray()
@@ -667,7 +655,7 @@ protected:
 
     FX_DWORD				m_dwStdConversion;
 };
-class CPDF_Color 
+class CPDF_Color
 {
 public:
 
@@ -716,10 +704,10 @@ protected:
 };
 #define PATTERN_TILING		1
 #define PATTERN_SHADING		2
-class CPDF_Pattern 
+class CPDF_Pattern
 {
 public:
-   
+
     virtual ~CPDF_Pattern();
     void    SetForceClear(FX_BOOL bForceClear) { m_bForceClear = bForceClear; }
 
@@ -793,7 +781,7 @@ struct CPDF_MeshVertex {
     FX_FLOAT x, y;
     FX_FLOAT r, g, b;
 };
-class CPDF_MeshStream 
+class CPDF_MeshStream
 {
 public:
 
@@ -833,7 +821,7 @@ public:
     FX_ARGB* pMatteColor;
     int32_t nQuality;
 };
-class CPDF_Image 
+class CPDF_Image
 {
 public:
 
@@ -942,7 +930,7 @@ private:
     CPDF_Document*			m_pDocument;
 
     CPDF_Dictionary*		m_pOC;
-    CPDF_Dictionary*	InitJPEG(FX_LPBYTE pData, FX_DWORD size);
+    CPDF_Dictionary*	InitJPEG(uint8_t* pData, FX_DWORD size);
 };
 
 #endif  // CORE_INCLUDE_FPDFAPI_FPDF_RESOURCE_H_

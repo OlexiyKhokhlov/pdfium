@@ -616,7 +616,7 @@ CPDFSDK_PageView::CPDFSDK_PageView(CPDFSDK_Document* pSDKDoc,CPDF_Page* page):m_
 		CPDF_InterForm* pPDFInterForm = pInterForm->GetInterForm();
 		pPDFInterForm->FixPageFields(page);
 	}
-        m_page->SetPrivateData((FX_LPVOID)m_page, (FX_LPVOID)this, NULL);
+        m_page->SetPrivateData((void*)m_page, (void*)this, NULL);
 	m_fxAnnotArray.RemoveAll();
 
 	m_bEnterWidget = FALSE;
@@ -649,7 +649,7 @@ CPDFSDK_PageView::~CPDFSDK_PageView()
 		delete m_pAnnotList;
 		m_pAnnotList = NULL;
 	}
-        m_page->RemovePrivateData((FX_LPVOID)m_page);
+        m_page->RemovePrivateData((void*)m_page);
         if(m_bTakeOverPage) {
             delete m_page;
         }
@@ -789,7 +789,7 @@ CPDFSDK_Annot* CPDFSDK_PageView::AddAnnot(CPDF_Dictionary * pDict)
 	 return NULL;
 }
 
-CPDFSDK_Annot* CPDFSDK_PageView::AddAnnot(FX_LPCSTR lpSubType,CPDF_Dictionary * pDict)
+CPDFSDK_Annot* CPDFSDK_PageView::AddAnnot(const FX_CHAR* lpSubType,CPDF_Dictionary * pDict)
 {
 	return NULL;
 }
@@ -1048,7 +1048,7 @@ int CPDFSDK_PageView::GetPageIndex()
 	return -1;
 }
 
-FX_BOOL	CPDFSDK_PageView::IsValidAnnot(FX_LPVOID p)
+FX_BOOL	CPDFSDK_PageView::IsValidAnnot(void* p)
 {
 	if (p == NULL) return FALSE;
 	int iCount = m_pAnnotList->Count();
