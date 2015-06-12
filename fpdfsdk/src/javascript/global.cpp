@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/javascript/IJavaScript.h"
@@ -103,9 +103,9 @@ FX_BOOL	CJS_Global::InitInstance(IFXJS_Context* cc)
 
 	global_alternate* pGlobal = (global_alternate*)GetEmbedObject();
 	ASSERT(pGlobal != NULL);
-	
+
 	pGlobal->Initial(pContext->GetReaderApp());
-	
+
 	return TRUE;
 };
 
@@ -127,7 +127,7 @@ global_alternate::~global_alternate(void)
 
 	pFactory->ReleaseGlobalData();
 }
-  
+
 void global_alternate::Initial(CPDFDoc_Environment* pApp)
 {
 	m_pApp = pApp;
@@ -295,17 +295,17 @@ void global_alternate::UpdateGlobalPersistentVariables()
 		switch (pData->data.nType)
 		{
 		case JS_GLOBALDATA_TYPE_NUMBER:
-			this->SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_NUMBER, pData->data.dData, false, "", v8::Local<v8::Object>(), pData->bPersistent == 1);
+			SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_NUMBER, pData->data.dData, false, "", v8::Local<v8::Object>(), pData->bPersistent == 1);
 			JS_PutObjectNumber(NULL,(JSFXObject)(*m_pJSObject),
 							   pData->data.sKey.UTF8Decode().c_str(), pData->data.dData);
 			break;
 		case JS_GLOBALDATA_TYPE_BOOLEAN:
-			this->SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_BOOLEAN, 0, (bool)(pData->data.bData == 1), "", v8::Local<v8::Object>(), pData->bPersistent == 1);
+			SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_BOOLEAN, 0, (bool)(pData->data.bData == 1), "", v8::Local<v8::Object>(), pData->bPersistent == 1);
 			JS_PutObjectBoolean(NULL,(JSFXObject)(*m_pJSObject),
 								pData->data.sKey.UTF8Decode().c_str(), (bool)(pData->data.bData == 1));
 			break;
 		case JS_GLOBALDATA_TYPE_STRING:
-			this->SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_STRING, 0, false, pData->data.sData, v8::Local<v8::Object>(), pData->bPersistent == 1);
+			SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_STRING, 0, false, pData->data.sData, v8::Local<v8::Object>(), pData->bPersistent == 1);
 			JS_PutObjectString(NULL, (JSFXObject)(*m_pJSObject),
 							   pData->data.sKey.UTF8Decode().c_str(),
 							   pData->data.sData.UTF8Decode().c_str());
@@ -317,14 +317,14 @@ void global_alternate::UpdateGlobalPersistentVariables()
 
 				PutObjectProperty(pObj, &pData->data);
 
-				this->SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_OBJECT, 0, false, "", 
+				SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_OBJECT, 0, false, "",
 					(JSObject)pObj, pData->bPersistent == 1);
 				JS_PutObjectObject(NULL,(JSFXObject)(*m_pJSObject),
 								   pData->data.sKey.UTF8Decode().c_str(), (JSObject)pObj);
 			}
 			break;
 		case JS_GLOBALDATA_TYPE_NULL:
-			this->SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_NULL, 0, false, "", v8::Local<v8::Object>(), pData->bPersistent == 1);
+			SetGlobalVariables(pData->data.sKey, JS_GLOBALDATA_TYPE_NULL, 0, false, "", v8::Local<v8::Object>(), pData->bPersistent == 1);
 			JS_PutObjectNull(NULL,(JSFXObject)(*m_pJSObject),
 							 pData->data.sKey.UTF8Decode().c_str());
 			break;
@@ -339,10 +339,10 @@ void global_alternate::CommitGlobalPersisitentVariables()
 	FX_POSITION	 pos = m_mapGlobal.GetStartPosition();
 	while (pos)
 	{
-		CFX_ByteString name; 
+		CFX_ByteString name;
 		js_global_data* pData = NULL;
 		m_mapGlobal.GetNextAssoc(pos, name, (void*&)pData);
-		
+
 		if (pData)
 		{
 			if (pData->bDeleted)
@@ -394,7 +394,7 @@ void global_alternate::ObjectToArray(v8::Local<v8::Object> pObj, CJS_GlobalVaria
 
 	for (int i=0; i<nObjElements; i++)
 	{
-		
+
 		CFX_WideString ws = JS_ToString(isolate, JS_GetArrayElement(isolate, pKeyList, i));
 		CFX_ByteString sKey = ws.UTF8Encode();
 
@@ -493,7 +493,7 @@ void global_alternate::DestroyGlobalPersisitentVariables()
 	FX_POSITION	 pos = m_mapGlobal.GetStartPosition();
 	while (pos)
 	{
-		CFX_ByteString name; 
+		CFX_ByteString name;
 		js_global_data* pData = NULL;
 		m_mapGlobal.GetNextAssoc(pos, name, (void*&)pData);
 		delete pData;
@@ -503,7 +503,7 @@ void global_alternate::DestroyGlobalPersisitentVariables()
 }
 
 
-FX_BOOL global_alternate::SetGlobalVariables(const FX_CHAR* propname, int nType, 
+FX_BOOL global_alternate::SetGlobalVariables(const FX_CHAR* propname, int nType,
 				double dData, bool bData, const CFX_ByteString& sData, JSObject pData, bool bDefaultPersistent)
 {
 	if (propname == NULL) return FALSE;
@@ -549,7 +549,7 @@ FX_BOOL global_alternate::SetGlobalVariables(const FX_CHAR* propname, int nType,
 			break;
 		default:
 			return FALSE;
-		}	
+		}
 
 		return TRUE;
 	}
@@ -599,7 +599,7 @@ FX_BOOL global_alternate::SetGlobalVariables(const FX_CHAR* propname, int nType,
 		break;
 	default:
 		return FALSE;
-	}	
+	}
 
 	m_mapGlobal.SetAt(propname, (void*)pNewData);
 

@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
@@ -254,7 +254,7 @@ void CFX_CTTGSUBTable::ParseLangSys(FT_Bytes raw, struct TLangSys *rec)
         return;
     }
     rec->FeatureIndex = new TT_uint16_t[rec->FeatureCount];
-    FXSYS_memset32(rec->FeatureIndex, 0, sizeof(TT_uint16_t) * rec->FeatureCount);
+    FXSYS_memset(rec->FeatureIndex, 0, sizeof(TT_uint16_t) * rec->FeatureCount);
     for (int i = 0; i < rec->FeatureCount; ++i) {
         rec->FeatureIndex[i] = GetUInt16(sp);
     }

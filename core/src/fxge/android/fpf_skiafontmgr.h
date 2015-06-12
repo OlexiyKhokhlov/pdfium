@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #ifndef CORE_SRC_FXGE_ANDROID_FPF_SKIAFONTMGR_H_
@@ -12,7 +12,7 @@
 #define	FPF_SKIAFONTTYPE_Path		1
 #define FPF_SKIAFONTTYPE_File		2
 #define FPF_SKIAFONTTYPE_Buffer		3
-class CFPF_SkiaFontDescriptor 
+class CFPF_SkiaFontDescriptor
 {
 public:
     CFPF_SkiaFontDescriptor() : m_pFamily(NULL), m_dwStyle(0), m_iFaceIndex(0), m_dwCharsets(0), m_iGlyphNum(0) {}
@@ -33,7 +33,7 @@ public:
         }
         int32_t iSize = FXSYS_strlen(pFamily);
         m_pFamily = FX_Alloc(FX_CHAR, iSize + 1);
-        FXSYS_memcpy32(m_pFamily, pFamily, iSize * sizeof(FX_CHAR));
+        FXSYS_memcpy(m_pFamily, pFamily, iSize * sizeof(FX_CHAR));
         m_pFamily[iSize] = 0;
     }
     FX_CHAR*		m_pFamily;
@@ -63,7 +63,7 @@ public:
         }
         int32_t iSize = FXSYS_strlen(pPath);
         m_pPath = FX_Alloc(FX_CHAR, iSize + 1);
-        FXSYS_memcpy32(m_pPath, pPath, iSize * sizeof(FX_CHAR));
+        FXSYS_memcpy(m_pPath, pPath, iSize * sizeof(FX_CHAR));
         m_pPath[iSize] = 0;
     }
     FX_CHAR*		m_pPath;

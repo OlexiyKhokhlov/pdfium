@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
@@ -154,7 +154,7 @@ static CFX_DIBitmap* Transform1bppBitmap(const CFX_DIBSource* pSrc, const CFX_Af
     pTempBitmap->CopyPalette(pSrc->GetPalette());
     uint8_t* dest_buf = pTempBitmap->GetBuffer();
     int dest_pitch = pTempBitmap->GetPitch();
-    FXSYS_memset8(dest_buf, pSrc->IsAlphaMask() ? 0 : 0xff, dest_pitch * result_height);
+    FXSYS_memset(dest_buf, pSrc->IsAlphaMask() ? 0 : 0xff, dest_pitch * result_height);
     if (pSrcBitmap->IsAlphaMask()) {
         for (int dest_y = 0; dest_y < result_height; dest_y ++) {
             uint8_t* dest_scan = dest_buf + dest_y * dest_pitch;

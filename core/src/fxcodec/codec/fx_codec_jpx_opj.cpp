@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include <algorithm>
@@ -481,9 +481,9 @@ void color_apply_icc_profile(opj_image_t *image)
         image->comps[1] = image->comps[0];
         image->comps[2] = image->comps[0];
         image->comps[1].data = FX_Alloc(int, (size_t)max);
-        FXSYS_memset8(image->comps[1].data, 0, sizeof(int) * (size_t)max);
+        FXSYS_memset(image->comps[1].data, 0, sizeof(int) * (size_t)max);
         image->comps[2].data = FX_Alloc(int, (size_t)max);
-        FXSYS_memset8(image->comps[2].data, 0, sizeof(int) * (size_t)max);
+        FXSYS_memset(image->comps[2].data, 0, sizeof(int) * (size_t)max);
         image->numcomps += 2;
         r = image->comps[0].data;
         for(int i = 0; i < max; ++i) {
@@ -591,7 +591,7 @@ void color_apply_conversion(opj_image_t *image)
         return;
     }
 }
-class CJPX_Decoder 
+class CJPX_Decoder
 {
 public:
     CJPX_Decoder();
@@ -639,7 +639,7 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
     opj_set_default_decoder_parameters(&parameters);
     parameters.decod_format = 0;
     parameters.cod_format = 3;
-    if(FXSYS_memcmp32(m_SrcData, szJP2Header, sizeof(szJP2Header)) == 0) {
+    if(FXSYS_memcmp(m_SrcData, szJP2Header, sizeof(szJP2Header)) == 0) {
         l_codec = opj_create_decompress(OPJ_CODEC_JP2);
         parameters.decod_format = 1;
     } else {
@@ -658,13 +658,6 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
         image = NULL;
         return FALSE;
     }
-/*
-    if(this->m_useColorSpace) {
-        image->useColorSpace = 1;
-    } else {
-        image->useColorSpace = 0;
-    }
-*/
     if (!parameters.nb_tile_to_decode) {
         if (!opj_set_decode_area(l_codec, image, parameters.DA_x0,
                                     parameters.DA_y0, parameters.DA_x1, parameters.DA_y1)) {
@@ -694,7 +687,6 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
     if(image->color_space == OPJ_CLRSPC_SYCC) {
         color_sycc_to_rgb(image);
     }
-    //if(image->icc_profile_buf && !image->useColorSpace) {
     if(image->icc_profile_buf) {
         FX_Free(image->icc_profile_buf);
         image->icc_profile_buf = NULL;
@@ -724,7 +716,7 @@ FX_BOOL CJPX_Decoder::Decode(uint8_t* dest_buf, int pitch, FX_BOOL bTranslateCol
     if(pitch < (int)(image->comps[0].w * 8 * image->numcomps + 31) >> 5 << 2) {
         return FALSE;
     }
-    FXSYS_memset8(dest_buf, 0xff, image->y1 * pitch);
+    FXSYS_memset(dest_buf, 0xff, image->y1 * pitch);
     uint8_t** channel_bufs = FX_Alloc(uint8_t*, image->numcomps);
     FX_BOOL result = FALSE;
     int* adjust_comps = FX_Alloc(int, image->numcomps);

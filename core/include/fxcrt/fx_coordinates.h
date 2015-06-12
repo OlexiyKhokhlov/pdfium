@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #ifndef CORE_INCLUDE_FXCRT_FX_COORDINATES_H_
@@ -18,7 +18,7 @@ template<class baseType> class CFX_ATemplate;
 template<class baseType> class CFX_RRTemplate;
 class CFX_Matrix;
 template<class baseType>
-class CFX_PSVTemplate 
+class CFX_PSVTemplate
 {
 public:
     typedef CFX_PSVTemplate<baseType>	FXT_PSV;
@@ -610,7 +610,7 @@ struct FX_SMALL_RECT {
 
     int16_t	Bottom;
 };
-class CFX_FloatRect 
+class CFX_FloatRect
 {
 public:
 
@@ -694,21 +694,24 @@ public:
         top += y;
     }
 
-    void				Inflate(FX_FLOAT left, FX_FLOAT bottom, FX_FLOAT right, FX_FLOAT top)
+    void Inflate(FX_FLOAT other_left,
+                 FX_FLOAT other_bottom,
+                 FX_FLOAT other_right,
+                 FX_FLOAT other_top)
     {
         Normalize();
-        this->left -= left;
-        this->bottom -= bottom;
-        this->right += right;
-        this->top += top;
+        left -= other_left;
+        bottom -= other_bottom;
+        right += other_right;
+        top += other_top;
     }
 
-    void				Inflate(const CFX_FloatRect &rt)
+    void Inflate(const CFX_FloatRect &rt)
     {
         Inflate(rt.left, rt.bottom, rt.right, rt.top);
     }
 
-    void				Deflate(FX_FLOAT x, FX_FLOAT y)
+    void Deflate(FX_FLOAT x, FX_FLOAT y)
     {
         Normalize();
         left += x;
@@ -717,21 +720,24 @@ public:
         top -= y;
     }
 
-    void				Deflate(FX_FLOAT left, FX_FLOAT bottom, FX_FLOAT right, FX_FLOAT top)
+    void Deflate(FX_FLOAT other_left,
+                 FX_FLOAT other_bottom,
+                 FX_FLOAT other_right,
+                 FX_FLOAT other_top)
     {
         Normalize();
-        this->left += left;
-        this->bottom += bottom;
-        this->right -= right;
-        this->top -= top;
+        left += other_left;
+        bottom += other_bottom;
+        right -= other_right;
+        top -= other_top;
     }
 
-    void				Deflate(const CFX_FloatRect &rt)
+    void Deflate(const CFX_FloatRect &rt)
     {
         Deflate(rt.left, rt.bottom, rt.right, rt.top);
     }
 
-    void				Translate(FX_FLOAT e, FX_FLOAT f)
+    void Translate(FX_FLOAT e, FX_FLOAT f)
     {
         left += e;
         right += e;
@@ -749,7 +755,7 @@ public:
 
     FX_FLOAT			top;
 };
-class CFX_Matrix 
+class CFX_Matrix
 {
 public:
 

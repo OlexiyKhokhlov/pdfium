@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fdrm/fx_crypt.h"
@@ -207,7 +207,7 @@ void CRYPT_MD5Update(void* pctx, const uint8_t* input, FX_DWORD length )
     ctx->total[0] &= 0xFFFFFFFF;
     ctx->total[1] += ctx->total[0] < length << 3;
     if( left && length >= fill ) {
-        FXSYS_memcpy32( (void *) (ctx->buffer + left), (void *) input, fill );
+        FXSYS_memcpy( (void *) (ctx->buffer + left), (void *) input, fill );
         md5_process( ctx, ctx->buffer );
         length -= fill;
         input  += fill;
@@ -219,7 +219,7 @@ void CRYPT_MD5Update(void* pctx, const uint8_t* input, FX_DWORD length )
         input  += 64;
     }
     if( length ) {
-        FXSYS_memcpy32( (void *) (ctx->buffer + left), (void *) input, length );
+        FXSYS_memcpy( (void *) (ctx->buffer + left), (void *) input, length );
     }
 }
 const uint8_t md5_padding[64] = {

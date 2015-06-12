@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/fxcrt/fx_ext.h"
@@ -65,7 +65,7 @@ FX_FILESIZE CFXCRT_FileAccess_Posix::GetSize() const
         return 0;
     }
     struct stat s;
-    FXSYS_memset32(&s, 0, sizeof(s));
+    FXSYS_memset(&s, 0, sizeof(s));
     fstat(m_nFD, &s);
     return s.st_size;
 }

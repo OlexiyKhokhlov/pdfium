@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fpdfapi/fpdf_page.h"
@@ -586,9 +586,9 @@ void CPDF_TextObject::SetData(int nChars, FX_DWORD* pCharCodes, FX_FLOAT* pCharP
         m_pCharCodes = (FX_DWORD*)(uintptr_t) * pCharCodes;
     } else {
         m_pCharCodes = FX_Alloc(FX_DWORD, nChars);
-        FXSYS_memcpy32(m_pCharCodes, pCharCodes, sizeof(FX_DWORD)*nChars);
+        FXSYS_memcpy(m_pCharCodes, pCharCodes, sizeof(FX_DWORD)*nChars);
         m_pCharPos = FX_Alloc(FX_FLOAT, nChars - 1);
-        FXSYS_memcpy32(m_pCharPos, pCharPos, sizeof(FX_FLOAT) * (nChars - 1));
+        FXSYS_memcpy(m_pCharPos, pCharPos, sizeof(FX_FLOAT) * (nChars - 1));
     }
     RecalcPositionData();
 }

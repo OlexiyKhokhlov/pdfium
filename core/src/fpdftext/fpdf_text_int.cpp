@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/fpdfapi/fpdf_resource.h"
@@ -1000,8 +1000,8 @@ int32_t CPDF_TextPage::FindTextlineFlowDirection()
         if (minH >= maxH || minV >= maxV) {
             continue;
         }
-        FXSYS_memset8(pDataH + minH, 1, maxH - minH);
-        FXSYS_memset8(pDataV + minV, 1, maxV - minV);
+        FXSYS_memset(pDataH + minH, 1, maxH - minH);
+        FXSYS_memset(pDataV + minV, 1, maxV - minV);
         if (fLineHeight <= 0.0f) {
             fLineHeight = pPageObj->m_Top - pPageObj->m_Bottom;
         }
@@ -1276,7 +1276,7 @@ void CPDF_TextPage::CloseTempLine()
     if(nR2L > 0 && nR2L >= nL2R) {
         bR2L = TRUE;
     }
-    if(this->m_parserflag == FPDFTEXT_RLTB || bR2L) {
+    if (m_parserflag == FPDFTEXT_RLTB || bR2L) {
         int count = order.GetSize();
         for(int i = count - 1; i > 0; i -= 3) {
             int ret = order.GetAt(i);
@@ -2585,7 +2585,7 @@ FX_BOOL CPDF_TextPageFind::ExtractSubString(CFX_WideString& rString, const FX_WC
     int nLen = (lpchEnd == NULL) ?
                (int)FXSYS_wcslen(lpszFullString) : (int)(lpchEnd - lpszFullString);
     ASSERT(nLen >= 0);
-    FXSYS_memcpy32(rString.GetBuffer(nLen), lpszFullString, nLen * sizeof(FX_WCHAR));
+    FXSYS_memcpy(rString.GetBuffer(nLen), lpszFullString, nLen * sizeof(FX_WCHAR));
     rString.ReleaseBuffer();
     return TRUE;
 }

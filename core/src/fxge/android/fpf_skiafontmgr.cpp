@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "fx_fpf.h"
@@ -373,7 +373,7 @@ FXFT_Face CFPF_SkiaFontMgr::GetFontFace(IFX_FileRead *pFileRead, int32_t iFaceIn
         return NULL;
     }
     FXFT_StreamRec streamRec;
-    FXSYS_memset32(&streamRec, 0, sizeof(FXFT_StreamRec));
+    FXSYS_memset(&streamRec, 0, sizeof(FXFT_StreamRec));
     streamRec.size = pFileRead->GetSize();
     streamRec.descriptor.pointer = pFileRead;
     streamRec.read = FPF_SkiaStream_Read;

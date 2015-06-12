@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fpdfapi/fpdf_page.h"
@@ -217,7 +217,7 @@ void CPDF_MeshStream::GetColor(FX_FLOAT& r, FX_FLOAT& g, FX_FLOAT& b)
         static const int kMaxResults = 8;
         FX_FLOAT result[kMaxResults];
         int nResults;
-        FXSYS_memset32(result, 0, sizeof(result));
+        FXSYS_memset(result, 0, sizeof(result));
         for (FX_DWORD i = 0; i < m_nFuncs; i ++) {
             if (m_pFuncs[i] && m_pFuncs[i]->CountOutputs() <= kMaxResults) {
                 m_pFuncs[i]->Call(color_value, 1, result, nResults);

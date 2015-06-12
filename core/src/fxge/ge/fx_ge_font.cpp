@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
@@ -174,7 +174,7 @@ static FXFT_Face FT_LoadFont(uint8_t* pData, int size)
 FX_BOOL CFX_Font::LoadEmbedded(const uint8_t* data, FX_DWORD size)
 {
     m_pFontDataAllocation = FX_Alloc(uint8_t, size);
-    FXSYS_memcpy32(m_pFontDataAllocation, data, size);
+    FXSYS_memcpy(m_pFontDataAllocation, data, size);
     m_Face = FT_LoadFont((uint8_t*)m_pFontDataAllocation, size);
     m_pFontData = (uint8_t*)m_pFontDataAllocation;
     m_bEmbedded = TRUE;

@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include <utility>
@@ -1024,7 +1024,7 @@ FX_BOOL CPDF_Parser::LoadCrossRefV5(FX_FILESIZE pos, FX_FILESIZE& prev, FX_BOOL 
         m_pTrailer = (CPDF_Dictionary*)pStream->GetDict()->Clone();
         m_CrossRef.SetSize(size);
         if (m_V5Type.SetSize(size)) {
-            FXSYS_memset32(m_V5Type.GetData(), 0, size);
+            FXSYS_memset(m_V5Type.GetData(), 0, size);
         }
     } else {
         m_Trailers.Add((CPDF_Dictionary*)pStream->GetDict()->Clone());
@@ -1080,7 +1080,7 @@ FX_BOOL CPDF_Parser::LoadCrossRefV5(FX_FILESIZE pos, FX_FILESIZE& prev, FX_BOOL 
         FX_SAFE_DWORD dwCaculatedSize = segindex;
         dwCaculatedSize += count;
         dwCaculatedSize *= totalWidth;
-        if (!dwCaculatedSize.IsValid() || dwCaculatedSize.ValueOrDie() > dwTotalSize) { 
+        if (!dwCaculatedSize.IsValid() || dwCaculatedSize.ValueOrDie() > dwTotalSize) {
             continue;
         }
         const uint8_t* segstart = pData + segindex * totalWidth;
@@ -1298,7 +1298,7 @@ void CPDF_Parser::GetIndirectBinary(FX_DWORD objnum, uint8_t*& pBuffer, FX_DWORD
                     size = nextoff - thisoff;
                 }
                 pBuffer = FX_Alloc(uint8_t, size);
-                FXSYS_memcpy32(pBuffer, pData + thisoff + offset, size);
+                FXSYS_memcpy(pBuffer, pData + thisoff + offset, size);
                 return;
             }
             n --;
@@ -2386,7 +2386,7 @@ CPDF_Object* CPDF_SyntaxParser::GetObjectByStrict(CPDF_IndirectObjects* pObjList
             }
             if (key.GetLength() > 1) {
                 pDict->AddValue(CFX_ByteStringC(key.c_str() + 1, key.GetLength() - 1), pObj);
-            } 
+            }
         }
         if (pContext) {
             pContext->m_DictEnd = m_Pos;
@@ -2445,7 +2445,7 @@ CPDF_Stream* CPDF_SyntaxParser::ReadStream(CPDF_Dictionary* pDict, PARSE_CONTEXT
             m_Pos = pos.ValueOrDie();
         }
         GetNextWord();
-        if (m_WordSize < 9 || FXSYS_memcmp32(m_WordBuffer, "endstream", 9)) {
+        if (m_WordSize < 9 || FXSYS_memcmp(m_WordBuffer, "endstream", 9)) {
             m_Pos = StreamStartPos;
             FX_FILESIZE offset = FindTag(FX_BSTRC("endstream"), 0);
             if (offset >= 0) {
@@ -2496,7 +2496,7 @@ CPDF_Stream* CPDF_SyntaxParser::ReadStream(CPDF_Dictionary* pDict, PARSE_CONTEXT
     }
     StreamStartPos = m_Pos;
     GetNextWord();
-    if (m_WordSize == 6 && 0 == FXSYS_memcmp32(m_WordBuffer, "endobj", 6)) {
+    if (m_WordSize == 6 && 0 == FXSYS_memcmp(m_WordBuffer, "endobj", 6)) {
         m_Pos = StreamStartPos;
     }
     return pStream;
@@ -3077,7 +3077,7 @@ FX_BOOL CPDF_DataAvail::IsObjectsAvail(CFX_PtrArray& obj_array, FX_BOOL bParsePa
                     if (size.ValueOrDefault(0) == 0 || offset < 0 || offset >= m_dwFileLen) {
                         break;
                     }
-                    
+
                     size += offset;
                     size += 512;
                     if (!size.IsValid()) {
@@ -3287,14 +3287,14 @@ CPDF_Object* CPDF_DataAvail::GetObject(FX_DWORD objnum, IFX_DownloadHints* pHint
     FX_FILESIZE offset        = 0;
     CPDF_Parser *pParser      = NULL;
 
-    if (pExistInFile) { 
+    if (pExistInFile) {
         *pExistInFile = TRUE;
     }
 
     if (m_pDocument == NULL) {
         original_size = (FX_DWORD)m_parser.GetObjectSize(objnum);
         offset        = m_parser.GetObjectOffset(objnum);
-        pParser       = &m_parser; 
+        pParser       = &m_parser;
     } else {
         original_size = GetObjectSize(objnum, offset);
         pParser       = (CPDF_Parser *)(m_pDocument->GetParser());
@@ -3307,7 +3307,7 @@ CPDF_Object* CPDF_DataAvail::GetObject(FX_DWORD objnum, IFX_DownloadHints* pHint
 
         return NULL;
     }
- 
+
     size += offset;
     size += 512;
     if (!size.IsValid()) {
@@ -3336,7 +3336,7 @@ CPDF_Object* CPDF_DataAvail::GetObject(FX_DWORD objnum, IFX_DownloadHints* pHint
     if (!pRet && pExistInFile) {
         *pExistInFile = FALSE;
     }
- 
+
     return pRet;
 }
 

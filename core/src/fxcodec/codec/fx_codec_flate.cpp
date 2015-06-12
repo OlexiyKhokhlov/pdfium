@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #ifdef USE_SYSTEM_ZLIB
@@ -30,7 +30,7 @@ extern "C"
         if (p == NULL) {
             return NULL;
         }
-        FXSYS_memset32(p, 0, sizeof(z_stream));
+        FXSYS_memset(p, 0, sizeof(z_stream));
         p->zalloc = alloc_func;
         p->zfree = free_func;
         inflateInit(p);
@@ -54,7 +54,7 @@ extern "C"
         unsigned int post_pos = (unsigned int)FPDFAPI_FlateGetTotalOut(context);
         unsigned int written = post_pos - pre_pos;
         if (written < dest_size) {
-            FXSYS_memset8(dest_buf + written, '\0', dest_size - written);
+            FXSYS_memset(dest_buf + written, '\0', dest_size - written);
         }
         return ret;
     }
@@ -80,7 +80,7 @@ extern "C"
         compress(dest_buf, dest_size, src_buf, src_size);
     }
 }
-class CLZWDecoder 
+class CLZWDecoder
 {
 public:
     FX_BOOL Decode(uint8_t* output, FX_DWORD& outlen, const uint8_t* input, FX_DWORD& size, FX_BOOL bEarlyChange);
@@ -256,7 +256,7 @@ static FX_BOOL PNG_PredictorEncode(uint8_t*& data_buf, FX_DWORD& data_size,
             if (move_size * (row + 1) > (int)data_size) {
                 move_size = data_size - (move_size * row);
             }
-            FXSYS_memmove32(pDestData + 1, pSrcData, move_size);
+            FXSYS_memmove(pDestData + 1, pSrcData, move_size);
             pDestData += (move_size + 1);
             pSrcData += move_size;
             byte_cnt += move_size;
@@ -334,7 +334,7 @@ static void PNG_PredictLine(uint8_t* pDestData, const uint8_t* pSrcData, const u
     int BytesPerPixel = (bpc * nColors + 7) / 8;
     uint8_t tag = pSrcData[0];
     if (tag == 0) {
-        FXSYS_memmove32(pDestData, pSrcData + 1, row_size);
+        FXSYS_memmove(pDestData, pSrcData + 1, row_size);
         return;
     }
     for (int byte = 0; byte < row_size; byte ++) {
@@ -411,7 +411,7 @@ static FX_BOOL PNG_Predictor(uint8_t*& data_buf, FX_DWORD& data_size,
             if ((row + 1) * (move_size + 1) > (int)data_size) {
                 move_size = last_row_size - 1;
             }
-            FXSYS_memmove32(pDestData, pSrcData + 1, move_size);
+            FXSYS_memmove(pDestData, pSrcData + 1, move_size);
             pSrcData += move_size + 1;
             pDestData += move_size;
             byte_cnt += move_size;
@@ -689,7 +689,7 @@ uint8_t* CCodec_FlateScanlineDecoder::v_GetNextLine()
             if (m_Predictor == 2) {
                 FPDFAPI_FlateOutput(m_pFlate, m_pPredictRaw, m_PredictPitch + 1);
                 PNG_PredictLine(m_pScanline, m_pPredictRaw, m_pLastLine, m_BitsPerComponent, m_Colors, m_Columns);
-                FXSYS_memcpy32(m_pLastLine, m_pScanline, m_PredictPitch);
+                FXSYS_memcpy(m_pLastLine, m_pScanline, m_PredictPitch);
             } else {
                 FPDFAPI_FlateOutput(m_pFlate, m_pScanline, m_Pitch);
                 TIFF_PredictLine(m_pScanline, m_PredictPitch, m_bpc, m_nComps, m_OutputWidth);
@@ -698,7 +698,7 @@ uint8_t* CCodec_FlateScanlineDecoder::v_GetNextLine()
             int bytes_to_go = m_Pitch;
             int read_leftover = m_LeftOver > bytes_to_go ? bytes_to_go : m_LeftOver;
             if (read_leftover) {
-                FXSYS_memcpy32(m_pScanline, m_pPredictBuffer + m_PredictPitch - m_LeftOver, read_leftover);
+                FXSYS_memcpy(m_pScanline, m_pPredictBuffer + m_PredictPitch - m_LeftOver, read_leftover);
                 m_LeftOver -= read_leftover;
                 bytes_to_go -= read_leftover;
             }
@@ -706,13 +706,13 @@ uint8_t* CCodec_FlateScanlineDecoder::v_GetNextLine()
                 if (m_Predictor == 2) {
                     FPDFAPI_FlateOutput(m_pFlate, m_pPredictRaw, m_PredictPitch + 1);
                     PNG_PredictLine(m_pPredictBuffer, m_pPredictRaw, m_pLastLine, m_BitsPerComponent, m_Colors, m_Columns);
-                    FXSYS_memcpy32(m_pLastLine, m_pPredictBuffer, m_PredictPitch);
+                    FXSYS_memcpy(m_pLastLine, m_pPredictBuffer, m_PredictPitch);
                 } else {
                     FPDFAPI_FlateOutput(m_pFlate, m_pPredictBuffer, m_PredictPitch);
                     TIFF_PredictLine(m_pPredictBuffer, m_PredictPitch, m_BitsPerComponent, m_Colors, m_Columns);
                 }
                 int read_bytes = m_PredictPitch > bytes_to_go ? bytes_to_go : m_PredictPitch;
-                FXSYS_memcpy32(m_pScanline + m_Pitch - bytes_to_go, m_pPredictBuffer, read_bytes);
+                FXSYS_memcpy(m_pScanline + m_Pitch - bytes_to_go, m_pPredictBuffer, read_bytes);
                 m_LeftOver += m_PredictPitch - read_bytes;
                 bytes_to_go -= read_bytes;
             }
@@ -813,7 +813,7 @@ static void FlateUncompress(const uint8_t* src_buf, FX_DWORD src_size, FX_DWORD 
                 if (i == result_tmp_bufs.GetSize() - 1) {
                     tmp_buf_size = last_buf_size;
                 }
-                FXSYS_memcpy32(result_buf + result_pos, tmp_buf, tmp_buf_size);
+                FXSYS_memcpy(result_buf + result_pos, tmp_buf, tmp_buf_size);
                 result_pos += tmp_buf_size;
                 FX_Free(result_tmp_bufs[i]);
             }
@@ -892,7 +892,7 @@ FX_BOOL CCodec_FlateModule::Encode(const uint8_t* src_buf, FX_DWORD src_size,
     }
     uint8_t* pSrcBuf = NULL;
     pSrcBuf = FX_Alloc(uint8_t, src_size);
-    FXSYS_memcpy32(pSrcBuf, src_buf, src_size);
+    FXSYS_memcpy(pSrcBuf, src_buf, src_size);
     FX_BOOL ret = TRUE;
     if (predictor == 2) {
         ret = TIFF_PredictorEncode(pSrcBuf, src_size, Colors, BitsPerComponent,

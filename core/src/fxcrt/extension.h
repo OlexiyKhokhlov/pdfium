@@ -71,7 +71,7 @@ public:
         if (offset < 0 || size < 0) {
             return FALSE;
         }
-     
+
         FX_SAFE_FILESIZE pos = size;
         pos += offset;
 
@@ -205,7 +205,7 @@ public:
         if (!range.IsValid() || range.ValueOrDie() > m_nCurSize) {
             return FALSE;
         }
-        
+
         m_nOffset = (size_t)offset, m_nSize = (size_t)size;
         m_bUseRange = TRUE;
         m_nCurPos = m_nOffset;
@@ -225,7 +225,7 @@ public:
         if (m_bUseRange) {
             safeOffset += m_nOffset;
         }
-         
+
         if (!safeOffset.IsValid()) {
             return FALSE;
         }
@@ -240,7 +240,7 @@ public:
 
         m_nCurPos = newPos.ValueOrDie();
         if (m_dwFlags & FX_MEMSTREAM_Consecutive) {
-            FXSYS_memcpy32(buffer, (uint8_t*)m_Blocks[0] + (size_t)offset, size);
+            FXSYS_memcpy(buffer, (uint8_t*)m_Blocks[0] + (size_t)offset, size);
             return TRUE;
         }
         size_t nStartBlock = (size_t)offset / m_nGrowSize;
@@ -250,7 +250,7 @@ public:
             if (nRead > size) {
                 nRead = size;
             }
-            FXSYS_memcpy32(buffer, (uint8_t*)m_Blocks[(int)nStartBlock] + (size_t)offset, nRead);
+            FXSYS_memcpy(buffer, (uint8_t*)m_Blocks[(int)nStartBlock] + (size_t)offset, nRead);
             buffer = ((uint8_t*)buffer) + nRead;
             size -= nRead;
             nStartBlock ++;
@@ -284,7 +284,7 @@ public:
             offset += (FX_FILESIZE)m_nOffset;
         }
         if (m_dwFlags & FX_MEMSTREAM_Consecutive) {
-            FX_SAFE_SIZE_T newPos = size; 
+            FX_SAFE_SIZE_T newPos = size;
             newPos += offset;
             if (!newPos.IsValid())
                 return FALSE;
@@ -303,7 +303,7 @@ public:
                     return FALSE;
                 }
             }
-            FXSYS_memcpy32((uint8_t*)m_Blocks[0] + (size_t)offset, buffer, size);
+            FXSYS_memcpy((uint8_t*)m_Blocks[0] + (size_t)offset, buffer, size);
             if (m_nCurSize < m_nCurPos) {
                 m_nCurSize = m_nCurPos;
             }
@@ -327,7 +327,7 @@ public:
             if (nWrite > size) {
                 nWrite = size;
             }
-            FXSYS_memcpy32((uint8_t*)m_Blocks[(int)nStartBlock] + (size_t)offset, buffer, nWrite);
+            FXSYS_memcpy((uint8_t*)m_Blocks[(int)nStartBlock] + (size_t)offset, buffer, nWrite);
             buffer = ((uint8_t*)buffer) + nWrite;
             size -= nWrite;
             nStartBlock ++;

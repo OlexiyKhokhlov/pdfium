@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
@@ -1291,7 +1291,7 @@ static void _ContrastAdjust(uint8_t* pDataIn, uint8_t* pDataOut, int nWid, int n
     if (0 == temp || 255 == temp) {
         int rowbytes = FXSYS_abs(nSrcRowBytes) > nDstRowBytes ? nDstRowBytes : FXSYS_abs(nSrcRowBytes);
         for (row = 0; row < nHei; row ++) {
-            FXSYS_memcpy32(pDataOut + row * nDstRowBytes, pDataIn + row * nSrcRowBytes, rowbytes);
+            FXSYS_memcpy(pDataOut + row * nDstRowBytes, pDataIn + row * nSrcRowBytes, rowbytes);
         }
         return;
     }
@@ -1355,7 +1355,7 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph(CFX_Font* pFont, FX_DWORD glyph_inde
         load_flags |= FT_LOAD_NO_HINTING;
         error = FXFT_Load_Glyph(m_Face, glyph_index, load_flags);
 
-        if (error) { 
+        if (error) {
             return NULL;
         }
     }
@@ -1408,11 +1408,11 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph(CFX_Font* pFont, FX_DWORD glyph_inde
                 }
             }
     } else {
-        FXSYS_memset32(pDestBuf, 0, dest_pitch * bmheight);
+        FXSYS_memset(pDestBuf, 0, dest_pitch * bmheight);
         if (anti_alias == FXFT_RENDER_MODE_MONO && FXFT_Get_Bitmap_PixelMode(FXFT_Get_Glyph_Bitmap(m_Face)) == FXFT_PIXEL_MODE_MONO) {
             int rowbytes = FXSYS_abs(src_pitch) > dest_pitch ? dest_pitch : FXSYS_abs(src_pitch);
             for (int row = 0; row < bmheight; row ++) {
-                FXSYS_memcpy32(pDestBuf + row * dest_pitch, pSrcBuf + row * src_pitch, rowbytes);
+                FXSYS_memcpy(pDestBuf + row * dest_pitch, pSrcBuf + row * src_pitch, rowbytes);
             }
         } else {
             _ContrastAdjust(pSrcBuf, pDestBuf, bmwidth, bmheight, src_pitch, dest_pitch);
@@ -1447,7 +1447,7 @@ FX_BOOL _OutputGlyph(void* dib, int x, int y, CFX_Font* pFont,
     for (int row = 0; row < bmheight; row ++) {
         const uint8_t* src_scan = src_buf + row * src_pitch;
         uint8_t* dest_scan = dest_buf + row * dest_pitch;
-        FXSYS_memcpy32(dest_scan, src_scan, dest_pitch);
+        FXSYS_memcpy(dest_scan, src_scan, dest_pitch);
     }
     pDib->CompositeMask(x + left, y - top, bmwidth, bmheight, &mask, argb, 0, 0);
     return TRUE;
@@ -1655,7 +1655,10 @@ CFX_PathData* CFX_Font::LoadGlyphPath(FX_DWORD glyph_index, int dest_width)
         }
     }
     ScopedFontTransform scoped_transform(m_Face, &ft_matrix);
-    int load_flags = (m_Face->face_flags & FT_FACE_FLAG_SFNT) ? FXFT_LOAD_NO_BITMAP : FXFT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING;
+    int load_flags = FXFT_LOAD_NO_BITMAP;
+    if (!(m_Face->face_flags & FT_FACE_FLAG_SFNT) || !FT_IS_TRICKY(m_Face)) {
+        load_flags |= FT_LOAD_NO_HINTING;
+    }
     int error = FXFT_Load_Glyph(m_Face, glyph_index, load_flags);
     if (error) {
         return NULL;

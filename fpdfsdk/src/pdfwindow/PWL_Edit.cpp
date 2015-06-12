@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../core/include/fxcrt/fx_safe_types.h"
@@ -16,7 +16,7 @@
 
 /* ---------------------------- CPWL_Edit ------------------------------ */
 
-CPWL_Edit::CPWL_Edit() : m_pFillerNotify(NULL), 
+CPWL_Edit::CPWL_Edit() : m_pFillerNotify(NULL),
 	m_pSpellCheck(NULL),
 	m_bFocus(FALSE)
 {
@@ -42,9 +42,9 @@ void CPWL_Edit::SetText(const FX_WCHAR* csText)
 	CFX_WideString swText = csText;
 
 	if (HasFlag(PES_RICH))
-	{		
+	{
 		CFX_ByteString sValue = CFX_ByteString::FromUnicode(swText);
-		
+
 		if (CXML_Element * pXML = CXML_Element::Parse(sValue.c_str(), sValue.GetLength()))
 		{
 			int32_t nCount = pXML->CountChildren();
@@ -65,7 +65,7 @@ void CPWL_Edit::SetText(const FX_WCHAR* csText)
 						{
 							swSection += pSubElement->GetContent(j);
 						}
-						
+
 						if (bFirst)bFirst = FALSE;
 						else
 							swText += FWL_VKEY_Return;
@@ -76,25 +76,21 @@ void CPWL_Edit::SetText(const FX_WCHAR* csText)
 
 			delete pXML;
 		}
-	}	
+	}
 
 	m_pEdit->SetText(swText.c_str());
 }
 
 void CPWL_Edit::RePosChildWnd()
 {
-	if (CPWL_ScrollBar * pVSB = this->GetVScrollBar())
-	{
-		//if (pVSB->IsVisible())
-		{
-			CPDF_Rect rcWindow = m_rcOldWindow;		
-			CPDF_Rect rcVScroll = CPDF_Rect(rcWindow.right,
-								rcWindow.bottom,
-								rcWindow.right + PWL_SCROLLBAR_WIDTH,
-								rcWindow.top);
-			pVSB->Move(rcVScroll, TRUE, FALSE);
-		}
-	}
+    if (CPWL_ScrollBar * pVSB = GetVScrollBar()) {
+        CPDF_Rect rcWindow = m_rcOldWindow;
+        CPDF_Rect rcVScroll = CPDF_Rect(rcWindow.right,
+                                        rcWindow.bottom,
+                                        rcWindow.right + PWL_SCROLLBAR_WIDTH,
+                                        rcWindow.top);
+        pVSB->Move(rcVScroll, TRUE, FALSE);
+    }
 
 	if (m_pEditCaret && !HasFlag(PES_TEXTOVERFLOW))
 		m_pEditCaret->SetClipRect(CPWL_Utils::InflateRect(GetClientRect(),1.0f)); //+1 for caret beside border
@@ -105,8 +101,8 @@ void CPWL_Edit::RePosChildWnd()
 CPDF_Rect CPWL_Edit::GetClientRect() const
 {
 	CPDF_Rect rcClient = CPWL_Utils::DeflateRect(GetWindowRect(),(FX_FLOAT)(GetBorderWidth()+GetInnerBorderWidth()));
-	
-	if (CPWL_ScrollBar * pVSB = this->GetVScrollBar())
+
+	if (CPWL_ScrollBar * pVSB = GetVScrollBar())
 	{
 		if (pVSB->IsVisible())
 		{
@@ -234,7 +230,7 @@ void CPWL_Edit::OnCreated()
 }
 
 void CPWL_Edit::SetParamByFlag()
-{	
+{
 	if (HasFlag(PES_RIGHT))
 	{
 		m_pEdit->SetAlignmentH(2, FALSE);
@@ -306,40 +302,40 @@ void CPWL_Edit::GetThisAppearanceStream(CFX_ByteTextBuf & sAppStream)
 		{
 		case PBS_SOLID:
 			{
-				sLine << "q\n" << GetBorderWidth() << " w\n" 
-					<< CPWL_Utils::GetColorAppStream(GetBorderColor(),FALSE) << " 2 J 0 j\n";					
+				sLine << "q\n" << GetBorderWidth() << " w\n"
+					<< CPWL_Utils::GetColorAppStream(GetBorderColor(),FALSE) << " 2 J 0 j\n";
 
 				for (int32_t i=1;i<nCharArray;i++)
 				{
 					sLine << rcClient.left + ((rcClient.right - rcClient.left)/nCharArray)*i << " "
 						<< rcClient.bottom << " m\n"
 						<< rcClient.left + ((rcClient.right - rcClient.left)/nCharArray)*i << " "
-						<< rcClient.top << " l S\n";						
-				}
-
-				sLine << "Q\n";					
-			}
-			break; 
-		case PBS_DASH:
-			{
-				sLine << "q\n" << GetBorderWidth() << " w\n" 
-					<< CPWL_Utils::GetColorAppStream(GetBorderColor(),FALSE) << " 2 J 0 j\n"
-					<< "[" << GetBorderDash().nDash << " " 
-					<< GetBorderDash().nGap << "] " 
-					<< GetBorderDash().nPhase << " d\n";
-
-				for (int32_t i=1;i<nCharArray;i++)					
-				{
-					sLine << rcClient.left + ((rcClient.right - rcClient.left)/nCharArray)*i << " "
-						<< rcClient.bottom << " m\n"
-						<< rcClient.left + ((rcClient.right - rcClient.left)/nCharArray)*i << " "
-						<< rcClient.top << " l S\n";	
+						<< rcClient.top << " l S\n";
 				}
 
 				sLine << "Q\n";
 			}
 			break;
-		}		
+		case PBS_DASH:
+			{
+				sLine << "q\n" << GetBorderWidth() << " w\n"
+					<< CPWL_Utils::GetColorAppStream(GetBorderColor(),FALSE) << " 2 J 0 j\n"
+					<< "[" << GetBorderDash().nDash << " "
+					<< GetBorderDash().nGap << "] "
+					<< GetBorderDash().nPhase << " d\n";
+
+				for (int32_t i=1;i<nCharArray;i++)
+				{
+					sLine << rcClient.left + ((rcClient.right - rcClient.left)/nCharArray)*i << " "
+						<< rcClient.bottom << " m\n"
+						<< rcClient.left + ((rcClient.right - rcClient.left)/nCharArray)*i << " "
+						<< rcClient.top << " l S\n";
+				}
+
+				sLine << "Q\n";
+			}
+			break;
+		}
 	}
 
 	sAppStream << sLine;
@@ -362,22 +358,22 @@ void CPWL_Edit::GetThisAppearanceStream(CFX_ByteTextBuf & sAppStream)
 		sText << CPWL_Utils::GetColorAppStream(PWL_DEFAULT_SELBACKCOLOR) << sEditSel ;
 
 	wrTemp = CPWL_Utils::OverlapWordRange(wrVisible,wrSelBefore);
-	CFX_ByteString sEditBefore = CPWL_Utils::GetEditAppStream(m_pEdit, ptOffset,  
-			&wrTemp, !HasFlag(PES_CHARARRAY), m_pEdit->GetPasswordChar());			
+	CFX_ByteString sEditBefore = CPWL_Utils::GetEditAppStream(m_pEdit, ptOffset,
+			&wrTemp, !HasFlag(PES_CHARARRAY), m_pEdit->GetPasswordChar());
 
 	if (sEditBefore.GetLength() > 0)
 		sText << "BT\n" << CPWL_Utils::GetColorAppStream(GetTextColor()) << sEditBefore << "ET\n";
 
 	wrTemp = CPWL_Utils::OverlapWordRange(wrVisible,wrSelect);
-	CFX_ByteString sEditMid = CPWL_Utils::GetEditAppStream(m_pEdit, ptOffset, 
-			&wrTemp, !HasFlag(PES_CHARARRAY), m_pEdit->GetPasswordChar());			
+	CFX_ByteString sEditMid = CPWL_Utils::GetEditAppStream(m_pEdit, ptOffset,
+			&wrTemp, !HasFlag(PES_CHARARRAY), m_pEdit->GetPasswordChar());
 
 	if (sEditMid.GetLength() > 0)
 		sText << "BT\n" << CPWL_Utils::GetColorAppStream(CPWL_Color(COLORTYPE_GRAY,1)) << sEditMid << "ET\n";
 
 	wrTemp = CPWL_Utils::OverlapWordRange(wrVisible,wrSelAfter);
-	CFX_ByteString sEditAfter = CPWL_Utils::GetEditAppStream(m_pEdit, ptOffset, 
-			&wrTemp, !HasFlag(PES_CHARARRAY), m_pEdit->GetPasswordChar());			
+	CFX_ByteString sEditAfter = CPWL_Utils::GetEditAppStream(m_pEdit, ptOffset,
+			&wrTemp, !HasFlag(PES_CHARARRAY), m_pEdit->GetPasswordChar());
 
 	if (sEditAfter.GetLength() > 0)
 		sText << "BT\n" << CPWL_Utils::GetColorAppStream(GetTextColor()) << sEditAfter<< "ET\n";
@@ -391,9 +387,9 @@ void CPWL_Edit::GetThisAppearanceStream(CFX_ByteTextBuf & sAppStream)
 
 	if (sText.GetLength() > 0)
 	{
-		CPDF_Rect rcClient = this->GetClientRect();
+		CPDF_Rect rcClient = GetClientRect();
 		sAppStream << "q\n/Tx BMC\n";
-		
+
 		if (!HasFlag(PES_TEXTOVERFLOW))
 			sAppStream << rcClient.left << " " << rcClient.bottom << " "
 				<< rcClient.right - rcClient.left << " " << rcClient.top - rcClient.bottom << " re W n\n";
@@ -436,10 +432,10 @@ void CPWL_Edit::DrawThisAppearance(CFX_RenderDevice* pDevice, CPDF_Matrix* pUser
 						rcClient.top, FXPT_LINETO);
 				}
 				if (path.GetPointCount() > 0)
-					pDevice->DrawPath(&path, pUser2Device, &gsd,0,  
+					pDevice->DrawPath(&path, pUser2Device, &gsd,0,
 						CPWL_Utils::PWLColorToFXColor(GetBorderColor(),255), FXFILL_ALTERNATE);
 			}
-			break; 
+			break;
 		case PBS_DASH:
 			{
 				CFX_GraphStateData gsd;
@@ -465,7 +461,7 @@ void CPWL_Edit::DrawThisAppearance(CFX_RenderDevice* pDevice, CPDF_Matrix* pUser
 						CPWL_Utils::PWLColorToFXColor(GetBorderColor(),255), FXFILL_ALTERNATE);
 			}
 			break;
-		}		
+		}
 	}
 
 	CPDF_Rect rcClip;
@@ -479,14 +475,14 @@ void CPWL_Edit::DrawThisAppearance(CFX_RenderDevice* pDevice, CPDF_Matrix* pUser
 	}
 IFX_SystemHandler* pSysHandler = GetSystemHandler();
 	IFX_Edit::DrawEdit(pDevice,pUser2Device,m_pEdit,
-		CPWL_Utils::PWLColorToFXColor(GetTextColor(),this->GetTransparency()),
-		CPWL_Utils::PWLColorToFXColor(GetTextStrokeColor(),this->GetTransparency()),
+		CPWL_Utils::PWLColorToFXColor(GetTextColor(), GetTransparency()),
+		CPWL_Utils::PWLColorToFXColor(GetTextStrokeColor(), GetTransparency()),
 		rcClip,CPDF_Point(0.0f,0.0f),pRange, pSysHandler, m_pFormFiller);
 
 	if (HasFlag(PES_SPELLCHECK))
 	{
 		CPWL_Utils::DrawEditSpellCheck(pDevice,pUser2Device,m_pEdit,rcClip,
-			CPDF_Point(0.0f,0.0f),pRange, this->GetCreationParam().pSpellCheck);
+			CPDF_Point(0.0f,0.0f),pRange, GetCreationParam().pSpellCheck);
 	}
 }
 
@@ -497,9 +493,9 @@ FX_BOOL CPWL_Edit::OnLButtonDown(const CPDF_Point & point, FX_DWORD nFlag)
 	if (HasFlag(PES_TEXTOVERFLOW) || ClientHitTest(point))
 	{
 		if (m_bMouseDown)
-			this->InvalidateRect();
+			InvalidateRect();
 
-		m_bMouseDown = TRUE;		
+		m_bMouseDown = TRUE;
 		SetCapture();
 
 		m_pEdit->OnMouseDown(point,IsSHIFTpressed(nFlag),IsCTRLpressed(nFlag));
@@ -534,13 +530,13 @@ FX_BOOL CPWL_Edit::OnRButtonUp(const CPDF_Point & point, FX_DWORD nFlag)
 	if (m_bMouseDown) return FALSE;
 
 	CPWL_Wnd::OnRButtonUp(point, nFlag);
-	
+
 	if (!HasFlag(PES_TEXTOVERFLOW) && !ClientHitTest(point)) return TRUE;
 
 	IFX_SystemHandler* pSH = GetSystemHandler();
 	if (!pSH) return FALSE;
 
-	this->SetFocus();
+	SetFocus();
 
 	CPVT_WordRange wrLatin = GetLatinWordsRange(point);
 	CFX_WideString swLatin = m_pEdit->GetRangeText(wrLatin);
@@ -560,13 +556,13 @@ FX_BOOL CPWL_Edit::OnRButtonUp(const CPDF_Point & point, FX_DWORD nFlag)
 				CFX_ByteString sLatin = CFX_ByteString::FromUnicode(swLatin);
 
 				if (!m_pSpellCheck->CheckWord(sLatin))
-				{						
+				{
 					m_pSpellCheck->SuggestWords(sLatin,sSuggestWords);
 
 					int32_t nSuggest = sSuggestWords.GetSize();
 
 					for (int32_t nWord=0; nWord<nSuggest; nWord++)
-					{	
+					{
 						pSH->AppendMenuItem(hPopup, WM_PWLEDIT_SUGGEST+nWord, sSuggestWords[nWord].UTF8Decode());
 					}
 
@@ -579,11 +575,11 @@ FX_BOOL CPWL_Edit::OnRButtonUp(const CPDF_Point & point, FX_DWORD nFlag)
 		}
 	}
 
-	IPWL_Provider* pProvider = this->GetProvider();
+	IPWL_Provider* pProvider = GetProvider();
 
 	if (HasFlag(PES_UNDO))
 	{
-		pSH->AppendMenuItem(hPopup, WM_PWLEDIT_UNDO, 
+		pSH->AppendMenuItem(hPopup, WM_PWLEDIT_UNDO,
 			pProvider ? pProvider->LoadPopupMenuString(0) : L"&Undo");
 		pSH->AppendMenuItem(hPopup, WM_PWLEDIT_REDO,
 			pProvider ? pProvider->LoadPopupMenuString(1) : L"&Redo");
@@ -595,16 +591,16 @@ FX_BOOL CPWL_Edit::OnRButtonUp(const CPDF_Point & point, FX_DWORD nFlag)
 			pSH->EnableMenuItem(hPopup, WM_PWLEDIT_REDO, FALSE);
 	}
 
-	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_CUT, 
+	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_CUT,
 		pProvider ? pProvider->LoadPopupMenuString(2) : L"Cu&t");
-	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_COPY, 
+	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_COPY,
 		pProvider ? pProvider->LoadPopupMenuString(3) : L"&Copy");
-	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_PASTE, 
+	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_PASTE,
 		pProvider ? pProvider->LoadPopupMenuString(4) : L"&Paste");
-	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_DELETE, 
+	pSH->AppendMenuItem(hPopup, WM_PWLEDIT_DELETE,
 		pProvider ? pProvider->LoadPopupMenuString(5) : L"&Delete");
 
-	CFX_WideString swText = pSH->GetClipboardText(this->GetAttachedHWnd());
+	CFX_WideString swText = pSH->GetClipboardText(GetAttachedHWnd());
 	if (swText.IsEmpty())
 		pSH->EnableMenuItem(hPopup, WM_PWLEDIT_PASTE, FALSE);
 
@@ -619,7 +615,7 @@ FX_BOOL CPWL_Edit::OnRButtonUp(const CPDF_Point & point, FX_DWORD nFlag)
 	{
 		pSH->EnableMenuItem(hPopup, WM_PWLEDIT_CUT, FALSE);
 		pSH->EnableMenuItem(hPopup, WM_PWLEDIT_DELETE, FALSE);
-		pSH->EnableMenuItem(hPopup, WM_PWLEDIT_PASTE, FALSE);			
+		pSH->EnableMenuItem(hPopup, WM_PWLEDIT_PASTE, FALSE);
 	}
 
 	if (HasFlag(PES_PASSWORD))
@@ -662,19 +658,19 @@ FX_BOOL CPWL_Edit::OnRButtonUp(const CPDF_Point & point, FX_DWORD nFlag)
 		Redo();
 		break;
 	case WM_PWLEDIT_CUT:
-		this->CutText();
+		CutText();
 		break;
 	case WM_PWLEDIT_COPY:
-		this->CopyText();
+		CopyText();
 		break;
 	case WM_PWLEDIT_PASTE:
-		this->PasteText();
+		PasteText();
 		break;
 	case WM_PWLEDIT_DELETE:
-		this->Clear();
+		Clear();
 		break;
 	case WM_PWLEDIT_SELECTALL:
-		this->SelectAll();
+		SelectAll();
 		break;
 	case WM_PWLEDIT_SUGGEST + 0:
 		SetSel(m_pEdit->WordPlaceToWordIndex(wrLatin.BeginPos),m_pEdit->WordPlaceToWordIndex(wrLatin.EndPos));
@@ -721,10 +717,10 @@ void CPWL_Edit::OnSetFocus()
 void CPWL_Edit::OnKillFocus()
 {
 	ShowVScrollBar(FALSE);
-	
+
 	m_pEdit->SelectNone();
 	SetCaret(FALSE, CPDF_Point(0.0f,0.0f), CPDF_Point(0.0f,0.0f));
-	
+
 	SetCharSet(0);
 
 	if (!IsReadOnly())
@@ -779,7 +775,7 @@ CFX_ByteString CPWL_Edit::GetTextAppearanceStream(const CPDF_Point & ptOffset) c
 {
 	CFX_ByteTextBuf sRet;
 	CFX_ByteString sEdit = CPWL_Utils::GetEditAppStream(m_pEdit,ptOffset);
-	
+
 	if (sEdit.GetLength() > 0)
 	{
 		sRet << "BT\n" << CPWL_Utils::GetColorAppStream(GetTextColor()) << sEdit << "ET\n";
@@ -842,12 +838,12 @@ void CPWL_Edit::SetCharArray(int32_t nCharArray)
 {
 	if (HasFlag(PES_CHARARRAY) && nCharArray > 0)
 	{
-		m_pEdit->SetCharArray(nCharArray);	
+		m_pEdit->SetCharArray(nCharArray);
 		m_pEdit->SetTextOverflow(TRUE);
 
 		if (HasFlag(PWS_AUTOFONTSIZE))
 		{
-			if (IFX_Edit_FontMap* pFontMap = this->GetFontMap())
+			if (IFX_Edit_FontMap* pFontMap = GetFontMap())
 			{
 				FX_FLOAT fFontSize = GetCharArrayAutoFontSize(pFontMap->GetPDFFont(0), GetClientRect(), nCharArray);
 				if (fFontSize > 0.0f)
@@ -887,7 +883,7 @@ void CPWL_Edit::ShowVScrollBar(FX_BOOL bShow)
 				pScroll->SetVisible(TRUE);
 				CPDF_Rect rcWindow = GetWindowRect();
 				m_rcOldWindow = rcWindow;
-				rcWindow.right += PWL_SCROLLBAR_WIDTH;			
+				rcWindow.right += PWL_SCROLLBAR_WIDTH;
 				Move(rcWindow, TRUE, TRUE);
 			}
 		}
@@ -897,7 +893,7 @@ void CPWL_Edit::ShowVScrollBar(FX_BOOL bShow)
 			{
 				pScroll->SetVisible(FALSE);
 				Move(m_rcOldWindow, TRUE, TRUE);
-			}	
+			}
 		}
 	}
 }
@@ -940,7 +936,7 @@ FX_BOOL CPWL_Edit::OnKeyDown(FX_WORD nChar, FX_DWORD nFlag)
 			if (nSelStart == nSelEnd)
 				nSelEnd = nSelStart + 1;
 			m_pFillerNotify->OnBeforeKeyStroke(TRUE, GetAttachedData(), FWL_VKEY_Delete, strChange, strChangeEx, nSelStart, nSelEnd, TRUE, bRC, bExit, nFlag);
-			if (!bRC) return FALSE;				
+			if (!bRC) return FALSE;
 			if (bExit) return FALSE;
 		}
 	}
@@ -965,7 +961,7 @@ FX_BOOL CPWL_Edit::OnKeyDown(FX_WORD nChar, FX_DWORD nFlag)
 }
 
 /**
-*In case of implementation swallow the OnKeyDown event. 
+*In case of implementation swallow the OnKeyDown event.
 *If the event is swallowed, implementation may do other unexpected things, which is not the control means to do.
 */
 FX_BOOL CPWL_Edit::IsProceedtoOnChar(FX_WORD nKeyCode, FX_DWORD nFlag)
@@ -975,7 +971,7 @@ FX_BOOL CPWL_Edit::IsProceedtoOnChar(FX_WORD nKeyCode, FX_DWORD nFlag)
 	FX_BOOL bAlt = IsALTpressed(nFlag);
 	if(bCtrl && !bAlt)
 	{
-	//hot keys for edit control.	
+	//hot keys for edit control.
 		switch(nKeyCode)
 		{
 		case 'C':
@@ -1037,7 +1033,7 @@ FX_BOOL CPWL_Edit::OnChar(FX_WORD nChar, FX_DWORD nFlag)
 				swChange += nChar;
 				break;
 			}
-		
+
 			CFX_WideString strChangeEx;
 			m_pFillerNotify->OnBeforeKeyStroke(TRUE, GetAttachedData(), nKeyCode, swChange, strChangeEx, nSelStart, nSelEnd, TRUE, bRC, bExit, nFlag);
 		}
@@ -1077,13 +1073,13 @@ FX_BOOL	CPWL_Edit::OnMouseWheel(short zDelta, const CPDF_Point & point, FX_DWORD
 
 		if (zDelta > 0)
 		{
-			ptScroll.y += this->GetFontSize();
+			ptScroll.y += GetFontSize();
 		}
 		else
 		{
-			ptScroll.y -= this->GetFontSize();
+			ptScroll.y -= GetFontSize();
 		}
-		this->SetScrollPos(ptScroll);
+		SetScrollPos(ptScroll);
 
 		return TRUE;
 	}
@@ -1229,10 +1225,10 @@ CPVT_WordRange CPWL_Edit::GetSameWordsRange(const CPVT_WordPlace & place, FX_BOO
 
 	if (IFX_Edit_Iterator* pIterator = m_pEdit->GetIterator())
 	{
-		CPVT_Word wordinfo;	
-		CPVT_WordPlace wpStart(place),wpEnd(place);			
-		pIterator->SetAt(place);			
-		
+		CPVT_Word wordinfo;
+		CPVT_WordPlace wpStart(place),wpEnd(place);
+		pIterator->SetAt(place);
+
 		if (bLatin)
 		{
 			while (pIterator->NextWord())
@@ -1242,7 +1238,7 @@ CPVT_WordRange CPWL_Edit::GetSameWordsRange(const CPVT_WordPlace & place, FX_BOO
 					wpEnd = pIterator->GetAt();
 					continue;
 				}
-				else 
+				else
 					break;
 			};
 		}
@@ -1255,7 +1251,7 @@ CPVT_WordRange CPWL_Edit::GetSameWordsRange(const CPVT_WordPlace & place, FX_BOO
 					wpEnd = pIterator->GetAt();
 					continue;
 				}
-				else 
+				else
 					break;
 			};
 		}
@@ -1267,7 +1263,7 @@ CPVT_WordRange CPWL_Edit::GetSameWordsRange(const CPVT_WordPlace & place, FX_BOO
 			do
 			{
 				if (pIterator->GetWord(wordinfo) && FX_EDIT_ISLATINWORD(wordinfo.Word))
-				{					
+				{
 					continue;
 				}
 				else
@@ -1283,7 +1279,7 @@ CPVT_WordRange CPWL_Edit::GetSameWordsRange(const CPVT_WordPlace & place, FX_BOO
 			do
 			{
 				if (pIterator->GetWord(wordinfo) && PWL_ISARABICWORD(wordinfo.Word))
-				{					
+				{
 					continue;
 				}
 				else
@@ -1296,7 +1292,7 @@ CPVT_WordRange CPWL_Edit::GetSameWordsRange(const CPVT_WordPlace & place, FX_BOO
 		}
 
 		range.Set(wpStart,wpEnd);
-	}	
+	}
 
 	return range;
 }
@@ -1305,13 +1301,13 @@ void CPWL_Edit::AjustArabicWords(const CPVT_WordRange& wr)
 {
 }
 
-void CPWL_Edit::GeneratePageObjects(CPDF_PageObjects* pPageObjects, 
+void CPWL_Edit::GeneratePageObjects(CPDF_PageObjects* pPageObjects,
 										const CPDF_Point& ptOffset, CFX_ArrayTemplate<CPDF_TextObject*>& ObjArray)
 {
 	IFX_Edit::GeneratePageObjects(pPageObjects, m_pEdit, ptOffset, NULL, CPWL_Utils::PWLColorToFXColor(GetTextColor(),GetTransparency()), ObjArray);
 }
 
-void CPWL_Edit::GeneratePageObjects(CPDF_PageObjects* pPageObjects, 
+void CPWL_Edit::GeneratePageObjects(CPDF_PageObjects* pPageObjects,
 									const CPDF_Point& ptOffset)
 {
 	CFX_ArrayTemplate<CPDF_TextObject*> ObjArray;
