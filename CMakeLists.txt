@@ -30,9 +30,6 @@ set(USE_SYSTEM_ZLIB ON CACHE BOOL "use system zlib")
 set(USE_SYSTEM_LCMS2 ON CACHE BOOL "use system lcms2")
 set(USE_SYSTEM_OPENJPEG ON CACHE BOOL "use system openjpeg" )
 
-#Don't enable!!! pdfium uses internal  things for freetype!
-#set(USE_SYSTEM_FREETYPE OFF CACHE BOOL "use system freetype")
-
 #hieroglyphs support
 set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
 set(USE_CNS1_MAPS OFF CACHE BOOL "use CNS1 maps")

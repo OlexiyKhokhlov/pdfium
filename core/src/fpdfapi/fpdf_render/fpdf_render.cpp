@@ -4,12 +4,12 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../../include/fpdfapi/fpdf_render.h"
 #include "../../../include/fpdfapi/fpdf_module.h"
-#include "../fpdf_page/pageint.h"
+#include "../../../include/fpdfapi/fpdf_render.h"
 #include "../../../include/fxge/fx_ge.h"
-#include "../../../include/fxcodec/fx_codec.h"
+#include "../fpdf_page/pageint.h"
 #include "render_int.h"
+
 CPDF_DocRenderData::CPDF_DocRenderData(CPDF_Document* pPDFDoc)
     : m_pPDFDoc(pPDFDoc)
     , m_pFontCache(NULL)
@@ -26,10 +26,10 @@ void CPDF_DocRenderData::Clear(FX_BOOL bRelease)
         pos = m_Type3FaceMap.GetStartPosition();
         while (pos) {
             CPDF_Font* pFont;
-            CPDF_CountedObject<CPDF_Type3Cache*>* cache;
+            CPDF_CountedObject<CPDF_Type3Cache>* cache;
             m_Type3FaceMap.GetNextAssoc(pos, pFont, cache);
-            if (bRelease || cache->m_nCount < 2) {
-                delete cache->m_Obj;
+            if (bRelease || cache->use_count() < 2) {
+                delete cache->get();
                 delete cache;
                 m_Type3FaceMap.RemoveKey(pFont);
             }
@@ -39,10 +39,10 @@ void CPDF_DocRenderData::Clear(FX_BOOL bRelease)
         pos = m_TransferFuncMap.GetStartPosition();
         while (pos) {
             CPDF_Object* key;
-            CPDF_CountedObject<CPDF_TransferFunc*>* value;
+            CPDF_CountedObject<CPDF_TransferFunc>* value;
             m_TransferFuncMap.GetNextAssoc(pos, key, value);
-            if (bRelease || value->m_nCount < 2) {
-                delete value->m_Obj;
+            if (bRelease || value->use_count() < 2) {
+                delete value->get();
                 delete value;
                 m_TransferFuncMap.RemoveKey(key);
             }
@@ -64,53 +64,54 @@ FX_BOOL CPDF_DocRenderData::Initialize()
 }
 CPDF_Type3Cache* CPDF_DocRenderData::GetCachedType3(CPDF_Type3Font* pFont)
 {
-    CPDF_CountedObject<CPDF_Type3Cache*>* pCache;
+    CPDF_CountedObject<CPDF_Type3Cache>* pCache;
     if (!m_Type3FaceMap.Lookup(pFont, pCache)) {
         CPDF_Type3Cache* pType3 = new CPDF_Type3Cache(pFont);
-        pCache = new CPDF_CountedObject<CPDF_Type3Cache*>;
-        pCache->m_Obj = pType3;
-        pCache->m_nCount = 1;
+        pCache = new CPDF_CountedObject<CPDF_Type3Cache>(pType3);
         m_Type3FaceMap.SetAt(pFont, pCache);
     }
-    pCache->m_nCount++;
-    return pCache->m_Obj;
+    return pCache->AddRef();
 }
 void CPDF_DocRenderData::ReleaseCachedType3(CPDF_Type3Font* pFont)
 {
-    CPDF_CountedObject<CPDF_Type3Cache*>* pCache;
-    if (!m_Type3FaceMap.Lookup(pFont, pCache)) {
-        return;
-    }
-    pCache->m_nCount--;
+    CPDF_CountedObject<CPDF_Type3Cache>* pCache;
+    if (m_Type3FaceMap.Lookup(pFont, pCache))
+        pCache->RemoveRef();
 }
-class CPDF_RenderModule : public CPDF_RenderModuleDef
+
+class CPDF_RenderModule : public IPDF_RenderModule
 {
 public:
-    virtual ~CPDF_RenderModule() {}
-    virtual FX_BOOL	Installed()
-    {
-        return TRUE;
-    }
-    virtual CPDF_DocRenderData*	CreateDocData(CPDF_Document* pDoc);
-    virtual void	DestroyDocData(CPDF_DocRenderData* p);
-    virtual void	ClearDocData(CPDF_DocRenderData* p);
-    virtual CPDF_DocRenderData* GetRenderData()
+   CPDF_RenderModule() {}
+
+private:
+    ~CPDF_RenderModule() override {}
+
+    CPDF_DocRenderData* CreateDocData(CPDF_Document* pDoc) override;
+    void DestroyDocData(CPDF_DocRenderData* p) override;
+    void ClearDocData(CPDF_DocRenderData* p) override;
+
+    CPDF_DocRenderData* GetRenderData() override
     {
         return &m_RenderData;
     }
-    virtual CPDF_PageRenderCache*	CreatePageCache(CPDF_Page* pPage)
+
+    CPDF_PageRenderCache* CreatePageCache(CPDF_Page* pPage) override
     {
         return new CPDF_PageRenderCache(pPage);
     }
-    virtual void	DestroyPageCache(CPDF_PageRenderCache* pCache);
-    virtual CPDF_RenderConfig*	GetConfig()
+
+    void DestroyPageCache(CPDF_PageRenderCache* pCache) override;
+
+    CPDF_RenderConfig* GetConfig() override
     {
         return &m_RenderConfig;
     }
-private:
-    CPDF_DocRenderData	m_RenderData;
-    CPDF_RenderConfig	m_RenderConfig;
+
+    CPDF_DocRenderData m_RenderData;
+    CPDF_RenderConfig m_RenderConfig;
 };
+
 CPDF_DocRenderData*	CPDF_RenderModule::CreateDocData(CPDF_Document* pDoc)
 {
     CPDF_DocRenderData* pData = new CPDF_DocRenderData(pDoc);
@@ -131,11 +132,12 @@ void CPDF_RenderModule::DestroyPageCache(CPDF_PageRenderCache* pCache)
 {
     delete pCache;
 }
+
 void CPDF_ModuleMgr::InitRenderModule()
 {
-    delete m_pRenderModule;
-    m_pRenderModule = new CPDF_RenderModule;
+    m_pRenderModule.reset(new CPDF_RenderModule);
 }
+
 CPDF_RenderOptions::CPDF_RenderOptions()
     : m_ColorMode(RENDER_COLOR_NORMAL)
     , m_Flags(RENDER_CLEARTYPE)
@@ -1184,7 +1186,7 @@ CPDF_TransferFunc* CPDF_DocRenderData::GetTransferFunc(CPDF_Object* pObj)
     if (pObj == NULL) {
         return NULL;
     }
-    CPDF_CountedObject<CPDF_TransferFunc*>* pTransferCounter;
+    CPDF_CountedObject<CPDF_TransferFunc>* pTransferCounter;
     if (!m_TransferFuncMap.Lookup(pObj, pTransferCounter)) {
         CPDF_TransferFunc* pTransfer = NULL;
         CPDF_Function* pFuncs[3] = {NULL, NULL, NULL};
@@ -1211,9 +1213,7 @@ CPDF_TransferFunc* CPDF_DocRenderData::GetTransferFunc(CPDF_Object* pObj)
         }
         pTransfer = new CPDF_TransferFunc;
         pTransfer->m_pPDFDoc = m_pPDFDoc;
-        pTransferCounter = new CPDF_CountedObject<CPDF_TransferFunc*>;
-        pTransferCounter->m_nCount = 1;
-        pTransferCounter->m_Obj = pTransfer;
+        pTransferCounter = new CPDF_CountedObject<CPDF_TransferFunc>(pTransfer);
         m_TransferFuncMap.SetAt(pObj, pTransferCounter);
         static const int kMaxOutputs = 16;
         FX_FLOAT output[kMaxOutputs];
@@ -1253,16 +1253,15 @@ CPDF_TransferFunc* CPDF_DocRenderData::GetTransferFunc(CPDF_Object* pObj)
             }
         pTransfer->m_bIdentity = bIdentity;
     }
-    pTransferCounter->m_nCount++;
-    return pTransferCounter->m_Obj;
+    return pTransferCounter->AddRef();
 }
 void CPDF_DocRenderData::ReleaseTransferFunc(CPDF_Object* pObj)
 {
-    CPDF_CountedObject<CPDF_TransferFunc*>* pTransferCounter;
+    CPDF_CountedObject<CPDF_TransferFunc>* pTransferCounter;
     if (!m_TransferFuncMap.Lookup(pObj, pTransferCounter)) {
         return;
     }
-    pTransferCounter->m_nCount--;
+    pTransferCounter->RemoveRef();
 }
 CPDF_RenderConfig::CPDF_RenderConfig()
 {
