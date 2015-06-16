@@ -13,6 +13,3 @@ cd build
 cmake .. 
 make
 
-NOTE
-
-Now is possible to build for amd64 only

@@ -189,8 +189,6 @@ elseif(TARGET_ARCH STREQUAL "i386")
     add_definitions(
 	-D_FX_CPU_=_FX_X86_
     )
-else(TARGET_ARCH STREQUAL "x86_64")
-    message(STATUS "Target: " ${TARGET_ARCH} " isn't supported yet")
 endif(TARGET_ARCH STREQUAL "x86_64")
 
 ######################## FDRM #############################################
