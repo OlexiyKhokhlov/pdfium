@@ -11,9 +11,28 @@ include(TargetArch.cmake)
 target_architecture(TARGET_ARCH)
 message(STATUS "Target: " ${TARGET_ARCH})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread -fvisibility=hidden")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread -fvisibility=hidden")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wc++0x-compat -fno-exceptions -fvisibility=hidden")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+
+if(WIN32)
+  add_definitions(-D_WIN32)
+  set(WINDOWS_SOURCES
+    core/src/fxge/win32/dwrite_int.h
+    core/src/fxge/win32/fx_win32_device.cpp
+    core/src/fxge/win32/fx_win32_dib.cpp
+    core/src/fxge/win32/fx_win32_dwrite.cpp
+    core/src/fxge/win32/fx_win32_gdipext.cpp
+    core/src/fxge/win32/fx_win32_print.cpp
+    core/src/fxge/win32/win32_int.h
+    core/src/fxcrt/fxcrt_windows.h
+    core/src/fxcrt/fxcrt_windows.cpp
+  )
+else(WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -pthread")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+endif(WIN32)
+
 
 set(USE_STATIC_LIBRARY ON CACHE BOOL "build as static library. Otherwise - shared")
 
@@ -174,7 +193,7 @@ endif(USE_SYSTEM_OPENJPEG)
 add_subdirectory(core/src/fxcodec/jbig2)
 
 add_definitions(
-  -D_FPDFSDK_LIB
+#  -D_FPDFSDK_LIB
   -D_NO_GDIPLUS_ # workaround text rendering issues on Windows
   )
 
@@ -617,6 +636,7 @@ set(ALL_SOURCES
   ${PDFWINDOW_HEDAERS} ${PDFWINDOW_SOURCES}
   ${FORMFILLER_HEDAERS} ${FORMFILLER_SOURCES}
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
+  ${WINDOWS_SOURCES}
 )
 
 if(USE_STATIC_LIBRARY)

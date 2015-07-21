@@ -9,7 +9,19 @@
 #include "../../../include/fxge/fx_ge_win32.h"
 #include "dwrite_int.h"
 #include <dwrite.h>
+
+#ifndef __in
+  #define __in
+#endif
+#ifndef __out
+  #define __out
+#endif
+#ifndef __in_opt
+  #define __in_opt
+#endif
+
 typedef HRESULT  (__stdcall *FuncType_DWriteCreateFactory)(__in DWRITE_FACTORY_TYPE, __in REFIID, __out IUnknown **);
+
 template <typename InterfaceType>
 inline void SafeRelease(InterfaceType** currentObject)
 {
@@ -90,7 +102,7 @@ public:
         IDWriteBitmapRenderTarget* bitmapRenderTarget,
         IDWriteRenderingParams* renderingParams
     );
-    CDwGdiTextRenderer::~CDwGdiTextRenderer();
+    /*CDwGdiTextRenderer::*/~CDwGdiTextRenderer();
     HRESULT STDMETHODCALLTYPE DrawGlyphRun(
         const FX_RECT& text_bbox,
         __in_opt CFX_ClipRgn* pClipRgn,

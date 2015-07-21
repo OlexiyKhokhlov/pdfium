@@ -170,7 +170,7 @@ FX_FLOAT FX_atof(FX_BSTR strc)
     return bNegative ? -value : value;
 }
 
-#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_ && _MSC_VER < 1900
+#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_ && _MSC_VER < 1900 && !__GNUC__
 void FXSYS_snprintf(char *str, size_t size, _Printf_format_string_ const char* fmt, ...)
 {
     va_list ap;

@@ -1,6 +1,10 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+if(WIN32)
+  add_definitions(-D_WIN32)
+else(WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+endif(WIN32)
 
 set(jbig2_HEADERS
   JBig2_ArithDecoder.h

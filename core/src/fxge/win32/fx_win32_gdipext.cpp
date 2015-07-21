@@ -500,7 +500,7 @@ void CGdiplusExt::Load()
         return;
     }
     for (int i = 0; i < sizeof g_GdipFuncNames / sizeof(LPCSTR); i ++) {
-        m_Functions[i] = GetProcAddress(m_hModule, g_GdipFuncNames[i]);
+        m_Functions[i] = (void*)GetProcAddress(m_hModule, g_GdipFuncNames[i]);
         if (m_Functions[i] == NULL) {
             m_hModule = NULL;
             return;
@@ -513,8 +513,8 @@ void CGdiplusExt::Load()
     if (m_GdiModule == NULL) {
         return;
     }
-    m_pGdiAddFontMemResourceEx = GetProcAddress(m_GdiModule, "AddFontMemResourceEx");
-    m_pGdiRemoveFontMemResourseEx = GetProcAddress(m_GdiModule, "RemoveFontMemResourceEx");
+    m_pGdiAddFontMemResourceEx = (void*)GetProcAddress(m_GdiModule, "AddFontMemResourceEx");
+    m_pGdiRemoveFontMemResourseEx = (void*)GetProcAddress(m_GdiModule, "RemoveFontMemResourceEx");
 }
 CGdiplusExt::~CGdiplusExt()
 {
