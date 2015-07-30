@@ -11,6 +11,12 @@ include(TargetArch.cmake)
 target_architecture(TARGET_ARCH)
 message(STATUS "Target: " ${TARGET_ARCH})
 
+set(USE_BINUTILS_WORKAROUND ON CACHE BOOL "use gcc-ar and gcc-ranlib instead ar and ranlib (is needed for LTO)")
+if(USE_BINUTILS_WORKAROUND)
+    set(CMAKE_AR gcc-ar)
+    set(CMAKE_RANLIB gcc-ranlib)
+endif(USE_BINUTILS_WORKAROUND)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread -fvisibility=hidden")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread -fvisibility=hidden")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
@@ -23,9 +29,6 @@ set(USE_SYSTEM_JPEG ON CACHE BOOL "use system libjpeg")
 set(USE_SYSTEM_ZLIB ON CACHE BOOL "use system zlib")
 set(USE_SYSTEM_LCMS2 ON CACHE BOOL "use system lcms2")
 set(USE_SYSTEM_OPENJPEG ON CACHE BOOL "use system openjpeg" )
-
-#Don't enable!!! pdfium uses internal  things for freetype!
-#set(USE_SYSTEM_FREETYPE OFF CACHE BOOL "use system freetype")
 
 #hieroglyphs support
 set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
@@ -186,8 +189,6 @@ elseif(TARGET_ARCH STREQUAL "i386")
     add_definitions(
 	-D_FX_CPU_=_FX_X86_
     )
-else(TARGET_ARCH STREQUAL "x86_64")
-    message(STATUS "Target: " ${TARGET_ARCH} " isn't supported yet")
 endif(TARGET_ARCH STREQUAL "x86_64")
 
 ######################## FDRM #############################################
