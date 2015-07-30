@@ -1,65 +1,79 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _FPDF_RESOURCE_
-#define _FPDF_RESOURCE_
-#ifndef _FPDF_PARSER_
-#include "fpdf_parser.h"
-#endif
-#ifndef _FX_FONT_H_
-#include "../fxge/fx_font.h"
-#endif
-class CPDF_Font;
-class CPDF_Type1Font;
-class CPDF_TrueTypeFont;
-class CPDF_CIDFont;
-class CPDF_Type3Font;
-class CPDF_FontEncoding;
-class CPDF_CMap;
-class CPDF_CID2UnicodeMap;
-class CPDF_ColorSpace;
-class CPDF_Color;
-class CPDF_Function;
-class CPDF_Pattern;
-class CPDF_TilingPattern;
-class CPDF_ShadingPattern;
-class CPDF_Image;
-class CPDF_Face;
-class CPDF_ToUnicodeMap;
-class CFX_SubstFont;
-class CFX_Font;
-class CPDF_RenderContext;
-class CPDF_Form;
-class CPDF_ImageObject;
-class CFX_DIBitmap;
-typedef struct FT_FaceRec_* FXFT_Face;
-class CFX_CTTGSUBTable;
-class CPDF_Page;
+#ifndef CORE_INCLUDE_FPDFAPI_FPDF_RESOURCE_H_
+#define CORE_INCLUDE_FPDFAPI_FPDF_RESOURCE_H_
 
-template <class ObjClass> class CPDF_CountedObject 
+#include "../fxcrt/fx_system.h"
+#include "../fxge/fx_font.h"
+#include "fpdf_parser.h"
+
+class CFX_CTTGSUBTable;
+class CFX_DIBitmap;
+class CFX_Font;
+class CFX_SubstFont;
+class CPDF_CID2UnicodeMap;
+class CPDF_CIDFont;
+class CPDF_CMap;
+class CPDF_Color;
+class CPDF_ColorSpace;
+class CPDF_Face;
+class CPDF_Font;
+class CPDF_FontEncoding;
+class CPDF_Form;
+class CPDF_Function;
+class CPDF_Image;
+class CPDF_ImageObject;
+class CPDF_Page;
+class CPDF_Pattern;
+class CPDF_RenderContext;
+class CPDF_ShadingPattern;
+class CPDF_TilingPattern;
+class CPDF_ToUnicodeMap;
+class CPDF_TrueTypeFont;
+class CPDF_Type1Font;
+class CPDF_Type3Font;
+typedef struct FT_FaceRec_* FXFT_Face;
+
+FX_WCHAR PDF_UnicodeFromAdobeName(const FX_CHAR* name);
+CFX_ByteString PDF_AdobeNameFromUnicode(FX_WCHAR unicode);
+const FX_CHAR* FCS_GetAltStr(FX_WCHAR unicode);
+const FX_CHAR* PDF_CharNameFromPredefinedCharSet(int encoding,
+                                                 uint8_t charcode);
+
+FX_WCHAR FT_UnicodeFromCharCode(int encoding, FX_DWORD charcode);
+FX_DWORD FT_CharCodeFromUnicode(int encoding, FX_WCHAR unicode);
+const FX_WORD* PDF_UnicodesForPredefinedCharSet(int encoding);
+const FX_CHAR* GetAdobeCharName(int iBaseEncoding,
+                                const CFX_ByteString* pCharNames,
+                                int charcode);
+
+template <class T> class CPDF_CountedObject
 {
 public:
-    ObjClass	m_Obj;
-    FX_DWORD	m_nCount;
+    explicit CPDF_CountedObject(T* ptr) : m_nCount(1), m_pObj(ptr) { }
+    void reset(T* ptr) {  // CAUTION: tosses prior ref counts.
+        m_nCount = 1;
+        m_pObj = ptr;
+    }
+    void clear() {  // Now you're all weak ptrs ...
+        delete m_pObj;
+        m_pObj = nullptr;
+    }
+    T* get() const { return m_pObj; }
+    T* AddRef() { FXSYS_assert(m_pObj); ++m_nCount; return m_pObj; }
+    void RemoveRef() { if (m_nCount) --m_nCount; }
+    size_t use_count() const { return m_nCount; }
+
+protected:
+    size_t m_nCount;
+    T* m_pObj;
 };
-typedef CPDF_CountedObject<CPDF_Font*>          CPDF_CountedFont;
-typedef CPDF_CountedObject<CPDF_ColorSpace*>    CPDF_CountedColorSpace;
-typedef CPDF_CountedObject<CPDF_Pattern*>       CPDF_CountedPattern;
-typedef CPDF_CountedObject<CPDF_Image*>         CPDF_CountedImage;
-typedef CPDF_CountedObject<CPDF_IccProfile*>    CPDF_CountedICCProfile;
-typedef CPDF_CountedObject<CPDF_StreamAcc*>     CPDF_CountedStreamAcc;
-
-
-typedef CFX_MapPtrTemplate<CPDF_Dictionary*, CPDF_CountedFont*>     CPDF_FontMap;
-typedef CFX_MapPtrTemplate<CPDF_Object*, CPDF_CountedColorSpace*>   CPDF_ColorSpaceMap;
-typedef CFX_MapPtrTemplate<CPDF_Object*, CPDF_CountedPattern*>      CPDF_PatternMap;
-typedef CFX_MapPtrTemplate<FX_DWORD, CPDF_CountedImage*>            CPDF_ImageMap;
-typedef CFX_MapPtrTemplate<CPDF_Stream*, CPDF_CountedICCProfile*>   CPDF_IccProfileMap;
-typedef CFX_MapPtrTemplate<CPDF_Stream*, CPDF_CountedStreamAcc*>    CPDF_FontFileMap;
-
+using CPDF_CountedColorSpace = CPDF_CountedObject<CPDF_ColorSpace>;
+using CPDF_CountedPattern = CPDF_CountedObject<CPDF_Pattern>;
 #define PDFFONT_TYPE1			1
 #define PDFFONT_TRUETYPE		2
 #define PDFFONT_TYPE3			3
@@ -74,13 +88,11 @@ typedef CFX_MapPtrTemplate<CPDF_Stream*, CPDF_CountedStreamAcc*>    CPDF_FontFil
 #define PDFFONT_SMALLCAP		0x20000
 #define PDFFONT_FORCEBOLD		0x40000
 #define PDFFONT_USEEXTERNATTR	0x80000
-FX_WCHAR PDF_UnicodeFromAdobeName(const FX_CHAR* name);
-CFX_ByteString PDF_AdobeNameFromUnicode(FX_WCHAR unicode);
 class CPDF_Font
 {
 public:
     static CPDF_Font*		CreateFontF(CPDF_Document* pDoc, CPDF_Dictionary* pFontDict);
-    static CPDF_Font*		GetStockFont(CPDF_Document* pDoc, FX_BSTR fontname);
+    static CPDF_Font*		GetStockFont(CPDF_Document* pDoc, const CFX_ByteStringC& fontname);
 
     virtual ~CPDF_Font();
 
@@ -157,23 +169,23 @@ public:
         return m_Font.GetFace();
     }
 
-    virtual FX_DWORD		GetNextChar(FX_LPCSTR pString, int nStrLen, int& offset) const
+    virtual FX_DWORD		GetNextChar(const FX_CHAR* pString, int nStrLen, int& offset) const
     {
         if (offset < 0 || nStrLen < 1) {
             return 0;
         }
-        FX_BYTE ch = offset < nStrLen ? pString[offset++] : pString[nStrLen-1];
+        uint8_t ch = offset < nStrLen ? pString[offset++] : pString[nStrLen-1];
         return static_cast<FX_DWORD>(ch);
     }
 
-    virtual int				CountChar(FX_LPCSTR pString, int size) const
+    virtual int				CountChar(const FX_CHAR* pString, int size) const
     {
         return size;
     }
 
     void					AppendChar(CFX_ByteString& str, FX_DWORD charcode) const;
 
-    virtual int				AppendChar(FX_LPSTR buf, FX_DWORD charcode) const
+    virtual int				AppendChar(FX_CHAR* buf, FX_DWORD charcode) const
     {
         *buf = (FX_CHAR)charcode;
         return 1;
@@ -316,7 +328,7 @@ private:
 #define PDFFONT_ENCODING_PDFDOC			7
 #define PDFFONT_ENCODING_MS_SYMBOL		8
 #define PDFFONT_ENCODING_UNICODE		9
-class CPDF_FontEncoding 
+class CPDF_FontEncoding
 {
 public:
 
@@ -328,14 +340,14 @@ public:
 
     FX_BOOL					IsIdentical(CPDF_FontEncoding* pAnother) const;
 
-    FX_WCHAR				UnicodeFromCharCode(FX_BYTE charcode) const
+    FX_WCHAR				UnicodeFromCharCode(uint8_t charcode) const
     {
         return m_Unicodes[charcode];
     }
 
     int						CharCodeFromUnicode(FX_WCHAR unicode) const;
 
-    void					SetUnicode(FX_BYTE charcode, FX_WCHAR unicode)
+    void					SetUnicode(uint8_t charcode, FX_WCHAR unicode)
     {
         m_Unicodes[charcode] = unicode;
     }
@@ -345,64 +357,53 @@ public:
 
     FX_WCHAR				m_Unicodes[256];
 };
+
 class CPDF_SimpleFont : public CPDF_Font
 {
 public:
     explicit CPDF_SimpleFont(int fonttype);
     ~CPDF_SimpleFont() override;
 
-    CPDF_FontEncoding*		GetEncoding()
+    CPDF_FontEncoding* GetEncoding()
     {
         return &m_Encoding;
     }
-    virtual int				GetCharWidthF(FX_DWORD charcode, int level = 0);
-    virtual void			GetCharBBox(FX_DWORD charcode, FX_RECT& rect, int level = 0);
-    virtual int				GlyphFromCharCode(FX_DWORD charcode, FX_BOOL *pVertGlyph = NULL);
-    virtual FX_BOOL			IsUnicodeCompatible() const;
+    int GetCharWidthF(FX_DWORD charcode, int level = 0) override;
+    void GetCharBBox(FX_DWORD charcode, FX_RECT& rect, int level = 0) override;
+    int GlyphFromCharCode(FX_DWORD charcode, FX_BOOL *pVertGlyph = NULL) override;
+    FX_BOOL IsUnicodeCompatible() const override;
+
 protected:
+    FX_BOOL LoadCommon();
 
-    FX_BOOL					LoadCommon();
+    void LoadSubstFont();
 
-    void					LoadSubstFont();
+    void LoadFaceMetrics();
 
-    void					LoadFaceMetrics();
+    virtual void LoadGlyphMap() = 0;
 
-    virtual void			LoadGlyphMap() = 0;
-    virtual FX_WCHAR		_UnicodeFromCharCode(FX_DWORD charcode) const
+    FX_WCHAR _UnicodeFromCharCode(FX_DWORD charcode) const override
     {
-        return m_Encoding.UnicodeFromCharCode((FX_BYTE)charcode);
+        return m_Encoding.UnicodeFromCharCode((uint8_t)charcode);
     }
-    virtual FX_DWORD		_CharCodeFromUnicode(FX_WCHAR Unicode) const
+
+    FX_DWORD _CharCodeFromUnicode(FX_WCHAR Unicode) const override
     {
         return m_Encoding.CharCodeFromUnicode(Unicode);
     }
 
+    void LoadCharMetrics(int charcode);
 
-
-    CPDF_FontEncoding		m_Encoding;
-
-    FX_WORD					m_GlyphIndex[256];
-    FX_WORD					m_ExtGID[256];
-
-
-
-
-    CFX_ByteString*			m_pCharNames;
-
-    int						m_BaseEncoding;
-
-
-
-
-    FX_WORD					m_CharWidth[256];
-
-    FX_SMALL_RECT			m_CharBBox[256];
-
-    FX_BOOL					m_bUseFontWidth;
-
-    void					LoadCharMetrics(int charcode);
-
+    CPDF_FontEncoding m_Encoding;
+    FX_WORD m_GlyphIndex[256];
+    FX_WORD m_ExtGID[256];
+    CFX_ByteString* m_pCharNames;
+    int m_BaseEncoding;
+    FX_WORD m_CharWidth[256];
+    FX_SMALL_RECT m_CharBBox[256];
+    FX_BOOL m_bUseFontWidth;
 };
+
 class CPDF_Type1Font : public CPDF_SimpleFont
 {
 public:
@@ -429,7 +430,7 @@ protected:
     virtual FX_BOOL			_Load();
     virtual void			LoadGlyphMap();
 };
-class CPDF_Type3Char 
+class CPDF_Type3Char
 {
 public:
 
@@ -461,34 +462,39 @@ class CPDF_Type3Font : public CPDF_SimpleFont
 public:
     CPDF_Type3Font();
     ~CPDF_Type3Font() override;
-    void					SetPageResources(CPDF_Dictionary* pResources)
+
+    void SetPageResources(CPDF_Dictionary* pResources)
     {
         m_pPageResources = pResources;
     }
-    CPDF_Type3Char*			LoadChar(FX_DWORD charcode, int level = 0);
-    virtual int				GetCharWidthF(FX_DWORD charcode, int level = 0);
-    virtual int				GetCharTypeWidth(FX_DWORD charcode)
+    CPDF_Type3Char* LoadChar(FX_DWORD charcode, int level = 0);
+    int GetCharWidthF(FX_DWORD charcode, int level = 0) override;
+    int GetCharTypeWidth(FX_DWORD charcode) override
     {
         return GetCharWidthF(charcode);
     }
-    virtual void			GetCharBBox(FX_DWORD charcode, FX_RECT& rect, int level = 0);
-    CFX_AffineMatrix&		GetFontMatrix()
+    void GetCharBBox(FX_DWORD charcode, FX_RECT& rect, int level = 0) override;
+    CFX_AffineMatrix& GetFontMatrix()
     {
         return m_FontMatrix;
     }
-    void					CheckType3FontMetrics();
-private:
-    virtual FX_BOOL			_Load();
-    virtual void			LoadGlyphMap() {}
-    int						m_CharWidthL[256];
-    CPDF_Dictionary*		m_pCharProcs;
-    CPDF_Dictionary*		m_pPageResources;
-    CPDF_Dictionary*		m_pFontResources;
-    CFX_MapPtrToPtr			m_CacheMap;
-    CFX_MapPtrToPtr			m_DeletedMap;
+    void CheckType3FontMetrics();
+
 protected:
-    CFX_AffineMatrix		m_FontMatrix;
+    CFX_AffineMatrix m_FontMatrix;
+
+private:
+    FX_BOOL _Load() override;
+    void LoadGlyphMap() override {}
+
+    int m_CharWidthL[256];
+    CPDF_Dictionary* m_pCharProcs;
+    CPDF_Dictionary* m_pPageResources;
+    CPDF_Dictionary* m_pFontResources;
+    CFX_MapPtrToPtr m_CacheMap;
+    CFX_MapPtrToPtr m_DeletedMap;
 };
+
 #define CIDSET_UNKNOWN		0
 #define CIDSET_GB1			1
 #define CIDSET_CNS1			2
@@ -503,63 +509,62 @@ public:
 
     CPDF_CIDFont();
 
-    virtual ~CPDF_CIDFont();
+    ~CPDF_CIDFont() override;
 
-    FX_BOOL                 LoadGB2312();
-    virtual int             GlyphFromCharCode(FX_DWORD charcode, FX_BOOL *pVertGlyph = NULL);
-    virtual int             GetCharWidthF(FX_DWORD charcode, int level = 0);
-    virtual void            GetCharBBox(FX_DWORD charcode, FX_RECT& rect, int level = 0);
-    FX_WORD                 CIDFromCharCode(FX_DWORD charcode) const;
+    FX_BOOL LoadGB2312();
+    int GlyphFromCharCode(FX_DWORD charcode, FX_BOOL *pVertGlyph = NULL) override;
+    int GetCharWidthF(FX_DWORD charcode, int level = 0) override;
+    void GetCharBBox(FX_DWORD charcode, FX_RECT& rect, int level = 0) override;
+    FX_WORD CIDFromCharCode(FX_DWORD charcode) const;
 
-    FX_BOOL                 IsTrueType()
+    FX_BOOL IsTrueType() const
     {
         return !m_bType1;
     }
 
-    virtual FX_DWORD        GetNextChar(FX_LPCSTR pString, int nStrLen, int& offset) const override;
-    virtual int             CountChar(FX_LPCSTR pString, int size) const;
-    virtual int             AppendChar(FX_LPSTR str, FX_DWORD charcode) const;
-    virtual int             GetCharSize(FX_DWORD charcode) const;
+    virtual FX_DWORD GetNextChar(const FX_CHAR* pString, int nStrLen, int& offset) const override;
+    int CountChar(const FX_CHAR* pString, int size) const override;
+    int AppendChar(FX_CHAR* str, FX_DWORD charcode) const override;
+    int GetCharSize(FX_DWORD charcode) const override;
 
-    int                     GetCharset() const
+    int GetCharset() const
     {
         return m_Charset;
     }
 
-    FX_LPCBYTE              GetCIDTransform(FX_WORD CID) const;
-    virtual FX_BOOL         IsVertWriting() const;
-    short                   GetVertWidth(FX_WORD CID) const;
-    void                    GetVertOrigin(FX_WORD CID, short& vx, short& vy) const;
-    virtual FX_BOOL         IsUnicodeCompatible() const;
-    virtual FX_BOOL         IsFontStyleFromCharCode(FX_DWORD charcode) const;
+    const uint8_t* GetCIDTransform(FX_WORD CID) const;
+    FX_BOOL IsVertWriting() const override;
+    short GetVertWidth(FX_WORD CID) const;
+    void GetVertOrigin(FX_WORD CID, short& vx, short& vy) const;
+    FX_BOOL IsUnicodeCompatible() const override;
+    virtual FX_BOOL IsFontStyleFromCharCode(FX_DWORD charcode) const;
 
 protected:
-    friend class            CPDF_Font;
-    virtual FX_BOOL         _Load();
-    virtual FX_WCHAR        _UnicodeFromCharCode(FX_DWORD charcode) const;
-    virtual FX_DWORD        _CharCodeFromUnicode(FX_WCHAR Unicode) const;
-    int                     GetGlyphIndex(FX_DWORD unicodeb, FX_BOOL *pVertGlyph);
+    friend class CPDF_Font;
 
-    CPDF_CMap*              m_pCMap;
-    CPDF_CMap*              m_pAllocatedCMap;
-    CPDF_CID2UnicodeMap*    m_pCID2UnicodeMap;
-    int                     m_Charset;
-    FX_BOOL                 m_bType1;
-    CPDF_StreamAcc*         m_pCIDToGIDMap;
-    FX_BOOL                 m_bCIDIsGID;
-    FX_WORD                 m_DefaultWidth;
-    FX_WORD*                m_pAnsiWidths;
-    FX_SMALL_RECT           m_CharBBox[256];
-    CFX_DWordArray          m_WidthList;
-    short                   m_DefaultVY;
-    short                   m_DefaultW1;
-    CFX_DWordArray          m_VertMetrics;
+    FX_BOOL _Load() override;
+    FX_WCHAR _UnicodeFromCharCode(FX_DWORD charcode) const override;
+    FX_DWORD _CharCodeFromUnicode(FX_WCHAR Unicode) const override;
+    int GetGlyphIndex(FX_DWORD unicodeb, FX_BOOL *pVertGlyph);
+    void LoadMetricsArray(CPDF_Array* pArray, CFX_DWordArray& result, int nElements);
+    void LoadSubstFont();
 
-    void                    LoadMetricsArray(CPDF_Array* pArray, CFX_DWordArray& result, int nElements);
-    void                    LoadSubstFont();
-
-    FX_BOOL					m_bAdobeCourierStd;
-    CFX_CTTGSUBTable*       m_pTTGSUBTable;
+    CPDF_CMap* m_pCMap;
+    CPDF_CMap* m_pAllocatedCMap;
+    CPDF_CID2UnicodeMap* m_pCID2UnicodeMap;
+    int m_Charset;
+    FX_BOOL m_bType1;
+    CPDF_StreamAcc* m_pCIDToGIDMap;
+    FX_BOOL m_bCIDIsGID;
+    FX_WORD m_DefaultWidth;
+    FX_WORD* m_pAnsiWidths;
+    FX_SMALL_RECT m_CharBBox[256];
+    CFX_DWordArray m_WidthList;
+    short m_DefaultVY;
+    short m_DefaultW1;
+    CFX_DWordArray m_VertMetrics;
+    FX_BOOL m_bAdobeCourierStd;
+    CFX_CTTGSUBTable* m_pTTGSUBTable;
 };
 
 #define PDFCS_DEVICEGRAY        1
@@ -626,7 +631,7 @@ public:
     FX_BOOL					SetCMYK(FX_FLOAT* pBuf, FX_FLOAT c, FX_FLOAT m, FX_FLOAT y, FX_FLOAT k) const;
 
 
-    virtual void			TranslateImageLine(FX_LPBYTE dest_buf, FX_LPCBYTE src_buf, int pixels,
+    virtual void			TranslateImageLine(uint8_t* dest_buf, const uint8_t* src_buf, int pixels,
             int image_width, int image_height, FX_BOOL bTransMask = FALSE) const;
 
     CPDF_Array*&			GetArray()
@@ -642,11 +647,17 @@ public:
     }
 
     virtual void			EnableStdConversion(FX_BOOL bEnabled);
-    CPDF_Document*			m_pDocument;
+
+    CPDF_Document* const m_pDocument;
+
 protected:
-
-    CPDF_ColorSpace();
-
+    CPDF_ColorSpace(CPDF_Document* pDoc, int family, int nComponents)
+        : m_pDocument(pDoc),
+          m_Family(family),
+          m_nComponents(nComponents),
+          m_pArray(nullptr),
+          m_dwStdConversion(0) {
+    }
     virtual ~CPDF_ColorSpace() {}
     virtual FX_BOOL			v_Load(CPDF_Document* pDoc, CPDF_Array* pArray)
     {
@@ -669,7 +680,7 @@ protected:
 
     FX_DWORD				m_dwStdConversion;
 };
-class CPDF_Color 
+class CPDF_Color
 {
 public:
 
@@ -718,10 +729,10 @@ protected:
 };
 #define PATTERN_TILING		1
 #define PATTERN_SHADING		2
-class CPDF_Pattern 
+class CPDF_Pattern
 {
 public:
-   
+
     virtual ~CPDF_Pattern();
     void    SetForceClear(FX_BOOL bForceClear) { m_bForceClear = bForceClear; }
 
@@ -795,7 +806,7 @@ struct CPDF_MeshVertex {
     FX_FLOAT x, y;
     FX_FLOAT r, g, b;
 };
-class CPDF_MeshStream 
+class CPDF_MeshStream
 {
 public:
 
@@ -833,9 +844,9 @@ public:
     {
     }
     FX_ARGB* pMatteColor;
-    FX_INT32 nQuality;
+    int32_t nQuality;
 };
-class CPDF_Image 
+class CPDF_Image
 {
 public:
 
@@ -886,12 +897,12 @@ public:
 
 
 
-    FX_INT32				GetPixelHeight() const
+    int32_t				GetPixelHeight() const
     {
         return m_Height;
     }
 
-    FX_INT32				GetPixelWidth() const
+    int32_t				GetPixelWidth() const
     {
         return m_Width;
     }
@@ -911,9 +922,9 @@ public:
 
 
 
-    void					SetImage(const CFX_DIBitmap* pDIBitmap, FX_INT32 iCompress, IFX_FileWrite *pFileWrite = NULL, IFX_FileRead *pFileRead = NULL, const CFX_DIBitmap* pMask = NULL, const CPDF_ImageSetParam* pParam = NULL);
+    void					SetImage(const CFX_DIBitmap* pDIBitmap, int32_t iCompress, IFX_FileWrite *pFileWrite = NULL, IFX_FileRead *pFileRead = NULL, const CFX_DIBitmap* pMask = NULL, const CPDF_ImageSetParam* pParam = NULL);
 
-    void					SetJpegImage(FX_BYTE* pImageData, FX_DWORD size);
+    void					SetJpegImage(uint8_t* pImageData, FX_DWORD size);
 
     void					SetJpegImage(IFX_FileRead *pFile);
 
@@ -933,9 +944,9 @@ private:
     FX_BOOL					m_bInline;
     CPDF_Dictionary*		m_pInlineDict;
 
-    FX_INT32				m_Height;
+    int32_t				m_Height;
 
-    FX_INT32				m_Width;
+    int32_t				m_Width;
 
     FX_BOOL					m_bIsMask;
 
@@ -944,6 +955,7 @@ private:
     CPDF_Document*			m_pDocument;
 
     CPDF_Dictionary*		m_pOC;
-    CPDF_Dictionary*	InitJPEG(FX_LPBYTE pData, FX_DWORD size);
+    CPDF_Dictionary*	InitJPEG(uint8_t* pData, FX_DWORD size);
 };
-#endif
+
+#endif  // CORE_INCLUDE_FPDFAPI_FPDF_RESOURCE_H_

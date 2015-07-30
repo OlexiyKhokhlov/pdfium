@@ -1,13 +1,14 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _IJAVASCRIPT_H_
-#define _IJAVASCRIPT_H_
+#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_IJAVASCRIPT_H_
+#define FPDFSDK_INCLUDE_JAVASCRIPT_IJAVASCRIPT_H_
 
-#include "../../../core/include/fxcrt/fx_basic.h"
+#include "../../../core/include/fxcrt/fx_string.h"
+#include "../../../core/include/fxcrt/fx_system.h"
 
 class CPDF_Bookmark;
 class CPDF_FormField;
@@ -43,10 +44,10 @@ public:
 	virtual void				OnField_Blur(FX_BOOL bModifier, FX_BOOL bShift, CPDF_FormField* pTarget, const CFX_WideString& Value) = 0;
 
 	virtual void				OnField_Calculate(CPDF_FormField* pSource, CPDF_FormField* pTarget, CFX_WideString& Value, FX_BOOL& bRc) = 0;
-	virtual void				OnField_Format(int nCommitKey, CPDF_FormField* pTarget, CFX_WideString& Value, FX_BOOL bWillCommit) = 0;
-	virtual void				OnField_Keystroke(int nCommitKey, CFX_WideString& strChange, const CFX_WideString& strChangeEx,
+	virtual void				OnField_Format(CPDF_FormField* pTarget, CFX_WideString& Value, FX_BOOL bWillCommit) = 0;
+	virtual void				OnField_Keystroke(CFX_WideString& strChange, const CFX_WideString& strChangeEx,
 									FX_BOOL KeyDown, FX_BOOL bModifier, int &nSelEnd,int &nSelStart, FX_BOOL bShift,
-									CPDF_FormField* pTarget, CFX_WideString& Value, FX_BOOL bWillCommit, 
+									CPDF_FormField* pTarget, CFX_WideString& Value, FX_BOOL bWillCommit,
 									FX_BOOL bFieldFull, FX_BOOL &bRc) = 0;
 	virtual void				OnField_Validate(CFX_WideString& strChange, const CFX_WideString& strChangeEx, FX_BOOL bKeyDown,
 									FX_BOOL bModifier, FX_BOOL bShift, CPDF_FormField* pTarget, CFX_WideString& Value, FX_BOOL& bRc) = 0;
@@ -106,8 +107,7 @@ private:
 	FX_BOOL m_bInit;
 	int m_nRef;
 	CJS_GlobalData*					m_pGlobalData;
-	FX_INT32						m_nGlobalDataCount;
+	int32_t						m_nGlobalDataCount;
 };
 
-#endif //_IJAVASCRIPT_H_
-
+#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_IJAVASCRIPT_H_

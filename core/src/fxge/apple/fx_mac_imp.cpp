@@ -1,15 +1,15 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
 #include "apple_int.h"
 #if _FX_OS_ == _FX_MACOSX_
 static const struct {
-    FX_LPCSTR	m_pName;
-    FX_LPCSTR	m_pSubstName;
+    const FX_CHAR*	m_pName;
+    const FX_CHAR*	m_pSubstName;
 }
 Base14Substs[] = {
     {"Courier", "Courier New"},
@@ -28,7 +28,7 @@ Base14Substs[] = {
 class CFX_MacFontInfo : public CFX_FolderFontInfo
 {
 public:
-    virtual void*		MapFont(int weight, FX_BOOL bItalic, int charset, int pitch_family, FX_LPCSTR family, FX_BOOL& bExact);
+    virtual void*		MapFont(int weight, FX_BOOL bItalic, int charset, int pitch_family, const FX_CHAR* family, int& iExact);
 };
 #define JAPAN_GOTHIC "Hiragino Kaku Gothic Pro W6"
 #define JAPAN_MINCHO "Hiragino Mincho Pro W6"
@@ -44,20 +44,20 @@ static void GetJapanesePreference(CFX_ByteString& face, int weight, int picth_fa
         face = JAPAN_MINCHO;
     }
 }
-void* CFX_MacFontInfo::MapFont(int weight, FX_BOOL bItalic, int charset, int pitch_family, FX_LPCSTR cstr_face, FX_BOOL& bExact)
+void* CFX_MacFontInfo::MapFont(int weight, FX_BOOL bItalic, int charset, int pitch_family, const FX_CHAR* cstr_face, int& iExact)
 {
     CFX_ByteString face = cstr_face;
     int iBaseFont;
     for (iBaseFont = 0; iBaseFont < 12; iBaseFont ++)
         if (face == CFX_ByteStringC(Base14Substs[iBaseFont].m_pName)) {
             face = Base14Substs[iBaseFont].m_pSubstName;
-            bExact = TRUE;
+            iExact = TRUE;
             break;
         }
     if (iBaseFont < 12) {
         return GetFont(face);
     }
-    FX_LPVOID p;
+    void* p;
     if (m_FontList.Lookup(face, p)) {
         return p;
     }
@@ -100,9 +100,7 @@ void CFX_GEModule::InitPlatform()
 }
 void CFX_GEModule::DestroyPlatform()
 {
-    if (m_pPlatformData) {
-        delete (CApplePlatform *) m_pPlatformData;
-    }
+    delete (CApplePlatform *)m_pPlatformData;
     m_pPlatformData = NULL;
 }
 #endif

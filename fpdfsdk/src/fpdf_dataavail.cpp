@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../public/fpdf_dataavail.h"
@@ -28,7 +28,7 @@ public:
 
 private:
 	FX_FILEAVAIL* m_pfileAvail;
-};  
+};
 
 class CFPDF_FileAccessWrap : public IFX_FileRead
 {
@@ -45,12 +45,12 @@ public:
 
 	virtual FX_FILESIZE		GetSize()
 	{
-		return m_pFileAccess->m_FileLen; 
+		return m_pFileAccess->m_FileLen;
 	}
 
 	virtual FX_BOOL			ReadBlock(void* buffer, FX_FILESIZE offset, size_t size)
 	{
-		return m_pFileAccess->m_GetBlock(m_pFileAccess->m_Param, offset, (FX_LPBYTE)buffer, size);
+		return m_pFileAccess->m_GetBlock(m_pFileAccess->m_Param, offset, (uint8_t*)buffer, size);
 	}
 
 	virtual void			Release()
@@ -69,15 +69,15 @@ public:
 		m_pDownloadHints = pDownloadHints;
 	}
 public:
-	virtual void			AddSegment(FX_FILESIZE offset, FX_DWORD size) 
+	virtual void			AddSegment(FX_FILESIZE offset, FX_DWORD size)
 	{
 		m_pDownloadHints->AddSegment(m_pDownloadHints, offset, size);
-	}	
+	}
 private:
 	FX_DOWNLOADHINTS* m_pDownloadHints;
 };
 
-class CFPDF_DataAvail 
+class CFPDF_DataAvail
 {
 public:
 	CFPDF_DataAvail()
@@ -87,7 +87,7 @@ public:
 
 	~CFPDF_DataAvail()
 	{
-		if (m_pDataAvail) delete m_pDataAvail;
+            delete m_pDataAvail;
 	}
 
 	IPDF_DataAvail*			m_pDataAvail;
@@ -106,8 +106,7 @@ DLLEXPORT FPDF_AVAIL STDCALL FPDFAvail_Create(FX_FILEAVAIL* file_avail, FPDF_FIL
 
 DLLEXPORT void STDCALL FPDFAvail_Destroy(FPDF_AVAIL avail)
 {
-	if (avail == NULL) return;
-	delete (CFPDF_DataAvail*)avail;
+    delete (CFPDF_DataAvail*)avail;
 }
 
 DLLEXPORT int STDCALL FPDFAvail_IsDocAvail(FPDF_AVAIL avail, FX_DOWNLOADHINTS* hints)

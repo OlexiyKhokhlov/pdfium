@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fpdfapi/fpdf_page.h"
@@ -178,7 +178,7 @@ static const FX_WCHAR g_FX_CP1257Unicodes[128] = {
     0x0173, 0x0142, 0x015B, 0x016B, 0x00FC, 0x017C, 0x017E, 0x02D9,
 };
 typedef struct {
-    FX_BYTE		m_Charset;
+    uint8_t		m_Charset;
     const FX_WCHAR*	m_pUnicodes;
 } FX_CharsetUnicodes;
 const FX_CharsetUnicodes g_FX_CharsetUnicodes[] = {
@@ -191,7 +191,7 @@ const FX_CharsetUnicodes g_FX_CharsetUnicodes[] = {
     { FXFONT_ARABIC_CHARSET, g_FX_CP1256Unicodes },
     { FXFONT_BALTIC_CHARSET, g_FX_CP1257Unicodes },
 };
-#if (_FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN32_MOBILE_ || _FX_OS_ == _FX_WIN64_)
+#if (_FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN64_DESKTOP_)
 static void _InsertWidthArray(HDC hDC, int start, int end, CPDF_Array* pWidthArray)
 {
     int size = end - start + 1;
@@ -218,7 +218,7 @@ static void _InsertWidthArray(HDC hDC, int start, int end, CPDF_Array* pWidthArr
 CPDF_Font* CPDF_Document::AddWindowsFont(LOGFONTW* pLogFont, FX_BOOL bVert, FX_BOOL bTranslateName)
 {
     LOGFONTA lfa;
-    FXSYS_memcpy32(&lfa, pLogFont, (char*)lfa.lfFaceName - (char*)&lfa);
+    FXSYS_memcpy(&lfa, pLogFont, (char*)lfa.lfFaceName - (char*)&lfa);
     CFX_ByteString face = CFX_ByteString::FromUnicode(pLogFont->lfFaceName);
     if (face.GetLength() >= LF_FACESIZE) {
         return NULL;
@@ -226,7 +226,7 @@ CPDF_Font* CPDF_Document::AddWindowsFont(LOGFONTW* pLogFont, FX_BOOL bVert, FX_B
     FXSYS_strcpy(lfa.lfFaceName, face.c_str());
     return AddWindowsFont(&lfa, bVert, bTranslateName);
 }
-extern CFX_ByteString _FPDF_GetNameFromTT(FX_LPCBYTE name_table, FX_DWORD name);
+extern CFX_ByteString _FPDF_GetNameFromTT(const uint8_t* name_table, FX_DWORD name);
 CFX_ByteString _FPDF_GetPSNameFromTT(HDC hDC)
 {
     CFX_ByteString result;
@@ -429,12 +429,12 @@ CPDF_Font* CPDF_Document::AddWindowsFont(LOGFONTA* pLogFont, FX_BOOL bVert, FX_B
 }
 #endif
 #if (_FXM_PLATFORM_  == _FXM_PLATFORM_APPLE_)
-FX_UINT32 FX_GetLangHashCode( FX_LPCSTR pStr)
+uint32_t FX_GetLangHashCode( const FX_CHAR* pStr)
 {
     FXSYS_assert( pStr != NULL);
-    FX_INT32 iLength = FXSYS_strlen(pStr);
-    FX_LPCSTR pStrEnd = pStr + iLength;
-    FX_UINT32 uHashCode = 0;
+    int32_t iLength = FXSYS_strlen(pStr);
+    const FX_CHAR* pStrEnd = pStr + iLength;
+    uint32_t uHashCode = 0;
     while ( pStr < pStrEnd) {
         uHashCode = 31 * uHashCode + tolower(*pStr++);
     }
@@ -512,16 +512,17 @@ static const FX_LANG2CS gs_FXLang2CharsetTable[] = {
     {3923451837, 134},
     {3923451838, 136},
 };
-static FX_WORD FX_GetCsFromLangCode(FX_UINT32 uCode)
+static FX_WORD FX_GetCsFromLangCode(uint32_t uCode)
 {
-    FX_INT32 iStart = 0;
-    FX_INT32 iEnd = sizeof(gs_FXLang2CharsetTable) / sizeof(FX_LANG2CS) - 1;
+    int32_t iStart = 0;
+    int32_t iEnd = sizeof(gs_FXLang2CharsetTable) / sizeof(FX_LANG2CS) - 1;
     while (iStart <= iEnd) {
-        FX_INT32 iMid = (iStart + iEnd) / 2;
+        int32_t iMid = (iStart + iEnd) / 2;
         const FX_LANG2CS &charset = gs_FXLang2CharsetTable[iMid];
         if (uCode == charset.uLang) {
             return charset.uCharset;
-        } else if (uCode < charset.uLang) {
+        }
+        if (uCode < charset.uLang) {
             iEnd = iMid - 1;
         } else {
             iStart = iMid + 1;
@@ -529,13 +530,13 @@ static FX_WORD FX_GetCsFromLangCode(FX_UINT32 uCode)
     };
     return 0;
 }
-static FX_WORD FX_GetCharsetFromLang(FX_LPCSTR pLang, FX_INT32 iLength)
+static FX_WORD FX_GetCharsetFromLang(const FX_CHAR* pLang, int32_t iLength)
 {
     FXSYS_assert(pLang);
     if (iLength < 0) {
         iLength = FXSYS_strlen(pLang);
     }
-    FX_UINT32 uHash = FX_GetLangHashCode(pLang);
+    uint32_t uHash = FX_GetLangHashCode(pLang);
     return FX_GetCsFromLangCode(uHash);
 }
 static void _CFString2CFXByteString(CFStringRef src, CFX_ByteString &dest)
@@ -545,7 +546,7 @@ static void _CFString2CFXByteString(CFStringRef src, CFX_ByteString &dest)
     CFIndex used = 0;
     UInt8* pBuffer = (UInt8*)calloc(len+1, sizeof(UInt8));
     CFStringGetBytes(src, range, kCFStringEncodingASCII, 0, false, pBuffer, len, &used);
-    dest = (FX_LPSTR)pBuffer;
+    dest = (FX_CHAR*)pBuffer;
     free(pBuffer);
 }
 FX_BOOL IsHasCharSet(CFArrayRef languages, const CFX_DWordArray &charSets)
@@ -608,7 +609,7 @@ CPDF_Font* CPDF_Document::AddMacFont(CTFontRef pFont, FX_BOOL bVert, FX_BOOL bTr
     CFX_ByteString basefont;
     FX_BOOL bCJK = FALSE;
     int flags = 0, italicangle = 0, ascend = 0, descend = 0, capheight = 0, bbox[4];
-    FXSYS_memset32(bbox, 0, sizeof(int) * 4);
+    FXSYS_memset(bbox, 0, sizeof(int) * 4);
     CFArrayRef languages = (CFArrayRef)CTFontDescriptorCopyAttribute(descriptor, kCTFontLanguagesAttribute);
     if (languages == NULL) {
         CFRelease(descriptor);
@@ -1028,7 +1029,7 @@ CPDF_Font* CPDF_Document::AddFont(CFX_Font* pFont, int charset, FX_BOOL bVert)
     pBBox->AddInteger(bbox.right);
     pBBox->AddInteger(bbox.top);
     pFontDesc->SetAt("FontBBox", pBBox);
-    FX_INT32 nStemV = 0;
+    int32_t nStemV = 0;
     if (pFont->m_pSubstFont) {
         nStemV = pFont->m_pSubstFont->m_Weight / 5;
     } else {
@@ -1044,9 +1045,7 @@ CPDF_Font* CPDF_Document::AddFont(CFX_Font* pFont, int charset, FX_BOOL bVert)
             }
         }
     }
-    if (pEncoding) {
-        delete pEncoding;
-    }
+    delete pEncoding;
     pFontDesc->SetAtInteger("StemV", nStemV);
     AddIndirectObject(pFontDesc);
     pFontDict->SetAtReference("FontDescriptor", this, pFontDesc);
@@ -1065,7 +1064,8 @@ static int InsertDeletePDFPage(CPDF_Document* pDoc, CPDF_Dictionary* pPages,
         if (pKid->GetString("Type") == FX_BSTRC("Page")) {
             if (nPagesToGo == 0) {
                 if (bInsert) {
-                    pKidList->InsertAt(i, CPDF_Reference::Create(pDoc, pPage->GetObjNum()));
+                    pKidList->InsertAt(
+                        i, new CPDF_Reference(pDoc, pPage->GetObjNum()));
                     pPage->SetAtReference("Parent", pDoc, pPages->GetObjNum());
                 } else {
                     pKidList->RemoveAt(i);
@@ -1141,7 +1141,7 @@ CPDF_Dictionary* CPDF_Document::CreateNewPage(int iPage)
     return pDict;
 }
 int _PDF_GetStandardFontName(CFX_ByteString& name);
-CPDF_Font* CPDF_Document::AddStandardFont(FX_LPCSTR font, CPDF_FontEncoding* pEncoding)
+CPDF_Font* CPDF_Document::AddStandardFont(const FX_CHAR* font, CPDF_FontEncoding* pEncoding)
 {
     CFX_ByteString name(font, -1);
     if (_PDF_GetStandardFontName(name) < 0) {
@@ -1170,8 +1170,8 @@ void CPDF_Document::DeletePage(int iPage)
     }
     m_PageList.RemoveAt(iPage);
 }
-CPDF_Object* FPDFAPI_GetPageAttr(CPDF_Dictionary* pPageDict, FX_BSTR name);
-void FPDFAPI_FlatPageAttr(CPDF_Dictionary* pPageDict, FX_BSTR name)
+CPDF_Object* FPDFAPI_GetPageAttr(CPDF_Dictionary* pPageDict, const CFX_ByteStringC& name);
+void FPDFAPI_FlatPageAttr(CPDF_Dictionary* pPageDict, const CFX_ByteStringC& name)
 {
     if (pPageDict->KeyExist(name)) {
         return;

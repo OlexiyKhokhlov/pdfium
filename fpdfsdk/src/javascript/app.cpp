@@ -4,6 +4,7 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../../include/javascript/JavaScript.h"
 #include "../../include/javascript/IJavaScript.h"
 #include "../../include/javascript/JS_Define.h"
@@ -118,10 +119,10 @@ END_JS_STATIC_METHOD()
 
 IMPLEMENT_JS_CLASS(CJS_App,app)
 
-app::app(CJS_Object * pJSObject) : CJS_EmbedObj(pJSObject) ,
-	m_bCalculate(true),
-	m_bRuntimeHighLight(false)
-//	m_pMenuHead(NULL)
+app::app(CJS_Object * pJSObject)
+   : CJS_EmbedObj(pJSObject),
+     m_bCalculate(true),
+     m_bRuntimeHighLight(false)
 {
 }
 
@@ -135,60 +136,37 @@ app::~app(void)
 
 FX_BOOL app::activeDocs(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
 {
-	if (vp.IsGetting())
-	{
+    if (!vp.IsGetting())
+        return FALSE;
 
-		CJS_Context* pContext = (CJS_Context *)cc;
-		ASSERT(pContext != NULL);
+    CJS_Context* pContext = (CJS_Context *)cc;
+    CPDFDoc_Environment* pApp = pContext->GetReaderApp();
+    CJS_Runtime* pRuntime = pContext->GetJSRuntime();
+    CPDFSDK_Document* pCurDoc = pContext->GetReaderDocument();
+    CJS_Array aDocs(pRuntime->GetIsolate());
+    if (CPDFSDK_Document* pDoc = pApp->GetSDKDocument())
+    {
+        CJS_Document* pJSDocument = NULL;
+        if (pDoc == pCurDoc)
+        {
+            JSFXObject pObj = JS_GetThisObj(*pRuntime);
+            if (JS_GetObjDefnID(pObj) == JS_GetObjDefnID(*pRuntime, L"Document"))
+                pJSDocument = (CJS_Document*)JS_GetPrivate(pRuntime->GetIsolate(),pObj);
+        }
+        else
+        {
+            JSFXObject pObj = JS_NewFxDynamicObj(*pRuntime, pContext, JS_GetObjDefnID(*pRuntime,L"Document"));
+            pJSDocument = (CJS_Document*)JS_GetPrivate(pRuntime->GetIsolate(),pObj);
+            ASSERT(pJSDocument != NULL);
+        }
+        aDocs.SetElement(0,CJS_Value(pRuntime->GetIsolate(),pJSDocument));
+    }
+    if (aDocs.GetLength() > 0)
+        vp << aDocs;
+    else
+        vp.SetNull();
 
-		CPDFDoc_Environment* pApp = pContext->GetReaderApp();
-		ASSERT(pApp != NULL);
-
-		CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-		ASSERT(pRuntime != NULL);
-
-		CPDFSDK_Document* pCurDoc = pContext->GetReaderDocument();
-
-		CJS_Array aDocs(pRuntime->GetIsolate());
-//		int iNumDocs = pApp->CountDocuments();
-
-// 		for(int iIndex = 0; iIndex<iNumDocs; iIndex++)
-// 		{
-			CPDFSDK_Document* pDoc = pApp->GetCurrentDoc();
-			if (pDoc)
-			{
-				CJS_Document * pJSDocument = NULL;
-
-				if (pDoc == pCurDoc)
-				{
-					JSFXObject pObj = JS_GetThisObj(*pRuntime);
-
-					if (JS_GetObjDefnID(pObj) == JS_GetObjDefnID(*pRuntime, L"Document"))
-					{
-						pJSDocument = (CJS_Document*)JS_GetPrivate(pRuntime->GetIsolate(),pObj);
-					}
-				}
-				else
-				{
-					JSFXObject pObj = JS_NewFxDynamicObj(*pRuntime, pContext, JS_GetObjDefnID(*pRuntime,L"Document"));
-					pJSDocument = (CJS_Document*)JS_GetPrivate(pRuntime->GetIsolate(),pObj);
-					ASSERT(pJSDocument != NULL);
-
-
-					//			pDocument->AttachDoc(pDoc);
-				}
-
-				aDocs.SetElement(0,CJS_Value(pRuntime->GetIsolate(),pJSDocument));
-			}
-	//		}
-
-		if (aDocs.GetLength() > 0)
-			vp << aDocs;
-		else
-			vp.SetNull();
-		return TRUE;
-	}
-	return FALSE;
+    return TRUE;
 }
 
 FX_BOOL app::calculate(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)
@@ -200,27 +178,16 @@ FX_BOOL app::calculate(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sEr
 		m_bCalculate = (FX_BOOL)bVP;
 
 		CJS_Context* pContext = (CJS_Context*)cc;
-		ASSERT(pContext != NULL);
-
 		CPDFDoc_Environment* pApp = pContext->GetReaderApp();
-		ASSERT(pApp != NULL);
-
 		CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-		ASSERT(pRuntime != NULL);
-
 		CJS_Array aDocs(pRuntime->GetIsolate());
-		if (CPDFSDK_Document* pDoc = pApp->GetCurrentDoc())
-		{
-			CPDFSDK_InterForm* pInterForm = (CPDFSDK_InterForm*)pDoc->GetInterForm();
-			ASSERT(pInterForm != NULL);
-			pInterForm->EnableCalculate((FX_BOOL)m_bCalculate);
-		}
+		if (CPDFSDK_Document* pDoc = pApp->GetSDKDocument())
+			pDoc->GetInterForm()->EnableCalculate((FX_BOOL)m_bCalculate);
 	}
 	else
 	{
 		vp << (bool)m_bCalculate;
 	}
-
 	return TRUE;
 }
 
@@ -360,7 +327,7 @@ FX_BOOL app::alert(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& v
 							swMsg += L",  ";
 					}
 
-					if(pValue) delete pValue;
+                                        delete pValue;
 				}
 			}
 
@@ -894,26 +861,27 @@ FX_BOOL app::response(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value
 	CPDFDoc_Environment* pApp = pContext->GetReaderApp();
 	ASSERT(pApp != NULL);
 
-	const int MAX_INPUT_BYTES = 2048;
-	char* pBuff = new char[MAX_INPUT_BYTES + 2];
-	if (!pBuff)
-		return FALSE;
+    const int MAX_INPUT_BYTES = 2048;
+    nonstd::unique_ptr<char[]> pBuff(new char[MAX_INPUT_BYTES + 2]);
+    memset(pBuff.get(), 0, MAX_INPUT_BYTES + 2);
+    int nLengthBytes = pApp->JS_appResponse(swQuestion.c_str(),
+                                            swTitle.c_str(),
+                                            swDefault.c_str(),
+                                            swLabel.c_str(),
+                                            bPassWord,
+                                            pBuff.get(),
+                                            MAX_INPUT_BYTES);
+    if (nLengthBytes <= 0) {
+        vRet.SetNull();
+        return FALSE;
+    }
+    nLengthBytes = std::min(nLengthBytes, MAX_INPUT_BYTES);
 
-	memset(pBuff, 0, MAX_INPUT_BYTES + 2);
-	int nLengthBytes = pApp->JS_appResponse(swQuestion.c_str(), swTitle.c_str(), swDefault.c_str(),
-                                            swLabel.c_str(), bPassWord, pBuff, MAX_INPUT_BYTES);
-	if (nLengthBytes <= 0)
-	{
-		vRet.SetNull();
-		delete[] pBuff;
-		return FALSE;
-	}
-	if (nLengthBytes > MAX_INPUT_BYTES)
-		nLengthBytes = MAX_INPUT_BYTES;
-
-	vRet = CFX_WideString::FromUTF16LE((unsigned short*)pBuff, nLengthBytes / sizeof(unsigned short)).c_str();
-	delete[] pBuff;
-	return TRUE;
+    CFX_WideString ret_string =
+        CFX_WideString::FromUTF16LE((unsigned short*)pBuff.get(),
+                                    nLengthBytes / sizeof(unsigned short));
+    vRet = ret_string.c_str();
+    return TRUE;
 }
 
 FX_BOOL app::media(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError)

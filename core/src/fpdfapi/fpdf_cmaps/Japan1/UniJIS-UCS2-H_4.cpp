@@ -1,10 +1,12 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-extern const unsigned short g_FXCMAP_UniJIS_UCS2_H_4[9772 * 2] = {
+#include "cmaps_japan1.h"
+
+const FX_WORD g_FXCMAP_UniJIS_UCS2_H_4[9772 * 2] = {
     0x0020, 0x0001, 0x0021, 0x0002, 0x0022, 0x0003, 0x0023, 0x0004,
     0x0024, 0x0005, 0x0025, 0x0006, 0x0026, 0x0007, 0x0027, 0x0008,
     0x0028, 0x0009, 0x0029, 0x000A, 0x002A, 0x000B, 0x002B, 0x000C,

@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _PWL_CARET_H_
-#define _PWL_CARET_H_
+#ifndef FPDFSDK_INCLUDE_PDFWINDOW_PWL_CARET_H_
+#define FPDFSDK_INCLUDE_PDFWINDOW_PWL_CARET_H_
 
 #include "PWL_Wnd.h"
 
@@ -34,7 +34,7 @@ public:
 	virtual void				InvalidateRect(CPDF_Rect * pRect = NULL);
 	virtual void				SetVisible(FX_BOOL bVisible) {}
 	virtual	void				TimerProc();
-	void						SetCaret(FX_BOOL bVisible, const CPDF_Point & ptHead, const CPDF_Point & ptFoot);	
+	void						SetCaret(FX_BOOL bVisible, const CPDF_Point & ptHead, const CPDF_Point & ptFoot);
 	CFX_ByteString				GetCaretAppearanceStream(const CPDF_Point & ptOffset);
 	void						SetInvalidRect(CPDF_Rect rc) {m_rcInvalid = rc;}
 
@@ -46,9 +46,8 @@ private:
 	CPDF_Point					m_ptHead;
 	CPDF_Point					m_ptFoot;
 	FX_FLOAT					m_fWidth;
-	FX_INT32					m_nDelay;
+	int32_t					m_nDelay;
 	CPDF_Rect					m_rcInvalid;
 };
 
-#endif
-
+#endif  // FPDFSDK_INCLUDE_PDFWINDOW_PWL_CARET_H_

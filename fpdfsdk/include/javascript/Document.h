@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _DOCUMENT_H_
-#define _DOCUMENT_H_
+#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_DOCUMENT_H_
+#define FPDFSDK_INCLUDE_JAVASCRIPT_DOCUMENT_H_
 
 #include "JS_Define.h"
 
@@ -14,7 +14,7 @@ class PrintParamsObj : public CJS_EmbedObj
 public:
 	PrintParamsObj(CJS_Object* pJSObject);
 	virtual ~PrintParamsObj(){}
-	
+
 public:
 	FX_BOOL bUI;
 	int nStart;
@@ -31,7 +31,7 @@ class CJS_PrintParamsObj : public CJS_Object
 public:
 	CJS_PrintParamsObj(JSFXObject pObject) : CJS_Object(pObject) {}
 	virtual ~CJS_PrintParamsObj(){}
-	
+
 	DECLARE_JS_CLASS(CJS_PrintParamsObj);
 };
 
@@ -64,7 +64,6 @@ public:
 
 public:
 	void			InsertIconElement(IconElement* pNewIcon);
-	void			DeleteIconElement(CFX_WideString swIconName);
 	void			DeleteIconTree();
 	int				GetLength();
 	IconElement*	operator[](int iIndex);
@@ -158,7 +157,7 @@ public:
 	FX_BOOL	submitForm(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError);
 	FX_BOOL	mailDoc(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError);
 	FX_BOOL	removeIcon(IFXJS_Context* cc, const CJS_Parameters& params, CJS_Value& vRet, CFX_WideString& sError);
-	
+
 public:
 	void                                    AttachDoc(CPDFSDK_Document* pDoc);
 	CPDFSDK_Document*                       GetReaderDoc();
@@ -169,7 +168,7 @@ public:
 	void                                    AddDelayAnnotData(CJS_AnnotObj *pData);
 	void                                    DoAnnotDelay();
 	void                                    SetIsolate(v8::Isolate* isolate) {m_isolate = isolate;}
-	CJS_Document*                           GetCJSDoc() const; 
+	CJS_Document*                           GetCJSDoc() const;
 
 private:
 	CFX_WideString                          ReversalStr(CFX_WideString cbFrom);
@@ -183,7 +182,7 @@ private:
 	IconTree*                               m_pIconTree;
 	CPDFSDK_Document*                       m_pDocument;
 	CFX_WideString                          m_cwBaseURL;
-	FX_BOOL                                 m_bDelay;
+	bool                                    m_bDelay;
 	CFX_ArrayTemplate<CJS_DelayData*>       m_DelayData;
 	CFX_ArrayTemplate<CJS_AnnotObj*>        m_DelayAnnotData;
 };
@@ -194,7 +193,7 @@ public:
 	CJS_Document(JSFXObject pObject) : CJS_Object(pObject) {};
 	virtual ~CJS_Document(){};
 
-	virtual FX_BOOL	InitInstance(IFXJS_Context* cc);	
+	virtual FX_BOOL	InitInstance(IFXJS_Context* cc);
 
 	DECLARE_JS_CLASS(CJS_Document);
 
@@ -272,5 +271,4 @@ public:
 	JS_STATIC_METHOD(mailDoc, Document);
 };
 
-#endif//_DOCUMENT_H_
-
+#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_DOCUMENT_H_

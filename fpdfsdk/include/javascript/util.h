@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _UTIL_H_
-#define _UTIL_H_
+#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_UTIL_H_
+#define FPDFSDK_INCLUDE_JAVASCRIPT_UTIL_H_
 
 #include <string>  // For std::wstring.
 
@@ -45,5 +45,6 @@ public:
 	JS_STATIC_METHOD(byteToChar, util);
 };
 
-FX_INT64 FX_atoi64(const char *nptr);
-#endif //_UTIL_H_
+int64_t FX_atoi64(const char *nptr);
+
+#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_UTIL_H_

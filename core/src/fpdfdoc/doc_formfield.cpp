@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/fpdfdoc/fpdf_doc.h"
@@ -472,14 +472,15 @@ int CPDF_FormField::GetSelectedIndex(int index)
             return -1;
         }
     }
+    if (pValue->GetType() == PDFOBJ_NUMBER) {
+        return pValue->GetInteger();
+    }
     CFX_WideString sel_value;
     if (pValue->GetType() == PDFOBJ_STRING) {
         if (index != 0) {
             return -1;
         }
         sel_value = pValue->GetUnicodeText();
-    } else if (pValue->GetType() == PDFOBJ_NUMBER) {
-        return pValue->GetInteger();
     } else {
         if (pValue->GetType() != PDFOBJ_ARRAY) {
             return -1;

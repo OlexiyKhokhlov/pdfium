@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
@@ -33,17 +33,17 @@ CFX_GlyphBitmap* CPDF_Type3Cache::LoadGlyph(FX_DWORD charcode, const CFX_AffineM
         m_SizeMap.SetAt(FaceGlyphsKey, pSizeCache);
     }
     CFX_GlyphBitmap* pGlyphBitmap;
-    if(pSizeCache->m_GlyphMap.Lookup((FX_LPVOID)(FX_UINTPTR)charcode, (void*&)pGlyphBitmap)) {
+    if(pSizeCache->m_GlyphMap.Lookup((void*)(uintptr_t)charcode, (void*&)pGlyphBitmap)) {
         return pGlyphBitmap;
     }
     pGlyphBitmap = RenderGlyph(pSizeCache, charcode, pMatrix, retinaScaleX, retinaScaleY);
-    pSizeCache->m_GlyphMap.SetAt((FX_LPVOID)(FX_UINTPTR)charcode, pGlyphBitmap);
+    pSizeCache->m_GlyphMap.SetAt((void*)(uintptr_t)charcode, pGlyphBitmap);
     return pGlyphBitmap;
 }
 CPDF_Type3Glyphs::~CPDF_Type3Glyphs()
 {
     FX_POSITION pos = m_GlyphMap.GetStartPosition();
-    FX_LPVOID Key;
+    void* Key;
     CFX_GlyphBitmap* pGlyphBitmap;
     while(pos) {
         m_GlyphMap.GetNextAssoc(pos, Key, (void*&)pGlyphBitmap);
@@ -76,7 +76,7 @@ void CPDF_Type3Glyphs::AdjustBlue(FX_FLOAT top, FX_FLOAT bottom, int& top_line, 
     top_line = _AdjustBlue(top, m_TopBlueCount, m_TopBlue);
     bottom_line = _AdjustBlue(bottom, m_BottomBlueCount, m_BottomBlue);
 }
-static FX_BOOL _IsScanLine1bpp(FX_LPBYTE pBuf, int width)
+static FX_BOOL _IsScanLine1bpp(uint8_t* pBuf, int width)
 {
     int size = width / 8;
     for (int i = 0; i < size; i ++)
@@ -89,7 +89,7 @@ static FX_BOOL _IsScanLine1bpp(FX_LPBYTE pBuf, int width)
         }
     return FALSE;
 }
-static FX_BOOL _IsScanLine8bpp(FX_LPBYTE pBuf, int width)
+static FX_BOOL _IsScanLine8bpp(uint8_t* pBuf, int width)
 {
     for (int i = 0; i < width; i ++)
         if (pBuf[i] > 0x40) {
@@ -104,7 +104,7 @@ static int _DetectFirstLastScan(const CFX_DIBitmap* pBitmap, FX_BOOL bFirst)
     if (bpp > 8) {
         width *= bpp / 8;
     }
-    FX_LPBYTE pBuf = pBitmap->GetBuffer();
+    uint8_t* pBuf = pBitmap->GetBuffer();
     int line = bFirst ? 0 : height - 1;
     int line_step = bFirst ? 1 : -1;
     int line_end = bFirst ? height : -1;
@@ -323,20 +323,6 @@ FX_BOOL CPDF_Type3Char::LoadBitmap(CPDF_RenderContext* pContext)
             m_pForm = NULL;
             return TRUE;
         }
-        if (pPageObj->m_Type == PDFPAGE_INLINES) {
-            CPDF_InlineImages *pInlines = (CPDF_InlineImages *)pPageObj;
-            if (pInlines->m_pStream) {
-                m_ImageMatrix = pInlines->m_Matrices[0];
-                CPDF_DIBSource dibsrc;
-                if (!dibsrc.Load(pContext->m_pDocument, pInlines->m_pStream, NULL, NULL, NULL, NULL)) {
-                    return FALSE;
-                }
-                m_pBitmap = dibsrc.Clone();
-                delete m_pForm;
-                m_pForm = NULL;
-                return TRUE;
-            }
-        }
     }
     return FALSE;
 }
@@ -512,7 +498,7 @@ public:
     FXTEXT_CHARPOS*		m_pCharPos;
     FX_DWORD			m_nChars;
 };
-FX_FLOAT _CIDTransformToFloat(FX_BYTE ch);
+FX_FLOAT _CIDTransformToFloat(uint8_t ch);
 CPDF_CharPosList::CPDF_CharPosList()
 {
     m_pCharPos = NULL;
@@ -531,7 +517,7 @@ void CPDF_CharPosList::Load(int nChars, FX_DWORD* pCharCodes, FX_FLOAT* pCharPos
     CPDF_CIDFont* pCIDFont = pFont->GetCIDFont();
     FX_BOOL bVertWriting = pCIDFont && pCIDFont->IsVertWriting();
     for (int iChar = 0; iChar < nChars; iChar ++) {
-        FX_DWORD CharCode = nChars == 1 ? (FX_DWORD)(FX_UINTPTR)pCharCodes : pCharCodes[iChar];
+        FX_DWORD CharCode = nChars == 1 ? (FX_DWORD)(uintptr_t)pCharCodes : pCharCodes[iChar];
         if (CharCode == (FX_DWORD) - 1) {
             continue;
         }
@@ -564,7 +550,7 @@ void CPDF_CharPosList::Load(int nChars, FX_DWORD* pCharCodes, FX_FLOAT* pCharPos
             charpos.m_OriginX -= FontSize * vx / 1000;
             charpos.m_OriginY -= FontSize * vy / 1000;
         }
-        FX_LPCBYTE pTransform = pCIDFont->GetCIDTransform(CID);
+        const uint8_t* pTransform = pCIDFont->GetCIDTransform(CID);
         if (pTransform && !bVert) {
             charpos.m_AdjustMatrix[0] = _CIDTransformToFloat(pTransform[0]);
             charpos.m_AdjustMatrix[2] = _CIDTransformToFloat(pTransform[2]);
@@ -614,7 +600,7 @@ void CPDF_TextRenderer::DrawTextString(CFX_RenderDevice* pDevice, FX_FLOAT origi
     FX_FLOAT* pCharPos;
     if (nChars == 1) {
         charcode = pFont->GetNextChar(str, str.GetLength(), offset);
-        pCharCodes = (FX_DWORD*)(FX_UINTPTR)charcode;
+        pCharCodes = (FX_DWORD*)(uintptr_t)charcode;
         pCharPos = NULL;
     } else {
         pCharCodes = FX_Alloc(FX_DWORD, nChars);

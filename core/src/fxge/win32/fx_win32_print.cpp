@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
-#if _FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN64_
+#if _FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN64_DESKTOP_
 #include <windows.h>
 #include "../../../include/fxge/fx_ge_win32.h"
 #include "win32_int.h"
@@ -80,33 +80,31 @@ FX_BOOL CGdiPrinterDriver::StretchDIBits(const CFX_DIBSource* pSource, FX_DWORD 
             return FALSE;
         }
         return GDI_StretchBitMask(pBitmap, dest_left, dest_top, dest_width, dest_height, color, flags, alpha_flag, pIccTransform);
-    } else {
-        ASSERT(pSource != NULL);
-        if (pSource->HasAlpha()) {
-            return FALSE;
-        }
-        if (dest_width < 0 || dest_height < 0) {
-            CFX_DIBitmap* pFlipped = pSource->FlipImage(dest_width < 0, dest_height < 0);
-            if (pFlipped == NULL) {
-                return FALSE;
-            }
-            if (dest_width < 0) {
-                dest_left += dest_width;
-            }
-            if (dest_height < 0) {
-                dest_top += dest_height;
-            }
-            FX_BOOL ret = GDI_StretchDIBits(pFlipped, dest_left, dest_top, abs(dest_width), abs(dest_height), flags, pIccTransform);
-            delete pFlipped;
-            return ret;
-        }
-        CFX_DIBExtractor temp(pSource);
-        CFX_DIBitmap* pBitmap = temp;
-        if (pBitmap == NULL) {
-            return FALSE;
-        }
-        return GDI_StretchDIBits(pBitmap, dest_left, dest_top, dest_width, dest_height, flags, pIccTransform);
     }
+    if (pSource->HasAlpha()) {
+        return FALSE;
+    }
+    if (dest_width < 0 || dest_height < 0) {
+        CFX_DIBitmap* pFlipped = pSource->FlipImage(dest_width < 0, dest_height < 0);
+        if (pFlipped == NULL) {
+            return FALSE;
+        }
+        if (dest_width < 0) {
+            dest_left += dest_width;
+        }
+        if (dest_height < 0) {
+            dest_top += dest_height;
+        }
+        FX_BOOL ret = GDI_StretchDIBits(pFlipped, dest_left, dest_top, abs(dest_width), abs(dest_height), flags, pIccTransform);
+        delete pFlipped;
+        return ret;
+    }
+    CFX_DIBExtractor temp(pSource);
+    CFX_DIBitmap* pBitmap = temp;
+    if (pBitmap == NULL) {
+        return FALSE;
+    }
+    return GDI_StretchDIBits(pBitmap, dest_left, dest_top, dest_width, dest_height, flags, pIccTransform);
 }
 static CFX_DIBitmap* Transform1bppBitmap(const CFX_DIBSource* pSrc, const CFX_AffineMatrix* pDestMatrix)
 {
@@ -121,7 +119,7 @@ static CFX_DIBitmap* Transform1bppBitmap(const CFX_DIBSource* pSrc, const CFX_Af
         return NULL;
     }
     int src_width = pSrcBitmap->GetWidth(), src_height = pSrcBitmap->GetHeight();
-    FX_LPBYTE src_buf = pSrcBitmap->GetBuffer();
+    uint8_t* src_buf = pSrcBitmap->GetBuffer();
     FX_DWORD src_pitch = pSrcBitmap->GetPitch();
     FX_FLOAT dest_area = pDestMatrix->GetUnitArea();
     FX_FLOAT area_scale = FXSYS_Div((FX_FLOAT)(src_width * src_height), dest_area);
@@ -152,12 +150,12 @@ static CFX_DIBitmap* Transform1bppBitmap(const CFX_DIBSource* pSrc, const CFX_Af
         return NULL;
     }
     pTempBitmap->CopyPalette(pSrc->GetPalette());
-    FX_LPBYTE dest_buf = pTempBitmap->GetBuffer();
+    uint8_t* dest_buf = pTempBitmap->GetBuffer();
     int dest_pitch = pTempBitmap->GetPitch();
-    FXSYS_memset8(dest_buf, pSrc->IsAlphaMask() ? 0 : 0xff, dest_pitch * result_height);
+    FXSYS_memset(dest_buf, pSrc->IsAlphaMask() ? 0 : 0xff, dest_pitch * result_height);
     if (pSrcBitmap->IsAlphaMask()) {
         for (int dest_y = 0; dest_y < result_height; dest_y ++) {
-            FX_LPBYTE dest_scan = dest_buf + dest_y * dest_pitch;
+            uint8_t* dest_scan = dest_buf + dest_y * dest_pitch;
             for (int dest_x = 0; dest_x < result_width; dest_x ++) {
                 int src_x, src_y;
                 result2src_fix.Transform(dest_x, dest_y, src_x, src_y);
@@ -172,7 +170,7 @@ static CFX_DIBitmap* Transform1bppBitmap(const CFX_DIBSource* pSrc, const CFX_Af
         }
     } else {
         for (int dest_y = 0; dest_y < result_height; dest_y ++) {
-            FX_LPBYTE dest_scan = dest_buf + dest_y * dest_pitch;
+            uint8_t* dest_scan = dest_buf + dest_y * dest_pitch;
             for (int dest_x = 0; dest_x < result_width; dest_x ++) {
                 int src_x, src_y;
                 result2src_fix.Transform(dest_x, dest_y, src_x, src_y);
@@ -192,7 +190,7 @@ static CFX_DIBitmap* Transform1bppBitmap(const CFX_DIBSource* pSrc, const CFX_Af
     return pTempBitmap;
 }
 FX_BOOL	CGdiPrinterDriver::StartDIBits(const CFX_DIBSource* pSource, int bitmap_alpha, FX_DWORD color,
-                                       const CFX_AffineMatrix* pMatrix, FX_DWORD render_flags, FX_LPVOID& handle,
+                                       const CFX_AffineMatrix* pMatrix, FX_DWORD render_flags, void*& handle,
                                        int alpha_flag, void* pIccTransform, int blend_type)
 {
     if (bitmap_alpha < 255 || pSource->HasAlpha() || (pSource->IsAlphaMask() && (pSource->GetBPP() != 1 || !m_bSupportROP))) {
@@ -250,7 +248,7 @@ void CPSOutput::Init()
 {
     m_pBuf = FX_Alloc(FX_CHAR, 1026);
 }
-void CPSOutput::OutputPS(FX_LPCSTR string, int len)
+void CPSOutput::OutputPS(const FX_CHAR* string, int len)
 {
     if (len < 0) {
         len = (int)FXSYS_strlen(string);
@@ -273,9 +271,7 @@ CPSPrinterDriver::CPSPrinterDriver()
 CPSPrinterDriver::~CPSPrinterDriver()
 {
     EndRendering();
-    if (m_pPSOutput) {
-        delete m_pPSOutput;
-    }
+    delete m_pPSOutput;
 }
 FX_BOOL CPSPrinterDriver::Init(HDC hDC, int pslevel, FX_BOOL bCmykOutput)
 {
@@ -294,7 +290,7 @@ FX_BOOL CPSPrinterDriver::Init(HDC hDC, int pslevel, FX_BOOL bCmykOutput)
     if (ret == 1) {
         ret = ::GetRegionData(hRgn, 0, NULL);
         if (ret) {
-            RGNDATA* pData = (RGNDATA*)FX_Alloc(FX_BYTE, ret);
+            RGNDATA* pData = (RGNDATA*)FX_Alloc(uint8_t, ret);
             ret = ::GetRegionData(hRgn, ret, pData);
             if (ret) {
                 CFX_PathData path;
@@ -393,7 +389,7 @@ FX_BOOL CPSPrinterDriver::StretchDIBits(const CFX_DIBSource* pBitmap, FX_DWORD c
     return m_PSRenderer.StretchDIBits(pBitmap, color, dest_left, dest_top, dest_width, dest_height, flags, alpha_flag, pIccTransform);
 }
 FX_BOOL	CPSPrinterDriver::StartDIBits(const CFX_DIBSource* pBitmap, int bitmap_alpha, FX_DWORD color,
-                                      const CFX_AffineMatrix* pMatrix, FX_DWORD render_flags, FX_LPVOID& handle,
+                                      const CFX_AffineMatrix* pMatrix, FX_DWORD render_flags, void*& handle,
                                       int alpha_flag, void* pIccTransform, int blend_type)
 {
     if (blend_type != FXDIB_BLEND_NORMAL) {

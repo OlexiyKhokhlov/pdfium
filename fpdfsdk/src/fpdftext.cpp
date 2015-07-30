@@ -1,11 +1,12 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "../../core/include/fpdfdoc/fpdf_doc.h"
+#include "../../core/include/fpdftext/fpdf_text.h"
 #include "../../public/fpdf_text.h"
-#include "../include/fsdk_define.h"
 
 #ifdef _WIN32
 #include <tchar.h>
@@ -25,11 +26,7 @@ DLLEXPORT FPDF_TEXTPAGE STDCALL FPDFText_LoadPage(FPDF_PAGE page)
 }
 DLLEXPORT void STDCALL FPDFText_ClosePage(FPDF_TEXTPAGE text_page)
 {
-	if (text_page){
-		IPDF_TextPage* textpage=(IPDF_TextPage*)text_page;
-		delete textpage;
-		text_page=NULL;
-	}
+    delete (IPDF_TextPage*)text_page;
 }
 DLLEXPORT int STDCALL FPDFText_CountChars(FPDF_TEXTPAGE text_page)
 {
@@ -65,7 +62,7 @@ DLLEXPORT void STDCALL FPDFText_GetCharBox(FPDF_TEXTPAGE text_page, int index,do
 {
 	if (!text_page) return;
 	IPDF_TextPage* textpage=(IPDF_TextPage*)text_page;
-	
+
 	if (index<0 || index>=textpage->CountChars()) return ;
 	FPDF_CHAR_INFO	charinfo;
 	textpage->GetCharInfo(index,charinfo);
@@ -87,7 +84,7 @@ DLLEXPORT int STDCALL FPDFText_GetText(FPDF_TEXTPAGE text_page,int start,int cou
 {
 	if (!text_page) return 0;
 	IPDF_TextPage* textpage=(IPDF_TextPage*)text_page;
-	
+
 	if (start>=textpage->CountChars()) return 0;
 
 	CFX_WideString str=textpage->GetPageText(start,count);
@@ -121,7 +118,7 @@ DLLEXPORT void STDCALL FPDFText_GetRect(FPDF_TEXTPAGE text_page,int rect_index, 
 	*bottom=rect.bottom;
 }
 
-DLLEXPORT int STDCALL FPDFText_GetBoundedText(FPDF_TEXTPAGE text_page,double left, double top, 
+DLLEXPORT int STDCALL FPDFText_GetBoundedText(FPDF_TEXTPAGE text_page,double left, double top,
 											  double right, double bottom,unsigned short* buffer,int buflen)
 {
 	if (!text_page) return 0;
@@ -141,7 +138,7 @@ DLLEXPORT int STDCALL FPDFText_GetBoundedText(FPDF_TEXTPAGE text_page,double lef
 	cbUTF16Str.ReleaseBuffer(size*sizeof(unsigned short));
 
 	return size;
-		
+
 }
 
 //Search
@@ -245,9 +242,6 @@ DLLEXPORT void STDCALL FPDFLink_GetRect(FPDF_PAGELINK link_page,int link_index, 
 }
 DLLEXPORT void	STDCALL	FPDFLink_CloseWebLinks(FPDF_PAGELINK link_page)
 {
-	if (!link_page) return;
-	IPDF_LinkExtract* pageLink=(IPDF_LinkExtract*)link_page;
-	delete pageLink;
-	pageLink =NULL;
+    delete (IPDF_LinkExtract*)link_page;
 }
 

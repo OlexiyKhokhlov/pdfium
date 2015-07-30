@@ -1,14 +1,14 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include <limits.h>
 
-#include "../../../include/fpdfapi/fpdf_page.h"
 #include "../../../include/fpdfapi/fpdf_module.h"
-#include "../../../src/fxcrt/fx_safe_types.h"
+#include "../../../include/fpdfapi/fpdf_page.h"
+#include "../../../include/fxcrt/fx_safe_types.h"
 #include "../../../../third_party/base/numerics/safe_conversions_impl.h"
 #include "pageint.h"
 
@@ -21,7 +21,7 @@ typedef enum {PSOP_ADD, PSOP_SUB, PSOP_MUL, PSOP_DIV, PSOP_IDIV, PSOP_MOD,
               PSOP_IF, PSOP_IFELSE, PSOP_POP, PSOP_EXCH, PSOP_DUP, PSOP_COPY,
               PSOP_INDEX, PSOP_ROLL, PSOP_PROC, PSOP_CONST
              } PDF_PSOP;
-class CPDF_PSProc 
+class CPDF_PSProc
 {
 public:
     ~CPDF_PSProc();
@@ -30,7 +30,7 @@ public:
     CFX_PtrArray		m_Operators;
 };
 #define PSENGINE_STACKSIZE 100
-class CPDF_PSEngine 
+class CPDF_PSEngine
 {
 public:
     CPDF_PSEngine();
@@ -64,10 +64,10 @@ CPDF_PSProc::~CPDF_PSProc()
 {
     int size = m_Operators.GetSize();
     for (int i = 0; i < size; i ++) {
-        if (m_Operators[i] == (FX_LPVOID)PSOP_PROC) {
+        if (m_Operators[i] == (void*)PSOP_PROC) {
             delete (CPDF_PSProc*)m_Operators[i + 1];
             i ++;
-        } else if (m_Operators[i] == (FX_LPVOID)PSOP_CONST) {
+        } else if (m_Operators[i] == (void*)PSOP_CONST) {
             FX_Free((FX_FLOAT*)m_Operators[i + 1]);
             i ++;
         }
@@ -77,22 +77,22 @@ FX_BOOL CPDF_PSProc::Execute(CPDF_PSEngine* pEngine)
 {
     int size = m_Operators.GetSize();
     for (int i = 0; i < size; i ++) {
-        PDF_PSOP op = (PDF_PSOP)(FX_UINTPTR)m_Operators[i];
+        PDF_PSOP op = (PDF_PSOP)(uintptr_t)m_Operators[i];
         if (op == PSOP_PROC) {
             i ++;
         } else if (op == PSOP_CONST) {
             pEngine->Push(*(FX_FLOAT*)m_Operators[i + 1]);
             i ++;
         } else if (op == PSOP_IF) {
-            if (i < 2 || m_Operators[i - 2] != (FX_LPVOID)PSOP_PROC) {
+            if (i < 2 || m_Operators[i - 2] != (void*)PSOP_PROC) {
                 return FALSE;
             }
             if ((int)pEngine->Pop()) {
                 ((CPDF_PSProc*)m_Operators[i - 1])->Execute(pEngine);
             }
         } else if (op == PSOP_IFELSE) {
-            if (i < 4 || m_Operators[i - 2] != (FX_LPVOID)PSOP_PROC ||
-                    m_Operators[i - 4] != (FX_LPVOID)PSOP_PROC) {
+            if (i < 4 || m_Operators[i - 2] != (void*)PSOP_PROC ||
+                    m_Operators[i - 4] != (void*)PSOP_PROC) {
                 return FALSE;
             }
             if ((int)pEngine->Pop()) {
@@ -147,7 +147,7 @@ const struct _PDF_PSOpName {
 };
 FX_BOOL CPDF_PSEngine::Parse(const FX_CHAR* string, int size)
 {
-    CPDF_SimpleParser parser((FX_LPBYTE)string, size);
+    CPDF_SimpleParser parser((uint8_t*)string, size);
     CFX_ByteStringC word = parser.GetWord();
     if (word != FX_BSTRC("{")) {
         return FALSE;
@@ -166,7 +166,7 @@ FX_BOOL CPDF_PSProc::Parse(CPDF_SimpleParser& parser)
         }
         if (word == FX_BSTRC("{")) {
             CPDF_PSProc* pProc = new CPDF_PSProc;
-            m_Operators.Add((FX_LPVOID)PSOP_PROC);
+            m_Operators.Add((void*)PSOP_PROC);
             m_Operators.Add(pProc);
             if (!pProc->Parse(parser)) {
                 return FALSE;
@@ -175,7 +175,7 @@ FX_BOOL CPDF_PSProc::Parse(CPDF_SimpleParser& parser)
             int i = 0;
             while (_PDF_PSOpNames[i].name) {
                 if (word == CFX_ByteStringC(_PDF_PSOpNames[i].name)) {
-                    m_Operators.Add((FX_LPVOID)_PDF_PSOpNames[i].op);
+                    m_Operators.Add((void*)_PDF_PSOpNames[i].op);
                     break;
                 }
                 i ++;
@@ -183,7 +183,7 @@ FX_BOOL CPDF_PSProc::Parse(CPDF_SimpleParser& parser)
             if (_PDF_PSOpNames[i].name == NULL) {
                 FX_FLOAT* pd = FX_Alloc(FX_FLOAT, 1);
                 *pd = FX_atof(word);
-                m_Operators.Add((FX_LPVOID)PSOP_CONST);
+                m_Operators.Add((void*)PSOP_CONST);
                 m_Operators.Add(pd);
             }
         }
@@ -424,7 +424,7 @@ static FX_FLOAT PDF_Interpolate(FX_FLOAT x, FX_FLOAT xmin, FX_FLOAT xmax, FX_FLO
 {
     return ((x - xmin) * (ymax - ymin) / (xmax - xmin)) + ymin;
 }
-static FX_DWORD _GetBits32(FX_LPCBYTE pData, int bitpos, int nbits)
+static FX_DWORD _GetBits32(const uint8_t* pData, int bitpos, int nbits)
 {
     int result = 0;
     for (int i = 0; i < nbits; i ++)
@@ -449,7 +449,8 @@ public:
     virtual FX_BOOL		v_Call(FX_FLOAT* inputs, FX_FLOAT* results) const;
     SampleEncodeInfo*	m_pEncodeInfo;
     SampleDecodeInfo*	m_pDecodeInfo;
-    FX_DWORD	m_nBitsPerSample, m_SampleMax;
+    FX_DWORD	m_nBitsPerSample;
+    FX_DWORD	m_SampleMax;
     CPDF_StreamAcc*	m_pSampleStream;
 };
 CPDF_SampledFunc::CPDF_SampledFunc()
@@ -460,9 +461,7 @@ CPDF_SampledFunc::CPDF_SampledFunc()
 }
 CPDF_SampledFunc::~CPDF_SampledFunc()
 {
-    if (m_pSampleStream) {
-        delete m_pSampleStream;
-    }
+    delete m_pSampleStream;
     if (m_pEncodeInfo) {
         FX_Free(m_pEncodeInfo);
     }
@@ -481,21 +480,20 @@ FX_BOOL CPDF_SampledFunc::v_Init(CPDF_Object* pObj)
     CPDF_Array* pEncode = pDict->GetArray(FX_BSTRC("Encode"));
     CPDF_Array* pDecode = pDict->GetArray(FX_BSTRC("Decode"));
     m_nBitsPerSample = pDict->GetInteger(FX_BSTRC("BitsPerSample"));
+    if (m_nBitsPerSample > 32) {
+        return FALSE;
+    }
     m_SampleMax = 0xffffffff >> (32 - m_nBitsPerSample);
     m_pSampleStream = new CPDF_StreamAcc;
     m_pSampleStream->LoadAllData(pStream, FALSE);
     m_pEncodeInfo = FX_Alloc(SampleEncodeInfo, m_nInputs);
-    int i;
-    FX_DWORD nTotalSamples = 1;
-    for (i = 0; i < m_nInputs; i ++) {
+    FX_SAFE_DWORD nTotalSampleBits = 1;
+    for (int i = 0; i < m_nInputs; i ++) {
         m_pEncodeInfo[i].sizes = pSize ? pSize->GetInteger(i) : 0;
         if (!pSize && i == 0) {
             m_pEncodeInfo[i].sizes = pDict->GetInteger(FX_BSTRC("Size"));
         }
-        if (nTotalSamples > 0 && (FX_UINT32)(m_pEncodeInfo[i].sizes) > UINT_MAX / nTotalSamples) {
-            return FALSE;
-        }
-        nTotalSamples *= m_pEncodeInfo[i].sizes;
+        nTotalSampleBits *= m_pEncodeInfo[i].sizes;
         if (pEncode) {
             m_pEncodeInfo[i].encode_min = pEncode->GetFloat(i * 2);
             m_pEncodeInfo[i].encode_max = pEncode->GetFloat(i * 2 + 1);
@@ -508,19 +506,18 @@ FX_BOOL CPDF_SampledFunc::v_Init(CPDF_Object* pObj)
             }
         }
     }
-    if (nTotalSamples > 0 && m_nBitsPerSample > UINT_MAX / nTotalSamples) {
-        return FALSE;
-    }
-    nTotalSamples *= m_nBitsPerSample;
-    if (nTotalSamples > 0 && ((FX_UINT32)m_nOutputs) > UINT_MAX / nTotalSamples) {
-        return FALSE;
-    }
-    nTotalSamples *= m_nOutputs;
-    if (nTotalSamples == 0 || m_pSampleStream->GetSize() * 8 < nTotalSamples) {
+    nTotalSampleBits *= m_nBitsPerSample;
+    nTotalSampleBits *= m_nOutputs;
+    FX_SAFE_DWORD nTotalSampleBytes = nTotalSampleBits;
+    nTotalSampleBytes += 7;
+    nTotalSampleBytes /= 8;
+    if (!nTotalSampleBytes.IsValid() ||
+        nTotalSampleBytes.ValueOrDie() == 0 ||
+        nTotalSampleBytes.ValueOrDie() > m_pSampleStream->GetSize()) {
         return FALSE;
     }
     m_pDecodeInfo = FX_Alloc(SampleDecodeInfo, m_nOutputs);
-    for (i = 0; i < m_nOutputs; i ++) {
+    for (int i = 0; i < m_nOutputs; i ++) {
         if (pDecode) {
             m_pDecodeInfo[i].decode_min = pDecode->GetFloat(2 * i);
             m_pDecodeInfo[i].decode_max = pDecode->GetFloat(2 * i + 1);
@@ -555,20 +552,23 @@ FX_BOOL CPDF_SampledFunc::v_Call(FX_FLOAT* inputs, FX_FLOAT* results) const
         }
         pos += index[i] * blocksize[i];
     }
+    FX_SAFE_INT32 bits_to_output = m_nOutputs;
+    bits_to_output *= m_nBitsPerSample;
+    if (!bits_to_output.IsValid()) {
+        return FALSE;
+    }
     FX_SAFE_INT32 bitpos = pos;
-    bitpos *= m_nBitsPerSample;
-    bitpos *= m_nOutputs;
+    bitpos *= bits_to_output.ValueOrDie();
     if (!bitpos.IsValid()) {
         return FALSE;
     }
-    FX_LPCBYTE pSampleData = m_pSampleStream->GetData();
-    if (pSampleData == NULL) {
+    FX_SAFE_INT32 range_check = bitpos;
+    range_check += bits_to_output.ValueOrDie();
+    if (!range_check.IsValid()) {
         return FALSE;
     }
-    FX_SAFE_INT32 bitpos1 = m_nOutputs - 1 > 0 ? m_nOutputs - 1 : 0; 
-    bitpos1 *= m_nBitsPerSample;
-    bitpos1 += bitpos.ValueOrDie();
-    if (!bitpos1.IsValid()) {
+    const uint8_t* pSampleData = m_pSampleStream->GetData();
+    if (!pSampleData) {
         return FALSE;
     }
     for (int j = 0; j < m_nOutputs; j ++) {
@@ -584,7 +584,7 @@ FX_BOOL CPDF_SampledFunc::v_Call(FX_FLOAT* inputs, FX_FLOAT* results) const
                 bitpos2 += pos;
                 bitpos2 *= m_nOutputs;
                 bitpos2 += j;
-                bitpos2 *= m_nBitsPerSample; 
+                bitpos2 *= m_nBitsPerSample;
                 if (!bitpos2.IsValid()) {
                     return FALSE;
                 }
@@ -713,9 +713,7 @@ CPDF_StitchFunc::CPDF_StitchFunc()
 CPDF_StitchFunc::~CPDF_StitchFunc()
 {
     for (int i = 0; i < m_nSubs; i ++)
-        if (m_pSubFunctions[i]) {
-            delete m_pSubFunctions[i];
-        }
+        delete m_pSubFunctions[i];
     if (m_pSubFunctions) {
         FX_Free(m_pSubFunctions);
     }
@@ -869,14 +867,16 @@ FX_BOOL CPDF_Function::Init(CPDF_Object* pObj)
         }
     }
     FX_DWORD old_outputs = m_nOutputs;
-    FX_BOOL ret = v_Init(pObj);
+    if (!v_Init(pObj)) {
+        return FALSE;
+    }
     if (m_pRanges && m_nOutputs > (int)old_outputs) {
         m_pRanges = FX_Realloc(FX_FLOAT, m_pRanges, m_nOutputs * 2);
         if (m_pRanges) {
-            FXSYS_memset32(m_pRanges + (old_outputs * 2), 0, sizeof(FX_FLOAT) * (m_nOutputs - old_outputs) * 2);
+            FXSYS_memset(m_pRanges + (old_outputs * 2), 0, sizeof(FX_FLOAT) * (m_nOutputs - old_outputs) * 2);
         }
     }
-    return ret;
+    return TRUE;
 }
 FX_BOOL CPDF_Function::Call(FX_FLOAT* inputs, int ninputs, FX_FLOAT* results, int& nresults) const
 {

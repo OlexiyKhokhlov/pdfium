@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "testing/gtest/include/gtest/gtest.h"
 #include "../../../testing/fx_string_testhelpers.h"
-#include "../../include/fxcrt/fx_basic.h"
+#include "../../include/fxcrt/fx_string.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 TEST(fxcrt, ByteStringOperatorSubscript) {
     // CFX_ByteString includes the NUL terminator for non-empty strings.
@@ -278,7 +278,7 @@ TEST(fxcrt, ByteStringCNull) {
   EXPECT_EQ(null_string, assigned_null_string);
 
   CFX_ByteStringC assigned_nullptr_string("initially not NULL");
-  assigned_nullptr_string = (FX_LPCSTR)nullptr;
+  assigned_nullptr_string = (const FX_CHAR*)nullptr;
   EXPECT_EQ(assigned_nullptr_string.GetPtr(), nullptr);
   EXPECT_EQ(assigned_nullptr_string.GetLength(), 0);
   EXPECT_TRUE(assigned_nullptr_string.IsEmpty());

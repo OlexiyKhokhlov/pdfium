@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_dib.h"
@@ -28,7 +28,7 @@ void CWeightTable::Calc(int dest_len, int dest_min, int dest_max, int src_len, i
     if ((dest_max - dest_min) > (int)((1U << 30) - 4) / m_ItemSize) {
         return;
     }
-    m_pWeightTables = FX_TryAlloc(FX_BYTE, (dest_max - dest_min) * m_ItemSize + 4);
+    m_pWeightTables = FX_TryAlloc(uint8_t, (dest_max - dest_min) * m_ItemSize + 4);
     if (m_pWeightTables == NULL) {
         return;
     }
@@ -202,12 +202,12 @@ CStretchEngine::CStretchEngine(IFX_ScanlineComposer* pDestBitmap, FXDIB_Format d
     }
     size += 31;
     size = size / 32 * 4;
-    m_pDestScanline = FX_TryAlloc(FX_BYTE, size);
+    m_pDestScanline = FX_TryAlloc(uint8_t, size);
     if (m_pDestScanline == NULL) {
         return;
     }
     if (dest_format == FXDIB_Rgb32) {
-        FXSYS_memset8(m_pDestScanline, 255, size);
+        FXSYS_memset(m_pDestScanline, 255, size);
     }
     m_InterPitch = (m_DestClip.Width() * m_DestBpp + 31) / 32 * 4;
     m_ExtraMaskPitch = (m_DestClip.Width() * 8 + 31) / 32 * 4;
@@ -346,14 +346,13 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
         if (rows_to_go == 0) {
             if (pPause && pPause->NeedToPauseNow()) {
                 return TRUE;
-            } else {
-                rows_to_go = FX_STRECH_PAUSE_ROWS;
             }
+            rows_to_go = FX_STRECH_PAUSE_ROWS;
         }
-        FX_LPCBYTE src_scan = m_pSource->GetScanline(m_CurRow);
-        FX_LPBYTE dest_scan = m_pInterBuf + (m_CurRow - m_SrcClip.top) * m_InterPitch;
-        FX_LPCBYTE src_scan_mask = NULL;
-        FX_LPBYTE dest_scan_mask = NULL;
+        const uint8_t* src_scan = m_pSource->GetScanline(m_CurRow);
+        uint8_t* dest_scan = m_pInterBuf + (m_CurRow - m_SrcClip.top) * m_InterPitch;
+        const uint8_t* src_scan_mask = NULL;
+        uint8_t* dest_scan_mask = NULL;
         if (m_pExtraAlphaBuf) {
             src_scan_mask = m_pSource->m_pAlphaMask->GetScanline(m_CurRow);
             dest_scan_mask = m_pExtraAlphaBuf + (m_CurRow - m_SrcClip.top) * m_ExtraMaskPitch;
@@ -373,7 +372,7 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                         if (m_Flags & FXDIB_BICUBIC_INTERPOL) {
                             dest_a = dest_a < 0 ? 0 : dest_a > 16711680 ? 16711680 : dest_a;
                         }
-                        *dest_scan++ = (FX_BYTE)(dest_a >> 16);
+                        *dest_scan++ = (uint8_t)(dest_a >> 16);
                     }
                     break;
                 }
@@ -388,7 +387,7 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                         if (m_Flags & FXDIB_BICUBIC_INTERPOL) {
                             dest_a = dest_a < 0 ? 0 : dest_a > 16711680 ? 16711680 : dest_a;
                         }
-                        *dest_scan++ = (FX_BYTE)(dest_a >> 16);
+                        *dest_scan++ = (uint8_t)(dest_a >> 16);
                     }
                     break;
                 }
@@ -406,8 +405,8 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                             dest_r = dest_r < 0 ? 0 : dest_r > 16711680 ? 16711680 : dest_r;
                             dest_a = dest_a < 0 ? 0 : dest_a > 65536 ? 65536 : dest_a;
                         }
-                        *dest_scan++ = (FX_BYTE)(dest_r >> 16);
-                        *dest_scan_mask++ = (FX_BYTE)((dest_a * 255) >> 16);
+                        *dest_scan++ = (uint8_t)(dest_r >> 16);
+                        *dest_scan_mask++ = (uint8_t)((dest_a * 255) >> 16);
                     }
                     break;
                 }
@@ -419,13 +418,13 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                             int pixel_weight = pPixelWeights->m_Weights[j - pPixelWeights->m_SrcStart];
                             unsigned long argb_cmyk = m_pSrcPalette[src_scan[j]];
                             if (m_DestFormat == FXDIB_Rgb) {
-                                dest_r_y += pixel_weight * (FX_BYTE)(argb_cmyk >> 16);
-                                dest_g_m += pixel_weight * (FX_BYTE)(argb_cmyk >> 8);
-                                dest_b_c += pixel_weight * (FX_BYTE)argb_cmyk;
+                                dest_r_y += pixel_weight * (uint8_t)(argb_cmyk >> 16);
+                                dest_g_m += pixel_weight * (uint8_t)(argb_cmyk >> 8);
+                                dest_b_c += pixel_weight * (uint8_t)argb_cmyk;
                             } else {
-                                dest_b_c += pixel_weight * (FX_BYTE)(argb_cmyk >> 24);
-                                dest_g_m += pixel_weight * (FX_BYTE)(argb_cmyk >> 16);
-                                dest_r_y += pixel_weight * (FX_BYTE)(argb_cmyk >> 8);
+                                dest_b_c += pixel_weight * (uint8_t)(argb_cmyk >> 24);
+                                dest_g_m += pixel_weight * (uint8_t)(argb_cmyk >> 16);
+                                dest_r_y += pixel_weight * (uint8_t)(argb_cmyk >> 8);
                             }
                         }
                         if (m_Flags & FXDIB_BICUBIC_INTERPOL) {
@@ -433,9 +432,9 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                             dest_g_m = dest_g_m < 0 ? 0 : dest_g_m > 16711680 ? 16711680 : dest_g_m;
                             dest_b_c = dest_b_c < 0 ? 0 : dest_b_c > 16711680 ? 16711680 : dest_b_c;
                         }
-                        *dest_scan++ = (FX_BYTE)(dest_b_c >> 16);
-                        *dest_scan++ = (FX_BYTE)(dest_g_m >> 16);
-                        *dest_scan++ = (FX_BYTE)(dest_r_y >> 16);
+                        *dest_scan++ = (uint8_t)(dest_b_c >> 16);
+                        *dest_scan++ = (uint8_t)(dest_g_m >> 16);
+                        *dest_scan++ = (uint8_t)(dest_r_y >> 16);
                     }
                     break;
                 }
@@ -448,13 +447,13 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                             pixel_weight = pixel_weight * src_scan_mask[j] / 255;
                             unsigned long argb_cmyk = m_pSrcPalette[src_scan[j]];
                             if (m_DestFormat == FXDIB_Rgba) {
-                                dest_r_y += pixel_weight * (FX_BYTE)(argb_cmyk >> 16);
-                                dest_g_m += pixel_weight * (FX_BYTE)(argb_cmyk >> 8);
-                                dest_b_c += pixel_weight * (FX_BYTE)argb_cmyk;
+                                dest_r_y += pixel_weight * (uint8_t)(argb_cmyk >> 16);
+                                dest_g_m += pixel_weight * (uint8_t)(argb_cmyk >> 8);
+                                dest_b_c += pixel_weight * (uint8_t)argb_cmyk;
                             } else {
-                                dest_b_c += pixel_weight * (FX_BYTE)(argb_cmyk >> 24);
-                                dest_g_m += pixel_weight * (FX_BYTE)(argb_cmyk >> 16);
-                                dest_r_y += pixel_weight * (FX_BYTE)(argb_cmyk >> 8);
+                                dest_b_c += pixel_weight * (uint8_t)(argb_cmyk >> 24);
+                                dest_g_m += pixel_weight * (uint8_t)(argb_cmyk >> 16);
+                                dest_r_y += pixel_weight * (uint8_t)(argb_cmyk >> 8);
                             }
                             dest_a += pixel_weight;
                         }
@@ -464,10 +463,10 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                             dest_r_y = dest_r_y < 0 ? 0 : dest_r_y > 16711680 ? 16711680 : dest_r_y;
                             dest_a = dest_a < 0 ? 0 : dest_a > 65536 ? 65536 : dest_a;
                         }
-                        *dest_scan++ = (FX_BYTE)(dest_b_c >> 16);
-                        *dest_scan++ = (FX_BYTE)(dest_g_m >> 16);
-                        *dest_scan++ = (FX_BYTE)(dest_r_y >> 16);
-                        *dest_scan_mask++ = (FX_BYTE)((dest_a * 255) >> 16);
+                        *dest_scan++ = (uint8_t)(dest_b_c >> 16);
+                        *dest_scan++ = (uint8_t)(dest_g_m >> 16);
+                        *dest_scan++ = (uint8_t)(dest_r_y >> 16);
+                        *dest_scan_mask++ = (uint8_t)((dest_a * 255) >> 16);
                     }
                     break;
                 }
@@ -477,7 +476,7 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                         int dest_r_y = 0, dest_g_m = 0, dest_b_c = 0;
                         for (int j = pPixelWeights->m_SrcStart; j <= pPixelWeights->m_SrcEnd; j ++) {
                             int pixel_weight = pPixelWeights->m_Weights[j - pPixelWeights->m_SrcStart];
-                            FX_LPCBYTE src_pixel = src_scan + j * Bpp;
+                            const uint8_t* src_pixel = src_scan + j * Bpp;
                             dest_b_c += pixel_weight * (*src_pixel++);
                             dest_g_m += pixel_weight * (*src_pixel++);
                             dest_r_y += pixel_weight * (*src_pixel);
@@ -487,9 +486,9 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                             dest_g_m = dest_g_m < 0 ? 0 : dest_g_m > 16711680 ? 16711680 : dest_g_m;
                             dest_r_y = dest_r_y < 0 ? 0 : dest_r_y > 16711680 ? 16711680 : dest_r_y;
                         }
-                        *dest_scan++ = (FX_BYTE)((dest_b_c) >> 16);
-                        *dest_scan++ = (FX_BYTE)((dest_g_m) >> 16);
-                        *dest_scan++ = (FX_BYTE)((dest_r_y) >> 16);
+                        *dest_scan++ = (uint8_t)((dest_b_c) >> 16);
+                        *dest_scan++ = (uint8_t)((dest_g_m) >> 16);
+                        *dest_scan++ = (uint8_t)((dest_r_y) >> 16);
                         dest_scan += Bpp - 3;
                     }
                     break;
@@ -500,7 +499,7 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                         int dest_a = 0, dest_r_y = 0, dest_g_m = 0, dest_b_c = 0;
                         for (int j = pPixelWeights->m_SrcStart; j <= pPixelWeights->m_SrcEnd; j ++) {
                             int pixel_weight = pPixelWeights->m_Weights[j - pPixelWeights->m_SrcStart];
-                            FX_LPCBYTE src_pixel = src_scan + j * Bpp;
+                            const uint8_t* src_pixel = src_scan + j * Bpp;
                             if (m_DestFormat == FXDIB_Argb) {
                                 pixel_weight = pixel_weight * src_pixel[3] / 255;
                             } else {
@@ -517,14 +516,14 @@ FX_BOOL CStretchEngine::ContinueStretchHorz(IFX_Pause* pPause)
                             dest_b_c = dest_b_c < 0 ? 0 : dest_b_c > 16711680 ? 16711680 : dest_b_c;
                             dest_a = dest_a < 0 ? 0 : dest_a > 65536 ? 65536 : dest_a;
                         }
-                        *dest_scan++ = (FX_BYTE)((dest_b_c) >> 16);
-                        *dest_scan++ = (FX_BYTE)((dest_g_m) >> 16);
-                        *dest_scan++ = (FX_BYTE)((dest_r_y) >> 16);
+                        *dest_scan++ = (uint8_t)((dest_b_c) >> 16);
+                        *dest_scan++ = (uint8_t)((dest_g_m) >> 16);
+                        *dest_scan++ = (uint8_t)((dest_r_y) >> 16);
                         if (m_DestFormat == FXDIB_Argb) {
-                            *dest_scan = (FX_BYTE)((dest_a * 255) >> 16);
+                            *dest_scan = (uint8_t)((dest_a * 255) >> 16);
                         }
                         if (dest_scan_mask) {
-                            *dest_scan_mask++ = (FX_BYTE)((dest_a * 255) >> 16);
+                            *dest_scan_mask++ = (uint8_t)((dest_a * 255) >> 16);
                         }
                         dest_scan += Bpp - 3;
                     }
@@ -564,7 +563,7 @@ void CStretchEngine::StretchVert()
                         if (m_Flags & FXDIB_BICUBIC_INTERPOL) {
                             dest_a = dest_a < 0 ? 0 : dest_a > 16711680 ? 16711680 : dest_a;
                         }
-                        *dest_scan = (FX_BYTE)(dest_a >> 16);
+                        *dest_scan = (uint8_t)(dest_a >> 16);
                         dest_scan += DestBpp;
                     }
                     break;
@@ -583,9 +582,9 @@ void CStretchEngine::StretchVert()
                             dest_k = dest_k < 0 ? 0 : dest_k > 16711680 ? 16711680 : dest_k;
                             dest_a = dest_a < 0 ? 0 : dest_a > 16711680 ? 16711680 : dest_a;
                         }
-                        *dest_scan = (FX_BYTE)(dest_k >> 16);
+                        *dest_scan = (uint8_t)(dest_k >> 16);
                         dest_scan += DestBpp;
-                        *dest_sacn_mask++ = (FX_BYTE)(dest_a >> 16);
+                        *dest_sacn_mask++ = (uint8_t)(dest_a >> 16);
                     }
                     break;
                 }
@@ -596,7 +595,7 @@ void CStretchEngine::StretchVert()
                         int dest_r_y = 0, dest_g_m = 0, dest_b_c = 0;
                         for (int j = pPixelWeights->m_SrcStart; j <= pPixelWeights->m_SrcEnd; j ++) {
                             int pixel_weight = pPixelWeights->m_Weights[j - pPixelWeights->m_SrcStart];
-                            FX_LPCBYTE src_pixel = src_scan + (j - m_SrcClip.top) * m_InterPitch;
+                            const uint8_t* src_pixel = src_scan + (j - m_SrcClip.top) * m_InterPitch;
                             dest_b_c += pixel_weight * (*src_pixel++);
                             dest_g_m += pixel_weight * (*src_pixel++);
                             dest_r_y += pixel_weight * (*src_pixel);
@@ -606,9 +605,9 @@ void CStretchEngine::StretchVert()
                             dest_g_m = dest_g_m < 0 ? 0 : dest_g_m > 16711680 ? 16711680 : dest_g_m;
                             dest_b_c = dest_b_c < 0 ? 0 : dest_b_c > 16711680 ? 16711680 : dest_b_c;
                         }
-                        dest_scan[0] = (FX_BYTE)((dest_b_c) >> 16);
-                        dest_scan[1] = (FX_BYTE)((dest_g_m) >> 16);
-                        dest_scan[2] = (FX_BYTE)((dest_r_y) >> 16);
+                        dest_scan[0] = (uint8_t)((dest_b_c) >> 16);
+                        dest_scan[1] = (uint8_t)((dest_g_m) >> 16);
+                        dest_scan[2] = (uint8_t)((dest_r_y) >> 16);
                         dest_scan += DestBpp;
                     }
                     break;
@@ -624,7 +623,7 @@ void CStretchEngine::StretchVert()
                         int dest_a = 0, dest_r_y = 0, dest_g_m = 0, dest_b_c = 0;
                         for (int j = pPixelWeights->m_SrcStart; j <= pPixelWeights->m_SrcEnd; j ++) {
                             int pixel_weight = pPixelWeights->m_Weights[j - pPixelWeights->m_SrcStart];
-                            FX_LPCBYTE src_pixel = src_scan + (j - m_SrcClip.top) * m_InterPitch;
+                            const uint8_t* src_pixel = src_scan + (j - m_SrcClip.top) * m_InterPitch;
                             int mask_v = 255;
                             if (src_scan_mask) {
                                 mask_v = src_scan_mask[(j - m_SrcClip.top) * m_ExtraMaskPitch];
@@ -653,9 +652,9 @@ void CStretchEngine::StretchVert()
                             dest_scan[2] = r > 255 ? 255 : r < 0 ? 0 : r;
                         }
                         if (m_DestFormat == FXDIB_Argb) {
-                            dest_scan[3] = (FX_BYTE)((dest_a) >> 16);
+                            dest_scan[3] = (uint8_t)((dest_a) >> 16);
                         } else {
-                            *dest_sacn_mask = (FX_BYTE)((dest_a) >> 16);
+                            *dest_sacn_mask = (uint8_t)((dest_a) >> 16);
                         }
                         dest_scan += DestBpp;
                         if (dest_sacn_mask) {
@@ -679,9 +678,7 @@ CFX_ImageStretcher::~CFX_ImageStretcher()
     if (m_pScanline) {
         FX_Free(m_pScanline);
     }
-    if (m_pStretchEngine) {
-        delete m_pStretchEngine;
-    }
+    delete m_pStretchEngine;
     if (m_pMaskScanline) {
         FX_Free(m_pMaskScanline);
     }
@@ -747,17 +744,15 @@ FX_BOOL CFX_ImageStretcher::Start(IFX_ScanlineComposer* pDest,
     }
     if (flags & FXDIB_DOWNSAMPLE) {
         return StartQuickStretch();
-    } else {
-        return StartStretch();
     }
+    return StartStretch();
 }
 FX_BOOL CFX_ImageStretcher::Continue(IFX_Pause* pPause)
 {
     if (m_Flags & FXDIB_DOWNSAMPLE) {
         return ContinueQuickStretch(pPause);
-    } else {
-        return ContinueStretch(pPause);
     }
+    return ContinueStretch(pPause);
 }
 #define MAX_PROGRESSIVE_STRETCH_PIXELS	1000000
 FX_BOOL CFX_ImageStretcher::StartStretch()
@@ -795,9 +790,9 @@ FX_BOOL CFX_ImageStretcher::StartQuickStretch()
         return FALSE;
     }
     size *= m_DestBPP;
-    m_pScanline = FX_Alloc(FX_BYTE, (size / 8 + 3) / 4 * 4);
+    m_pScanline = FX_Alloc(uint8_t, (size / 8 + 3) / 4 * 4);
     if (m_pSource->m_pAlphaMask) {
-        m_pMaskScanline = FX_Alloc(FX_BYTE, (m_ClipRect.Width() + 3) / 4 * 4);
+        m_pMaskScanline = FX_Alloc(uint8_t, (m_ClipRect.Width() + 3) / 4 * 4);
     }
     if (m_pSource->GetWidth() * m_pSource->GetHeight() < MAX_PROGRESSIVE_STRETCH_PIXELS) {
         ContinueQuickStretch(NULL);

@@ -1,30 +1,32 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _FPDF_RENDER_
-#define _FPDF_RENDER_
-#ifndef _FPDF_PAGE_
-#include "fpdf_page.h"
-#endif
-#ifndef _FX_GE_H_
+#ifndef CORE_INCLUDE_FPDFAPI_FPDF_RENDER_H_
+#define CORE_INCLUDE_FPDFAPI_FPDF_RENDER_H_
+
+#include "../../../third_party/base/nonstd_unique_ptr.h"
+#include "../../../public/fpdf_progressive.h"
 #include "../fxge/fx_ge.h"
-#endif
+#include "fpdf_page.h"
+
+class CFX_GraphStateData;
+class CFX_PathData;
+class CFX_RenderDevice;
+class CPDF_FormObject;
+class CPDF_ImageCache;
+class CPDF_ImageObject;
+class CPDF_PathObject;
+class CPDF_QuickStretcher;
 class CPDF_RenderContext;
 class CPDF_RenderOptions;
-class CPDF_ImageCache;
-class IPDF_OCContext;
-class CPDF_QuickStretcher;
-class CFX_PathData;
-class CFX_GraphStateData;
-class CFX_RenderDevice;
-class CPDF_TextObject;
-class CPDF_PathObject;
-class CPDF_ImageObject;
+class CPDF_RenderStatus;
 class CPDF_ShadingObject;
-class CPDF_FormObject;
+class CPDF_TextObject;
+class IFX_Pause;
+
 class IPDF_OCContext
 {
 public:
@@ -55,7 +57,7 @@ public:
 #define RENDER_NOPATHSMOOTH			0x20000000
 #define RENDER_NOIMAGESMOOTH		0x40000000
 #define RENDER_LIMITEDIMAGECACHE	0x80000000
-class CPDF_RenderOptions 
+class CPDF_RenderOptions
 {
 public:
 
@@ -81,7 +83,7 @@ public:
 
     FX_ARGB			TranslateColor(FX_ARGB argb) const;
 };
-class CPDF_RenderContext 
+class CPDF_RenderContext
 {
 public:
 
@@ -97,8 +99,6 @@ public:
     void			Clear();
 
     void			AppendObjectList(CPDF_PageObjects* pObjs, const CFX_AffineMatrix* pObject2Device);
-
-    void			SetBackground(class IPDF_BackgroundDraw* pBackground);
 
     void			Render(CFX_RenderDevice* pDevice, const CPDF_RenderOptions* pOptions = NULL,
                            const CFX_AffineMatrix* pFinalMatrix = NULL);
@@ -126,8 +126,6 @@ protected:
 
     CFX_ArrayTemplate<struct _PDF_RenderItem>	m_ContentList;
 
-    IPDF_BackgroundDraw*	m_pBackgroundDraw;
-
     FX_BOOL					m_bFirstLayer;
 
     void			Render(CFX_RenderDevice* pDevice, const CPDF_PageObject* pStopObj,
@@ -135,73 +133,45 @@ protected:
     friend class CPDF_RenderStatus;
     friend class CPDF_ProgressiveRenderer;
 };
-class IPDF_BackgroundDraw
+
+class CPDF_ProgressiveRenderer
 {
 public:
-    virtual ~IPDF_BackgroundDraw() { }
-    virtual	void	OnDrawBackground(
-        CFX_RenderDevice* pBitmapDevice,
-        const CFX_AffineMatrix* pOriginal2Bitmap
-    ) = 0;
-};
-class CPDF_ProgressiveRenderer 
-{
-public:
+    // Must match FDF_RENDER_* definitions in fpdf_progressive.h.
+    enum Status {
+        Ready = FPDF_RENDER_READER,
+        ToBeContinued = FPDF_RENDER_TOBECOUNTINUED,
+        Done = FPDF_RENDER_DONE,
+        Failed = FPDF_RENDER_FAILED
+    };
+    static int ToFPDFStatus(Status status) { return static_cast<int>(status); }
 
-    CPDF_ProgressiveRenderer();
-
+    CPDF_ProgressiveRenderer(CPDF_RenderContext* pContext,
+                             CFX_RenderDevice* pDevice,
+                             const CPDF_RenderOptions* pOptions);
     ~CPDF_ProgressiveRenderer();
 
-    typedef enum {
-        Ready,
-        ToBeContinued,
-        Done,
-        Failed
-    } RenderStatus;
+    Status GetStatus() const { return m_Status; }
+    void Start(IFX_Pause* pPause);
+    void Continue(IFX_Pause* pPause);
+    int EstimateProgress();
 
-    RenderStatus		GetStatus()
-    {
-        return m_Status;
-    }
+private:
+    void RenderStep();
 
-
-
-    void				Start(CPDF_RenderContext* pContext, CFX_RenderDevice* pDevice,
-                              const CPDF_RenderOptions* pOptions, class IFX_Pause* pPause, FX_BOOL bDropObjects = FALSE);
-
-    void				Continue(class IFX_Pause* pPause);
-
-
-    int					EstimateProgress();
-
-    void				Clear();
-protected:
-
-    RenderStatus		m_Status;
-
-    CPDF_RenderContext*	m_pContext;
-
-    CFX_RenderDevice*	m_pDevice;
-
-    const CPDF_RenderOptions*	m_pOptions;
-
-    FX_BOOL				m_bDropObjects;
-
-    class CPDF_RenderStatus*	m_pRenderer;
-
-    CFX_FloatRect		m_ClipRect;
-
-    FX_DWORD			m_LayerIndex;
-
-    FX_DWORD			m_ObjectIndex;
-
-    FX_POSITION			m_ObjectPos;
-
-    FX_POSITION			m_PrevLastPos;
-
-    void				RenderStep();
+    Status m_Status;
+    CPDF_RenderContext* const m_pContext;
+    CFX_RenderDevice* const m_pDevice;
+    const CPDF_RenderOptions* const m_pOptions;
+    nonstd::unique_ptr<CPDF_RenderStatus> m_pRenderStatus;
+    CFX_FloatRect m_ClipRect;
+    FX_DWORD m_LayerIndex;
+    FX_DWORD m_ObjectIndex;
+    FX_POSITION m_ObjectPos;
+    FX_POSITION m_PrevLastPos;
 };
-class CPDF_TextRenderer 
+
+class CPDF_TextRenderer
 {
 public:
 
@@ -236,20 +206,7 @@ public:
                                   CPDF_Font* pFont, FX_FLOAT font_size, const CFX_AffineMatrix* pText2Device,
                                   FX_ARGB fill_argb);
 };
-class IPDF_PageImageCache
-{
-public:
-
-    static IPDF_PageImageCache* Create();
-
-    virtual ~IPDF_PageImageCache() {}
-
-    virtual void		OutputPage(CFX_RenderDevice* pDevice, CPDF_Page* pPage,
-                                   int pos_x, int pos_y, int size_x, int size_y, int rotate) = 0;
-
-    virtual void		SetCacheLimit(FX_DWORD limit) = 0;
-};
-class CPDF_PageRenderCache 
+class CPDF_PageRenderCache
 {
 public:
     CPDF_PageRenderCache(CPDF_Page* pPage)
@@ -269,7 +226,7 @@ public:
     void				ClearImageData();
 
     FX_DWORD			EstimateSize();
-    void				CacheOptimization(FX_INT32 dwLimitCacheSize);
+    void				CacheOptimization(int32_t dwLimitCacheSize);
     FX_DWORD			GetCachedSize(CPDF_Stream* pStream) const;
     FX_DWORD			GetTimeCount() const
     {
@@ -282,7 +239,7 @@ public:
 
     void				GetCachedBitmap(CPDF_Stream* pStream, CFX_DIBSource*& pBitmap, CFX_DIBSource*& pMask, FX_DWORD& MatteColor,
                                         FX_BOOL bStdCS = FALSE, FX_DWORD GroupFamily = 0, FX_BOOL bLoadMask = FALSE,
-                                        CPDF_RenderStatus* pRenderStatus = NULL, FX_INT32 downsampleWidth = 0, FX_INT32 downsampleHeight = 0);
+                                        CPDF_RenderStatus* pRenderStatus = NULL, int32_t downsampleWidth = 0, int32_t downsampleHeight = 0);
 
     void				ResetBitmap(CPDF_Stream* pStream, const CFX_DIBitmap* pBitmap);
     void				ClearImageCache(CPDF_Stream* pStream);
@@ -294,7 +251,7 @@ public:
 public:
     FX_BOOL				StartGetCachedBitmap(CPDF_Stream* pStream, FX_BOOL bStdCS = FALSE, FX_DWORD GroupFamily = 0,
             FX_BOOL bLoadMask = FALSE, CPDF_RenderStatus* pRenderStatus = NULL,
-            FX_INT32 downsampleWidth = 0, FX_INT32 downsampleHeight = 0);
+            int32_t downsampleWidth = 0, int32_t downsampleHeight = 0);
 
     FX_BOOL				Continue(IFX_Pause* pPause);
     CPDF_ImageCache*	m_pCurImageCache;
@@ -307,7 +264,7 @@ protected:
     FX_DWORD			m_nCacheSize;
     FX_BOOL				m_bCurFindCache;
 };
-class CPDF_RenderConfig 
+class CPDF_RenderConfig
 {
 public:
     CPDF_RenderConfig();
@@ -315,4 +272,5 @@ public:
     int					m_HalftoneLimit;
     int					m_RenderStepLimit;
 };
-#endif
+
+#endif  // CORE_INCLUDE_FPDFAPI_FPDF_RENDER_H_

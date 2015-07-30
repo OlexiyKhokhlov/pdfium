@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fxge/fx_ge.h"
-#if _FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN64_
+#if _FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN64_DESKTOP_
 #include "../../../include/fxge/fx_ge_win32.h"
 #include "dwrite_int.h"
 #include <dwrite.h>
@@ -26,7 +26,7 @@ inline InterfaceType* SafeAcquire(InterfaceType* newObject)
     }
     return newObject;
 }
-class CDwFontFileStream FX_FINAL : public IDWriteFontFileStream
+class CDwFontFileStream final : public IDWriteFontFileStream
 {
 public:
     explicit CDwFontFileStream(void const* fontFileReferenceKey, UINT32 fontFileReferenceKeySize);
@@ -46,7 +46,7 @@ private:
     void const* resourcePtr_;
     DWORD resourceSize_;
 };
-class CDwFontFileLoader FX_FINAL : public IDWriteFontFileLoader
+class CDwFontFileLoader final : public IDWriteFontFileLoader
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject);
@@ -70,7 +70,7 @@ private:
     ULONG refCount_;
     static IDWriteFontFileLoader* instance_;
 };
-class CDwFontContext 
+class CDwFontContext
 {
 public:
     CDwFontContext(IDWriteFactory* dwriteFactory);
@@ -82,7 +82,7 @@ private:
     HRESULT hr_;
     IDWriteFactory* dwriteFactory_;
 };
-class CDwGdiTextRenderer 
+class CDwGdiTextRenderer
 {
 public:
     CDwGdiTextRenderer(
@@ -90,7 +90,7 @@ public:
         IDWriteBitmapRenderTarget* bitmapRenderTarget,
         IDWriteRenderingParams* renderingParams
     );
-    CDwGdiTextRenderer::~CDwGdiTextRenderer();
+    ~CDwGdiTextRenderer();
     HRESULT STDMETHODCALLTYPE DrawGlyphRun(
         const FX_RECT& text_bbox,
         __in_opt CFX_ClipRgn* pClipRgn,
@@ -128,7 +128,7 @@ CDWriteExt::~CDWriteExt()
 {
     Unload();
 }
-LPVOID	CDWriteExt::DwCreateFontFaceFromStream(FX_LPBYTE pData, FX_DWORD size, int simulation_style)
+LPVOID	CDWriteExt::DwCreateFontFaceFromStream(uint8_t* pData, FX_DWORD size, int simulation_style)
 {
     IDWriteFactory* pDwFactory = (IDWriteFactory*)m_pDWriteFactory;
     IDWriteFontFile* pDwFontFile = NULL;
@@ -262,9 +262,7 @@ FX_BOOL	CDWriteExt::DwRendingString(void* renderTarget, CFX_ClipRgn* pClipRgn, F
 }
 void CDWriteExt::DwDeleteRenderingTarget(void* renderTarget)
 {
-    if (renderTarget) {
-        delete (CDwGdiTextRenderer*)renderTarget;
-    }
+    delete (CDwGdiTextRenderer*)renderTarget;
 }
 void CDWriteExt::DwDeleteFont(void* pFont)
 {
@@ -284,10 +282,9 @@ HRESULT STDMETHODCALLTYPE CDwFontFileStream::QueryInterface(REFIID iid, void** p
         *ppvObject = this;
         AddRef();
         return S_OK;
-    } else {
-        *ppvObject = NULL;
-        return E_NOINTERFACE;
     }
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
 }
 ULONG STDMETHODCALLTYPE CDwFontFileStream::AddRef()
 {
@@ -308,16 +305,14 @@ HRESULT STDMETHODCALLTYPE CDwFontFileStream::ReadFileFragment(
     OUT void** fragmentContext
 )
 {
-    if (fileOffset <= resourceSize_ &&
-            fragmentSize <= resourceSize_ - fileOffset) {
-        *fragmentStart = static_cast<FX_BYTE const*>(resourcePtr_) + static_cast<size_t>(fileOffset);
+    if (fileOffset <= resourceSize_ && fragmentSize <= resourceSize_ - fileOffset) {
+        *fragmentStart = static_cast<uint8_t const*>(resourcePtr_) + static_cast<size_t>(fileOffset);
         *fragmentContext = NULL;
         return S_OK;
-    } else {
-        *fragmentStart = NULL;
-        *fragmentContext = NULL;
-        return E_FAIL;
     }
+    *fragmentStart = NULL;
+    *fragmentContext = NULL;
+    return E_FAIL;
 }
 void STDMETHODCALLTYPE CDwFontFileStream::ReleaseFileFragment(void* fragmentContext)
 {
@@ -343,10 +338,9 @@ HRESULT STDMETHODCALLTYPE CDwFontFileLoader::QueryInterface(REFIID iid, void** p
         *ppvObject = this;
         AddRef();
         return S_OK;
-    } else {
-        *ppvObject = NULL;
-        return E_NOINTERFACE;
     }
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
 }
 ULONG STDMETHODCALLTYPE CDwFontFileLoader::AddRef()
 {
@@ -433,7 +427,7 @@ STDMETHODIMP CDwGdiTextRenderer::DrawGlyphRun(
         bitmap.bmWidth,
         bitmap.bmHeight,
         bitmap.bmBitsPixel == 24 ? FXDIB_Rgb : FXDIB_Rgb32,
-        (FX_LPBYTE)bitmap.bmBits
+        (uint8_t*)bitmap.bmBits
     );
     dib.CompositeBitmap(
         text_bbox.left,

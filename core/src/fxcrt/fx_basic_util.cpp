@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/fxcrt/fx_basic.h"
@@ -26,7 +26,7 @@ void FX_PRIVATEDATA::FreeData()
         m_pCallback(m_pData);
     }
 }
-void CFX_PrivateData::AddData(FX_LPVOID pModuleId, FX_LPVOID pData, PD_CALLBACK_FREEDATA callback, FX_BOOL bSelfDestruct)
+void CFX_PrivateData::AddData(void* pModuleId, void* pData, PD_CALLBACK_FREEDATA callback, FX_BOOL bSelfDestruct)
 {
     if (pModuleId == NULL) {
         return;
@@ -44,15 +44,15 @@ void CFX_PrivateData::AddData(FX_LPVOID pModuleId, FX_LPVOID pData, PD_CALLBACK_
     FX_PRIVATEDATA data = {pModuleId, pData, callback, bSelfDestruct};
     m_DataList.Add(data);
 }
-void CFX_PrivateData::SetPrivateData(FX_LPVOID pModuleId, FX_LPVOID pData, PD_CALLBACK_FREEDATA callback)
+void CFX_PrivateData::SetPrivateData(void* pModuleId, void* pData, PD_CALLBACK_FREEDATA callback)
 {
     AddData(pModuleId, pData, callback, FALSE);
 }
-void CFX_PrivateData::SetPrivateObj(FX_LPVOID pModuleId, CFX_DestructObject* pObj)
+void CFX_PrivateData::SetPrivateObj(void* pModuleId, CFX_DestructObject* pObj)
 {
     AddData(pModuleId, pObj, NULL, TRUE);
 }
-FX_BOOL CFX_PrivateData::RemovePrivateData(FX_LPVOID pModuleId)
+FX_BOOL CFX_PrivateData::RemovePrivateData(void* pModuleId)
 {
     if (pModuleId == NULL) {
         return FALSE;
@@ -67,7 +67,7 @@ FX_BOOL CFX_PrivateData::RemovePrivateData(FX_LPVOID pModuleId)
     }
     return FALSE;
 }
-FX_LPVOID CFX_PrivateData::GetPrivateData(FX_LPVOID pModuleId)
+void* CFX_PrivateData::GetPrivateData(void* pModuleId)
 {
     if (pModuleId == NULL) {
         return NULL;
@@ -90,12 +90,12 @@ void CFX_PrivateData::ClearAll()
     }
     m_DataList.RemoveAll();
 }
-void FX_atonum(FX_BSTR strc, FX_BOOL& bInteger, void* pData)
+void FX_atonum(const CFX_ByteStringC& strc, FX_BOOL& bInteger, void* pData)
 {
     if (FXSYS_memchr(strc.GetPtr(), '.', strc.GetLength()) == NULL) {
         bInteger = TRUE;
         int cc = 0, integer = 0;
-        FX_LPCSTR str = strc.GetCStr();
+        const FX_CHAR* str = strc.GetCStr();
         int len = strc.GetLength();
         FX_BOOL bNegative = FALSE;
         if (str[0] == '+') {
@@ -123,14 +123,14 @@ void FX_atonum(FX_BSTR strc, FX_BOOL& bInteger, void* pData)
         *(FX_FLOAT*)pData = FX_atof(strc);
     }
 }
-FX_FLOAT FX_atof(FX_BSTR strc)
+FX_FLOAT FX_atof(const CFX_ByteStringC& strc)
 {
     if (strc.GetLength() == 0) {
         return 0.0;
     }
     int cc = 0;
     FX_BOOL bNegative = FALSE;
-    FX_LPCSTR str = strc.GetCStr();
+    const FX_CHAR* str = strc.GetCStr();
     int len = strc.GetLength();
     if (str[0] == '+') {
         cc++;
@@ -187,22 +187,22 @@ void FXSYS_vsnprintf(char *str, size_t size, const char* fmt, va_list ap)
 }
 #endif  // _FXM_PLATFORM_WINDOWS_ && _MSC_VER < 1900
 
-static FX_BOOL FX_IsDigit(FX_BYTE ch)
+static FX_BOOL FX_IsDigit(uint8_t ch)
 {
     return (ch >= '0' && ch <= '9') ? TRUE : FALSE;
 }
-static FX_BOOL FX_IsXDigit(FX_BYTE ch)
+static FX_BOOL FX_IsXDigit(uint8_t ch)
 {
     return (FX_IsDigit(ch) || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f')) ? TRUE : FALSE;
 }
-static FX_BYTE FX_MakeUpper(FX_BYTE ch)
+static uint8_t FX_MakeUpper(uint8_t ch)
 {
     if (ch < 'a' || ch > 'z') {
         return ch;
     }
     return ch - 32;
 }
-static int FX_HexToI(FX_BYTE ch)
+static int FX_HexToI(uint8_t ch)
 {
     ch = FX_MakeUpper(ch);
     return FX_IsDigit(ch) ? (ch - '0') : (ch - 55);
@@ -237,7 +237,7 @@ CFX_ByteString FX_UrlEncode(const CFX_WideString& wsUrl)
             int nByte = bsUri.GetLength();
             for (int j = 0; j < nByte; j++) {
                 rUrl += '%';
-                FX_BYTE code = bsUri.GetAt(j);
+                uint8_t code = bsUri.GetAt(j);
                 rUrl += arDigits[code >> 4];
                 rUrl += arDigits[code & 0x0F];
             }
@@ -268,7 +268,7 @@ CFX_ByteString FX_EncodeURI(const CFX_WideString& wsURI)
     CFX_ByteString bsUri = wsURI.UTF8Encode();
     int nLength = bsUri.GetLength();
     for (int i = 0; i < nLength; i++) {
-        FX_BYTE code = bsUri.GetAt(i);
+        uint8_t code = bsUri.GetAt(i);
         if (code > 0x7F || url_encodeTable[code] == 1) {
             rURI += '%';
             rURI += arDigits[code >> 4];
@@ -294,7 +294,7 @@ CFX_WideString FX_DecodeURI(const CFX_ByteString& bsURI)
     return CFX_WideString::FromUTF8(rURI, rURI.GetLength());
 }
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-class CFindFileData 
+class CFindFileData
 {
 public:
     virtual ~CFindFileData() {}
@@ -314,7 +314,7 @@ public:
     WIN32_FIND_DATAW	m_FindData;
 };
 #endif
-void* FX_OpenFolder(FX_LPCSTR path)
+void* FX_OpenFolder(const FX_CHAR* path)
 {
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
 #ifndef _WIN32_WCE
@@ -339,7 +339,7 @@ void* FX_OpenFolder(FX_LPCSTR path)
     return dir;
 #endif
 }
-void* FX_OpenFolder(FX_LPCWSTR path)
+void* FX_OpenFolder(const FX_WCHAR* path)
 {
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
     CFindFileDataW* pData = new CFindFileDataW;
@@ -457,18 +457,18 @@ CFX_Matrix_3by3 CFX_Matrix_3by3::Inverse()
     FX_FLOAT det = a*(e*i - f*h) - b*(i*d - f*g) + c*(d*h - e*g);
     if (FXSYS_fabs(det) < 0.0000001)
         return CFX_Matrix_3by3();
-    else
-        return CFX_Matrix_3by3(
-            (e*i - f*h) / det,
-            -(b*i - c*h) / det,
-            (b*f - c*e) / det,
-            -(d*i - f*g) / det,
-            (a*i - c*g) / det,
-            -(a*f - c*d) / det,
-            (d*h - e*g) / det,
-            -(a*h - b*g) / det,
-            (a*e - b*d) / det
-        );
+
+    return CFX_Matrix_3by3(
+        (e*i - f*h) / det,
+        -(b*i - c*h) / det,
+        (b*f - c*e) / det,
+        -(d*i - f*g) / det,
+        (a*i - c*g) / det,
+        -(a*f - c*d) / det,
+        (d*h - e*g) / det,
+        -(a*h - b*g) / det,
+        (a*e - b*d) / det
+    );
 }
 
 CFX_Matrix_3by3 CFX_Matrix_3by3::Multiply(const CFX_Matrix_3by3 &m)

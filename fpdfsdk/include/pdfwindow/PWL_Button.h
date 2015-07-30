@@ -1,15 +1,15 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _PWL_BUTTON_H_
-#define _PWL_BUTTON_H_
+#ifndef FPDFSDK_INCLUDE_PDFWINDOW_PWL_BUTTON_H_
+#define FPDFSDK_INCLUDE_PDFWINDOW_PWL_BUTTON_H_
 
 #include "PWL_Wnd.h"
 
-class PWL_CLASS CPWL_Button : public CPWL_Wnd
+class CPWL_Button : public CPWL_Wnd
 {
 public:
 	CPWL_Button();
@@ -24,4 +24,4 @@ protected:
 	FX_BOOL						m_bMouseDown;
 };
 
-#endif
+#endif  // FPDFSDK_INCLUDE_PDFWINDOW_PWL_BUTTON_H_

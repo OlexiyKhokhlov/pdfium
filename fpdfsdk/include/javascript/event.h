@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _EVENT_H_
-#define _EVENT_H_
+#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_EVENT_H_
+#define FPDFSDK_INCLUDE_JAVASCRIPT_EVENT_H_
 
 #include "JS_Define.h"
 
@@ -69,4 +69,4 @@ public:
 	JS_STATIC_PROP(willCommit, event);
 };
 
-#endif //_EVENT_H_
+#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_EVENT_H_

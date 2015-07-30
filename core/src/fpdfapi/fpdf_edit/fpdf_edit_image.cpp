@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fpdfapi/fpdf_module.h"
@@ -10,9 +10,13 @@
 #include "../../../include/fpdfapi/fpdf_render.h"
 #include "../fpdf_page/pageint.h"
 #include "../fpdf_render/render_int.h"
-CPDF_Dictionary* CPDF_Image::InitJPEG(FX_LPBYTE pData, FX_DWORD size)
+CPDF_Dictionary* CPDF_Image::InitJPEG(uint8_t* pData, FX_DWORD size)
 {
-    FX_INT32 width, height, color_trans, num_comps, bits;
+    int32_t width;
+    int32_t height;
+    int32_t num_comps;
+    int32_t bits;
+    FX_BOOL color_trans;
     if (!CPDF_ModuleMgr::Get()->GetJpegModule()->
             LoadInfo(pData, size, width, height, num_comps, bits, color_trans)) {
         return NULL;
@@ -22,7 +26,7 @@ CPDF_Dictionary* CPDF_Image::InitJPEG(FX_LPBYTE pData, FX_DWORD size)
     pDict->SetAtName("Subtype", "Image");
     pDict->SetAtInteger("Width", width);
     pDict->SetAtInteger("Height", height);
-    FX_LPCSTR csname = NULL;
+    const FX_CHAR* csname = NULL;
     if (num_comps == 1) {
         csname = "DeviceGray";
     } else if (num_comps == 3) {
@@ -52,7 +56,7 @@ CPDF_Dictionary* CPDF_Image::InitJPEG(FX_LPBYTE pData, FX_DWORD size)
     }
     return pDict;
 }
-void CPDF_Image::SetJpegImage(FX_LPBYTE pData, FX_DWORD size)
+void CPDF_Image::SetJpegImage(uint8_t* pData, FX_DWORD size)
 {
     CPDF_Dictionary *pDict = InitJPEG(pData, size);
     if (!pDict) {
@@ -70,12 +74,12 @@ void CPDF_Image::SetJpegImage(IFX_FileRead *pFile)
     if (dwEstimateSize > 8192) {
         dwEstimateSize = 8192;
     }
-    FX_LPBYTE pData = FX_Alloc(FX_BYTE, dwEstimateSize);
+    uint8_t* pData = FX_Alloc(uint8_t, dwEstimateSize);
     pFile->ReadBlock(pData, 0, dwEstimateSize);
     CPDF_Dictionary *pDict = InitJPEG(pData, dwEstimateSize);
     FX_Free(pData);
     if (!pDict && size > dwEstimateSize) {
-        pData = FX_Alloc(FX_BYTE, size);
+        pData = FX_Alloc(uint8_t, size);
         pFile->ReadBlock(pData, 0, size);
         pDict = InitJPEG(pData, size);
         FX_Free(pData);
@@ -85,33 +89,33 @@ void CPDF_Image::SetJpegImage(IFX_FileRead *pFile)
     }
     m_pStream->InitStream(pFile, pDict);
 }
-void _DCTEncodeBitmap(CPDF_Dictionary *pBitmapDict, const CFX_DIBitmap* pBitmap, int quality, FX_LPBYTE &buf, FX_STRSIZE &size)
+void _DCTEncodeBitmap(CPDF_Dictionary *pBitmapDict, const CFX_DIBitmap* pBitmap, int quality, uint8_t* &buf, FX_STRSIZE &size)
 {
 }
-void _JBIG2EncodeBitmap(CPDF_Dictionary *pBitmapDict, const CFX_DIBitmap *pBitmap, CPDF_Document *pDoc, FX_LPBYTE &buf, FX_STRSIZE &size, FX_BOOL bLossLess)
+void _JBIG2EncodeBitmap(CPDF_Dictionary *pBitmapDict, const CFX_DIBitmap *pBitmap, CPDF_Document *pDoc, uint8_t* &buf, FX_STRSIZE &size, FX_BOOL bLossLess)
 {
 }
-void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_FileWrite *pFileWrite, IFX_FileRead *pFileRead, const CFX_DIBitmap* pMask, const CPDF_ImageSetParam* pParam)
+void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, int32_t iCompress, IFX_FileWrite *pFileWrite, IFX_FileRead *pFileRead, const CFX_DIBitmap* pMask, const CPDF_ImageSetParam* pParam)
 {
-    FX_INT32 BitmapWidth = pBitmap->GetWidth();
-    FX_INT32 BitmapHeight = pBitmap->GetHeight();
+    int32_t BitmapWidth = pBitmap->GetWidth();
+    int32_t BitmapHeight = pBitmap->GetHeight();
     if (BitmapWidth < 1 || BitmapHeight < 1) {
         return;
     }
-    FX_LPBYTE src_buf = pBitmap->GetBuffer();
-    FX_INT32 src_pitch = pBitmap->GetPitch();
-    FX_INT32 bpp = pBitmap->GetBPP();
+    uint8_t* src_buf = pBitmap->GetBuffer();
+    int32_t src_pitch = pBitmap->GetPitch();
+    int32_t bpp = pBitmap->GetBPP();
     FX_BOOL bUseMatte = pParam && pParam->pMatteColor && (pBitmap->GetFormat() == FXDIB_Argb);
     CPDF_Dictionary* pDict = new CPDF_Dictionary;
     pDict->SetAtName(FX_BSTRC("Type"), FX_BSTRC("XObject"));
     pDict->SetAtName(FX_BSTRC("Subtype"), FX_BSTRC("Image"));
     pDict->SetAtInteger(FX_BSTRC("Width"), BitmapWidth);
     pDict->SetAtInteger(FX_BSTRC("Height"), BitmapHeight);
-    FX_LPBYTE dest_buf = NULL;
+    uint8_t* dest_buf = NULL;
     FX_STRSIZE dest_pitch = 0, dest_size = 0, opType = -1;
     if (bpp == 1) {
-        FX_INT32 reset_a = 0, reset_r = 0, reset_g = 0, reset_b = 0;
-        FX_INT32 set_a = 0, set_r = 0, set_g = 0, set_b = 0;
+        int32_t reset_a = 0, reset_r = 0, reset_g = 0, reset_b = 0;
+        int32_t set_a = 0, set_r = 0, set_g = 0, set_b = 0;
         if (!pBitmap->IsAlphaMask()) {
             ArgbDecode(pBitmap->GetPaletteArgb(0), reset_a, reset_r, reset_g, reset_b);
             ArgbDecode(pBitmap->GetPaletteArgb(1), set_a, set_r, set_g, set_b);
@@ -130,7 +134,7 @@ void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_F
             pCS->AddName(FX_BSTRC("DeviceRGB"));
             pCS->AddInteger(1);
             CFX_ByteString ct;
-            FX_LPSTR pBuf = ct.GetBuffer(6);
+            FX_CHAR* pBuf = ct.GetBuffer(6);
             pBuf[0] = (FX_CHAR)reset_r;
             pBuf[1] = (FX_CHAR)reset_g;
             pBuf[2] = (FX_CHAR)reset_b;
@@ -149,20 +153,20 @@ void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_F
             opType = 0;
         }
     } else if (bpp == 8) {
-        FX_INT32 iPalette = pBitmap->GetPaletteSize();
+        int32_t iPalette = pBitmap->GetPaletteSize();
         if (iPalette > 0) {
             CPDF_Array* pCS = new CPDF_Array;
             m_pDocument->AddIndirectObject(pCS);
             pCS->AddName(FX_BSTRC("Indexed"));
             pCS->AddName(FX_BSTRC("DeviceRGB"));
             pCS->AddInteger(iPalette - 1);
-            FX_LPBYTE pColorTable = FX_Alloc2D(FX_BYTE, iPalette, 3);
-            FX_LPBYTE ptr = pColorTable;
-            for (FX_INT32 i = 0; i < iPalette; i ++) {
+            uint8_t* pColorTable = FX_Alloc2D(uint8_t, iPalette, 3);
+            uint8_t* ptr = pColorTable;
+            for (int32_t i = 0; i < iPalette; i ++) {
                 FX_DWORD argb = pBitmap->GetPaletteArgb(i);
-                ptr[0] = (FX_BYTE)(argb >> 16);
-                ptr[1] = (FX_BYTE)(argb >> 8);
-                ptr[2] = (FX_BYTE)argb;
+                ptr[0] = (uint8_t)(argb >> 16);
+                ptr[1] = (uint8_t)(argb >> 8);
+                ptr[2] = (uint8_t)argb;
                 ptr += 3;
             }
             CPDF_Stream *pCTS = CPDF_Stream::Create(pColorTable, iPalette * 3, CPDF_Dictionary::Create());
@@ -202,9 +206,9 @@ void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_F
         }
     }
     if (pMaskBitmap) {
-        FX_INT32 maskWidth = pMaskBitmap->GetWidth();
-        FX_INT32 maskHeight = pMaskBitmap->GetHeight();
-        FX_LPBYTE mask_buf = NULL;
+        int32_t maskWidth = pMaskBitmap->GetWidth();
+        int32_t maskHeight = pMaskBitmap->GetHeight();
+        uint8_t* mask_buf = NULL;
         FX_STRSIZE mask_size;
         CPDF_Dictionary* pMaskDict = new CPDF_Dictionary;
         pMaskDict->SetAtName(FX_BSTRC("Type"), FX_BSTRC("XObject"));
@@ -218,10 +222,10 @@ void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_F
         } else if (pMaskBitmap->GetFormat() == FXDIB_1bppMask) {
             _JBIG2EncodeBitmap(pMaskDict, pMaskBitmap, m_pDocument, mask_buf, mask_size, TRUE);
         } else {
-            mask_buf = FX_Alloc2D(FX_BYTE, maskHeight, maskWidth);
+            mask_buf = FX_Alloc2D(uint8_t, maskHeight, maskWidth);
             mask_size = maskHeight * maskWidth;  // Safe since checked alloc returned.
-            for (FX_INT32 a = 0; a < maskHeight; a ++) {
-                FXSYS_memcpy32(mask_buf + a * maskWidth, pMaskBitmap->GetScanline(a), maskWidth);
+            for (int32_t a = 0; a < maskHeight; a ++) {
+                FXSYS_memcpy(mask_buf + a * maskWidth, pMaskBitmap->GetScanline(a), maskWidth);
             }
         }
         pMaskDict->SetAtInteger(FX_BSTRC("Length"), mask_size);
@@ -270,16 +274,16 @@ void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_F
                 if (bUseMatte) {
                     CFX_DIBitmap *pNewBitmap = new CFX_DIBitmap();
                     pNewBitmap->Create(BitmapWidth, BitmapHeight, FXDIB_Argb);
-                    FX_LPBYTE dst_buf = pNewBitmap->GetBuffer();
-                    FX_INT32 src_offset = 0;
-                    for (FX_INT32 row = 0; row < BitmapHeight; row ++) {
+                    uint8_t* dst_buf = pNewBitmap->GetBuffer();
+                    int32_t src_offset = 0;
+                    for (int32_t row = 0; row < BitmapHeight; row ++) {
                         src_offset = row * src_pitch;
-                        for (FX_INT32 column = 0; column < BitmapWidth; column ++) {
+                        for (int32_t column = 0; column < BitmapWidth; column ++) {
                             FX_FLOAT alpha = src_buf[src_offset + 3] / 255.0f;
-                            dst_buf[src_offset] = (FX_BYTE)(src_buf[src_offset] * alpha);
-                            dst_buf[src_offset + 1] = (FX_BYTE)(src_buf[src_offset + 1] * alpha);
-                            dst_buf[src_offset + 2] = (FX_BYTE)(src_buf[src_offset + 2] * alpha);
-                            dst_buf[src_offset + 3] = (FX_BYTE)(src_buf[src_offset + 3]);
+                            dst_buf[src_offset] = (uint8_t)(src_buf[src_offset] * alpha);
+                            dst_buf[src_offset + 1] = (uint8_t)(src_buf[src_offset + 1] * alpha);
+                            dst_buf[src_offset + 2] = (uint8_t)(src_buf[src_offset + 2] * alpha);
+                            dst_buf[src_offset + 3] = (uint8_t)(src_buf[src_offset + 3]);
                             src_offset += 4;
                         }
                     }
@@ -297,13 +301,13 @@ void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_F
         }
     } else if (opType == 1) {
         if (!bStream) {
-            dest_buf = FX_Alloc2D(FX_BYTE, dest_pitch, BitmapHeight);
+            dest_buf = FX_Alloc2D(uint8_t, dest_pitch, BitmapHeight);
             dest_size = dest_pitch * BitmapHeight;  // Safe since checked alloc returned.
         }
-        FX_LPBYTE pDest = dest_buf;
-        for (FX_INT32 i = 0; i < BitmapHeight; i ++) {
+        uint8_t* pDest = dest_buf;
+        for (int32_t i = 0; i < BitmapHeight; i ++) {
             if (!bStream) {
-                FXSYS_memcpy32(pDest, src_buf, dest_pitch);
+                FXSYS_memcpy(pDest, src_buf, dest_pitch);
                 pDest += dest_pitch;
             } else {
                 pFileWrite->WriteBlock(src_buf, dest_pitch);
@@ -312,21 +316,21 @@ void CPDF_Image::SetImage(const CFX_DIBitmap* pBitmap, FX_INT32 iCompress, IFX_F
         }
     } else if (opType == 2) {
         if (!bStream) {
-            dest_buf = FX_Alloc2D(FX_BYTE, dest_pitch, BitmapHeight);
+            dest_buf = FX_Alloc2D(uint8_t, dest_pitch, BitmapHeight);
             dest_size = dest_pitch * BitmapHeight;  // Safe since checked alloc returned.
         } else {
-            dest_buf = FX_Alloc(FX_BYTE, dest_pitch);
+            dest_buf = FX_Alloc(uint8_t, dest_pitch);
         }
-        FX_LPBYTE pDest = dest_buf;
-        FX_INT32 src_offset = 0;
-        FX_INT32 dest_offset = 0;
-        for (FX_INT32 row = 0; row < BitmapHeight; row ++) {
+        uint8_t* pDest = dest_buf;
+        int32_t src_offset = 0;
+        int32_t dest_offset = 0;
+        for (int32_t row = 0; row < BitmapHeight; row ++) {
             src_offset = row * src_pitch;
-            for (FX_INT32 column = 0; column < BitmapWidth; column ++) {
+            for (int32_t column = 0; column < BitmapWidth; column ++) {
                 FX_FLOAT alpha = bUseMatte ? src_buf[src_offset + 3] / 255.0f : 1;
-                pDest[dest_offset] = (FX_BYTE)(src_buf[src_offset + 2] * alpha);
-                pDest[dest_offset + 1] = (FX_BYTE)(src_buf[src_offset + 1] * alpha);
-                pDest[dest_offset + 2] = (FX_BYTE)(src_buf[src_offset] * alpha);
+                pDest[dest_offset] = (uint8_t)(src_buf[src_offset + 2] * alpha);
+                pDest[dest_offset + 1] = (uint8_t)(src_buf[src_offset + 1] * alpha);
+                pDest[dest_offset + 2] = (uint8_t)(src_buf[src_offset] * alpha);
                 dest_offset += 3;
                 src_offset += bpp == 24 ? 3 : 4;
             }

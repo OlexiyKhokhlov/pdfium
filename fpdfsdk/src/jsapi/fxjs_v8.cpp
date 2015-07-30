@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../core/include/fxcrt/fx_basic.h"
-#include "../../../core/include/fxcrt/fx_ext.h" 
+#include "../../../core/include/fxcrt/fx_ext.h"
 #include "../../include/jsapi/fxjs_v8.h"
 #include "../../include/fsdk_define.h"
 #include "time.h"
@@ -26,6 +26,7 @@ static double GetNan()
 {
   return *(double*)g_nan;
 }
+static unsigned int g_embedderDataSlot = 0u;
 
 
 class CJS_PrivateData
@@ -33,15 +34,15 @@ class CJS_PrivateData
 public:
 	CJS_PrivateData():ObjDefID(-1), pPrivate(NULL) {}
 	int ObjDefID;
-	FX_LPVOID	pPrivate;
+	void*	pPrivate;
 };
 
 
 class CJS_ObjDefintion
 {
 public:
-	CJS_ObjDefintion(v8::Isolate* isolate, const wchar_t* sObjName, FXJSOBJTYPE eObjType, LP_CONSTRUCTOR pConstructor, LP_DESTRUCTOR pDestructor, unsigned bApplyNew):
-	  objName(sObjName), objType(eObjType), m_pConstructor(pConstructor), m_pDestructor(pDestructor),m_bApplyNew(bApplyNew),m_bSetAsGlobalObject(FALSE)
+	CJS_ObjDefintion(v8::Isolate* isolate, const wchar_t* sObjName, FXJSOBJTYPE eObjType, LP_CONSTRUCTOR pConstructor, LP_DESTRUCTOR pDestructor):
+	  objName(sObjName), objType(eObjType), m_pConstructor(pConstructor), m_pDestructor(pDestructor),m_bSetAsGlobalObject(FALSE)
 	  {
 		  v8::Isolate::Scope isolate_scope(isolate);
 		  v8::HandleScope handle_scope(isolate);
@@ -67,25 +68,24 @@ public:
 	FXJSOBJTYPE objType;
 	LP_CONSTRUCTOR m_pConstructor;
 	LP_DESTRUCTOR m_pDestructor;
-	unsigned m_bApplyNew;
 	FX_BOOL	m_bSetAsGlobalObject;
 
 	v8::Global<v8::ObjectTemplate> m_objTemplate;
 	v8::Global<v8::Object> m_StaticObj;
 };
 
-int JS_DefineObj(IJS_Runtime* pJSRuntime, const wchar_t* sObjName, FXJSOBJTYPE eObjType, LP_CONSTRUCTOR pConstructor, LP_DESTRUCTOR pDestructor, unsigned bApplyNew)
+int JS_DefineObj(IJS_Runtime* pJSRuntime, const wchar_t* sObjName, FXJSOBJTYPE eObjType, LP_CONSTRUCTOR pConstructor, LP_DESTRUCTOR pDestructor)
 {
 	v8::Isolate* isolate = (v8::Isolate*)pJSRuntime;
 	v8::Isolate::Scope isolate_scope(isolate);
 	v8::HandleScope handle_scope(isolate);
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray)
 	{
 		pArray = new CFX_PtrArray();
-		isolate->SetData(0, pArray);
+		isolate->SetData(g_embedderDataSlot, pArray);
 	}
-	CJS_ObjDefintion* pObjDef = new CJS_ObjDefintion(isolate, sObjName, eObjType, pConstructor, pDestructor, bApplyNew);
+	CJS_ObjDefintion* pObjDef = new CJS_ObjDefintion(isolate, sObjName, eObjType, pConstructor, pDestructor);
 	pArray->Add(pObjDef);
 	return pArray->GetSize()-1;
 }
@@ -99,13 +99,13 @@ int JS_DefineObjMethod(IJS_Runtime* pJSRuntime, int nObjDefnID, const wchar_t* s
 	CFX_WideString ws = CFX_WideString(sMethodName);
 	CFX_ByteString bsMethodName = ws.UTF8Encode();
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return 0;
 
 	if(nObjDefnID<0 || nObjDefnID>= pArray->GetSize()) return 0;
 	CJS_ObjDefintion* pObjDef = (CJS_ObjDefintion*)pArray->GetAt(nObjDefnID);
 	v8::Local<v8::ObjectTemplate> objTemp = v8::Local<v8::ObjectTemplate>::New(isolate, pObjDef->m_objTemplate);
-	objTemp->Set(v8::String::NewFromUtf8(isolate, FX_LPCSTR(bsMethodName), v8::NewStringType::kNormal).ToLocalChecked(), v8::FunctionTemplate::New(isolate, pMethodCall), v8::ReadOnly);
+	objTemp->Set(v8::String::NewFromUtf8(isolate, bsMethodName.c_str(), v8::NewStringType::kNormal).ToLocalChecked(), v8::FunctionTemplate::New(isolate, pMethodCall), v8::ReadOnly);
 	pObjDef->m_objTemplate.Reset(isolate,objTemp);
 	return 0;
 }
@@ -119,13 +119,13 @@ int JS_DefineObjProperty(IJS_Runtime* pJSRuntime, int nObjDefnID, const wchar_t*
 	CFX_WideString ws = CFX_WideString(sPropName);
 	CFX_ByteString bsPropertyName = ws.UTF8Encode();
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return 0;
 
 	if(nObjDefnID<0 || nObjDefnID>= pArray->GetSize()) return 0;
 	CJS_ObjDefintion* pObjDef = (CJS_ObjDefintion*)pArray->GetAt(nObjDefnID);
 	v8::Local<v8::ObjectTemplate> objTemp = v8::Local<v8::ObjectTemplate>::New(isolate, pObjDef->m_objTemplate);
-	objTemp->SetAccessor(v8::String::NewFromUtf8(isolate, FX_LPCSTR(bsPropertyName), v8::NewStringType::kNormal).ToLocalChecked(), pPropGet, pPropPut);
+	objTemp->SetAccessor(v8::String::NewFromUtf8(isolate, bsPropertyName.c_str(), v8::NewStringType::kNormal).ToLocalChecked(), pPropGet, pPropPut);
 	pObjDef->m_objTemplate.Reset(isolate,objTemp);
 	return 0;
 }
@@ -136,7 +136,7 @@ int	JS_DefineObjAllProperties(IJS_Runtime* pJSRuntime, int nObjDefnID, v8::Named
 	v8::Isolate::Scope isolate_scope(isolate);
 	v8::HandleScope handle_scope(isolate);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return 0;
 
 	if(nObjDefnID<0 || nObjDefnID>= pArray->GetSize()) return 0;
@@ -153,7 +153,7 @@ int JS_DefineObjConst(IJS_Runtime* pJSRuntime, int nObjDefnID, const wchar_t* sC
 	v8::Isolate::Scope isolate_scope(isolate);
 	v8::HandleScope handle_scope(isolate);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return 0;
 
 	CFX_WideString ws = CFX_WideString(sConstName);
@@ -162,7 +162,7 @@ int JS_DefineObjConst(IJS_Runtime* pJSRuntime, int nObjDefnID, const wchar_t* sC
 	if(nObjDefnID<0 || nObjDefnID>= pArray->GetSize()) return 0;
 	CJS_ObjDefintion* pObjDef = (CJS_ObjDefintion*)pArray->GetAt(nObjDefnID);
 	v8::Local<v8::ObjectTemplate> objTemp = v8::Local<v8::ObjectTemplate>::New(isolate, pObjDef->m_objTemplate);
-	objTemp->Set(isolate, FX_LPCSTR(bsConstName), pDefault);
+	objTemp->Set(isolate, bsConstName.c_str(), pDefault);
 	pObjDef->m_objTemplate.Reset(isolate,objTemp);
 	return 0;
 }
@@ -173,7 +173,7 @@ static v8::Global<v8::ObjectTemplate>& _getGlobalObjectTemplate(IJS_Runtime* pJS
 	v8::Isolate::Scope isolate_scope(isolate);
 	v8::HandleScope handle_scope(isolate);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	ASSERT(pArray != NULL);
 	for(int i=0; i<pArray->GetSize(); i++)
 	{
@@ -202,7 +202,7 @@ int JS_DefineGlobalMethod(IJS_Runtime* pJSRuntime, const wchar_t* sMethodName, v
 		objTemp = v8::ObjectTemplate::New(isolate);
 	else
 		objTemp = v8::Local<v8::ObjectTemplate>::New(isolate, globalObjTemp);
-	objTemp->Set(v8::String::NewFromUtf8(isolate, FX_LPCSTR(bsMethodName), v8::NewStringType::kNormal).ToLocalChecked(), funTempl, v8::ReadOnly);
+	objTemp->Set(v8::String::NewFromUtf8(isolate, bsMethodName.c_str(), v8::NewStringType::kNormal).ToLocalChecked(), funTempl, v8::ReadOnly);
 
 	globalObjTemp.Reset(isolate,objTemp);
 
@@ -225,7 +225,7 @@ int JS_DefineGlobalConst(IJS_Runtime* pJSRuntime, const wchar_t* sConstName, v8:
 		objTemp = v8::ObjectTemplate::New(isolate);
 	else
 		objTemp = v8::Local<v8::ObjectTemplate>::New(isolate, globalObjTemp);
-	objTemp->Set(v8::String::NewFromUtf8(isolate, FX_LPCSTR(bsConst), v8::NewStringType::kNormal).ToLocalChecked(), pDefault, v8::ReadOnly);
+	objTemp->Set(v8::String::NewFromUtf8(isolate, bsConst.c_str(), v8::NewStringType::kNormal).ToLocalChecked(), pDefault, v8::ReadOnly);
 
 	globalObjTemp.Reset(isolate,objTemp);
 
@@ -246,7 +246,7 @@ void JS_InitialRuntime(IJS_Runtime* pJSRuntime,IFXJS_Runtime* pFXRuntime, IFXJS_
 	v8::Local<v8::External> ptr = v8::External::New(isolate, pFXRuntime);
 	v8Context->SetEmbedderData(1, ptr);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return;
 
 	for(int i=0; i<pArray->GetSize(); i++)
@@ -290,7 +290,7 @@ void JS_ReleaseRuntime(IJS_Runtime* pJSRuntime, v8::Global<v8::Context>& v8Persi
 	v8::Local<v8::Context> context = v8::Local<v8::Context>::New(isolate, v8PersistentContext);
 	v8::Context::Scope context_scope(context);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return ;
 
 	for(int i=0; i<pArray->GetSize(); i++)
@@ -306,11 +306,12 @@ void JS_ReleaseRuntime(IJS_Runtime* pJSRuntime, v8::Global<v8::Context>& v8Persi
 		delete pObjDef;
 	}
 	delete pArray;
-	isolate->SetData(0,NULL);
+	isolate->SetData(g_embedderDataSlot,NULL);
 }
 
-void JS_Initial() 
+void JS_Initial(unsigned int embedderDataSlot)
 {
+	g_embedderDataSlot = embedderDataSlot;
 }
 void JS_Release()
 {
@@ -372,7 +373,7 @@ v8::Local<v8::Object> JS_NewFxDynamicObj(IJS_Runtime* pJSRuntime, IFXJS_Context*
                 return v8::Local<v8::Object>();
 	}
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return v8::Local<v8::Object>();
 
 
@@ -398,7 +399,7 @@ v8::Local<v8::Object> JS_GetStaticObj(IJS_Runtime* pJSRuntime, int nObjDefnID)
 	v8::Isolate* isolate = (v8::Isolate*)pJSRuntime;
 	v8::Isolate::Scope isolate_scope(isolate);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return v8::Local<v8::Object>();
 
 	if(nObjDefnID<0 || nObjDefnID>= pArray->GetSize()) return v8::Local<v8::Object>();
@@ -417,7 +418,7 @@ v8::Local<v8::Object>	JS_GetThisObj(IJS_Runtime * pJSRuntime)
 	v8::Isolate* isolate = (v8::Isolate*)pJSRuntime;
 	v8::Isolate::Scope isolate_scope(isolate);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return v8::Local<v8::Object>();
 
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
@@ -446,7 +447,7 @@ int JS_GetObjDefnID(IJS_Runtime * pJSRuntime, const wchar_t* pObjName)
 	v8::Isolate* isolate = (v8::Isolate*)pJSRuntime;
 	v8::Isolate::Scope isolate_scope(isolate);
 
-	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(0);
+	CFX_PtrArray* pArray = (CFX_PtrArray*)isolate->GetData(g_embedderDataSlot);
 	if(!pArray) return -1;
 
 	for(int i=0; i<pArray->GetSize(); i++)
@@ -625,7 +626,7 @@ v8::Local<v8::Array> JS_NewArray(IJS_Runtime* pJSRuntime)
 }
 
 unsigned JS_PutArrayElement(IJS_Runtime* pJSRuntime, v8::Local<v8::Array> pArray,unsigned index,v8::Local<v8::Value> pValue,FXJSVALUETYPE eType)
-{	
+{
 	if(pArray.IsEmpty()) return 0;
 	if (pArray->Set(pJSRuntime->GetCurrentContext(), index, pValue).IsNothing()) return 0;
 	return 1;
@@ -802,7 +803,7 @@ int _getDaylightSavingTA(double d)
 }
 
 double _Mod(double x, double y)
-{   
+{
 	double r = fmod(x, y);
 	if (r < 0) r += y;
 	return r;
@@ -912,29 +913,29 @@ int _DateFromTime(double t)
 	int month = _MonthFromTime(t);
 	switch (month)
 	{
-	case 0:	 
+	case 0:
 		return day+1;
-	case 1:	 
+	case 1:
 		return day-30;
-	case 2:	 
+	case 2:
 		return day-58-leap;
-	case 3:	 
+	case 3:
 		return day-89-leap;
-	case 4:	 
+	case 4:
 		return day-119-leap;
-	case 5:	 
+	case 5:
 		return day-150-leap;
-	case 6:	 
+	case 6:
 		return day-180-leap;
-	case 7:	 
+	case 7:
 		return day-211-leap;
-	case 8:	 
+	case 8:
 		return day-242-leap;
-	case 9:	 
+	case 9:
 		return day-272-leap;
-	case 10: 
+	case 10:
 		return day-303-leap;
-	case 11: 
+	case 11:
 		return day-333-leap;
 	default:
 		return 0;
@@ -991,7 +992,7 @@ double JS_DateParse(const wchar_t* string)
 	v8::HandleScope scope(pIsolate);
 
 	v8::Local<v8::Context> context = pIsolate->GetCurrentContext();
-	
+
 	//Use the built-in object method.
 	v8::Local<v8::Value> v = context->Global()->Get(context, v8::String::NewFromUtf8(pIsolate, "Date", v8::NewStringType::kNormal).ToLocalChecked()).ToLocalChecked();
 	if(v->IsObject())

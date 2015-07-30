@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../../third_party/base/numerics/safe_math.h"
-#include "../../../include/fxcrt/fx_basic.h"
+#include "../../../include/fxcrt/fx_system.h"
 #include "../../../include/fxge/fx_ge.h"
 
 CFX_ClipRgn::CFX_ClipRgn(int width, int height)
@@ -55,7 +55,8 @@ void CFX_ClipRgn::IntersectMaskRect(FX_RECT rect, FX_RECT mask_rect, CFX_DIBitma
     if (m_Box.IsEmpty()) {
         m_Type = RectI;
         return;
-    } else if (m_Box == mask_rect) {
+    }
+    if (m_Box == mask_rect) {
         m_Mask = Mask;
         return;
     }
@@ -65,8 +66,8 @@ void CFX_ClipRgn::IntersectMaskRect(FX_RECT rect, FX_RECT mask_rect, CFX_DIBitma
     }
     new_dib->Create(m_Box.Width(), m_Box.Height(), FXDIB_8bppMask);
     for (int row = m_Box.top; row < m_Box.bottom; row ++) {
-        FX_LPBYTE dest_scan = new_dib->GetBuffer() + new_dib->GetPitch() * (row - m_Box.top);
-        FX_LPBYTE src_scan = mask_dib->GetBuffer() + mask_dib->GetPitch() * (row - mask_rect.top);
+        uint8_t* dest_scan = new_dib->GetBuffer() + new_dib->GetPitch() * (row - m_Box.top);
+        uint8_t* src_scan = mask_dib->GetBuffer() + mask_dib->GetPitch() * (row - mask_rect.top);
         for (int col = m_Box.left; col < m_Box.right; col ++) {
             dest_scan[col - m_Box.left] = src_scan[col - mask_rect.left];
         }
@@ -98,9 +99,9 @@ void CFX_ClipRgn::IntersectMaskF(int left, int top, CFX_DIBitmapRef Mask)
         new_dib->Create(new_box.Width(), new_box.Height(), FXDIB_8bppMask);
         const CFX_DIBitmap* old_dib = m_Mask;
         for (int row = new_box.top; row < new_box.bottom; row ++) {
-            FX_LPBYTE old_scan = old_dib->GetBuffer() + (row - m_Box.top) * old_dib->GetPitch();
-            FX_LPBYTE mask_scan = mask_dib->GetBuffer() + (row - top) * mask_dib->GetPitch();
-            FX_LPBYTE new_scan = new_dib->GetBuffer() + (row - new_box.top) * new_dib->GetPitch();
+            uint8_t* old_scan = old_dib->GetBuffer() + (row - m_Box.top) * old_dib->GetPitch();
+            uint8_t* mask_scan = mask_dib->GetBuffer() + (row - top) * mask_dib->GetPitch();
+            uint8_t* new_scan = new_dib->GetBuffer() + (row - new_box.top) * new_dib->GetPitch();
             for (int col = new_box.left; col < new_box.right; col ++) {
                 new_scan[col - new_box.left] = old_scan[col - m_Box.left] * mask_scan[col - left] / 255;
             }
@@ -139,7 +140,7 @@ void CFX_PathData::AllocPointCount(int nPoints)
     if (m_AllocCount < nPoints) {
         FX_PATHPOINT* pNewBuf = FX_Alloc(FX_PATHPOINT, nPoints);
         if (m_PointCount) {
-            FXSYS_memcpy32(pNewBuf, m_pPoints, m_PointCount * sizeof(FX_PATHPOINT));
+            FXSYS_memcpy(pNewBuf, m_pPoints, m_PointCount * sizeof(FX_PATHPOINT));
         }
         if (m_pPoints) {
             FX_Free(m_pPoints);
@@ -152,7 +153,7 @@ CFX_PathData::CFX_PathData(const CFX_PathData& src)
 {
     m_PointCount = m_AllocCount = src.m_PointCount;
     m_pPoints = FX_Alloc(FX_PATHPOINT, src.m_PointCount);
-    FXSYS_memcpy32(m_pPoints, src.m_pPoints, sizeof(FX_PATHPOINT) * m_PointCount);
+    FXSYS_memcpy(m_pPoints, src.m_pPoints, sizeof(FX_PATHPOINT) * m_PointCount);
 }
 void CFX_PathData::TrimPoints(int nPoints)
 {
@@ -173,7 +174,7 @@ void CFX_PathData::Append(const CFX_PathData* pSrc, const CFX_AffineMatrix* pMat
 {
     int old_count = m_PointCount;
     AddPointCount(pSrc->m_PointCount);
-    FXSYS_memcpy32(m_pPoints + old_count, pSrc->m_pPoints, pSrc->m_PointCount * sizeof(FX_PATHPOINT));
+    FXSYS_memcpy(m_pPoints + old_count, pSrc->m_pPoints, pSrc->m_PointCount * sizeof(FX_PATHPOINT));
     if (pMatrix) {
         for (int i = 0; i < pSrc->m_PointCount; i ++) {
             pMatrix->Transform(m_pPoints[old_count + i].m_PointX, m_pPoints[old_count + i].m_PointY);
@@ -229,7 +230,8 @@ static void _UpdateLineEndPoints(CFX_FloatRect& rect, FX_FLOAT start_x, FX_FLOAT
         rect.UpdateRect(end_x + hw, point_y);
         rect.UpdateRect(end_x - hw, point_y);
         return;
-    } else if (start_y == end_y) {
+    }
+    if (start_y == end_y) {
         FX_FLOAT point_x;
         if (end_x < start_x) {
             point_x = end_x - hw;
@@ -575,7 +577,7 @@ FX_BOOL CFX_PathData::IsRect(const CFX_AffineMatrix* pMatrix, CFX_FloatRect* pRe
 void CFX_PathData::Copy(const CFX_PathData &src)
 {
     SetPointCount(src.m_PointCount);
-    FXSYS_memcpy32(m_pPoints, src.m_pPoints, sizeof(FX_PATHPOINT) * m_PointCount);
+    FXSYS_memcpy(m_pPoints, src.m_pPoints, sizeof(FX_PATHPOINT) * m_PointCount);
 }
 CFX_GraphStateData::CFX_GraphStateData()
 {
@@ -606,7 +608,7 @@ void CFX_GraphStateData::Copy(const CFX_GraphStateData& src)
     m_LineWidth = src.m_LineWidth;
     if (m_DashCount) {
         m_DashArray = FX_Alloc(FX_FLOAT, m_DashCount);
-        FXSYS_memcpy32(m_DashArray, src.m_DashArray, m_DashCount * sizeof(FX_FLOAT));
+        FXSYS_memcpy(m_DashArray, src.m_DashArray, m_DashCount * sizeof(FX_FLOAT));
     }
 }
 CFX_GraphStateData::~CFX_GraphStateData()

@@ -139,7 +139,7 @@ if(USE_SYSTEM_JPEG)
   add_definitions(-DUSE_SYSTEM_JPEG)
   add_library(jpeg OBJECT empty.c)
 else(USE_SYSTEM_JPEG)
-  add_subdirectory(core/src/fxcodec/libjpeg)
+  add_subdirectory(third_party/libjpeg)
 endif(USE_SYSTEM_JPEG)
 
 if(USE_SYSTEM_ZLIB)
@@ -148,7 +148,7 @@ if(USE_SYSTEM_ZLIB)
   add_definitions(-DUSE_SYSTEM_ZLIB)
   add_library(zlib OBJECT empty.c)
 else(USE_SYSTEM_ZLIB)
-  add_subdirectory(core/src/fxcodec/fx_zlib)
+  add_subdirectory(third_party/zlib_v128)
 endif(USE_SYSTEM_ZLIB)
 
 if(USE_SYSTEM_LCMS2)
@@ -157,7 +157,7 @@ if(USE_SYSTEM_LCMS2)
   add_definitions(-DUSE_SYSTEM_LCMS2)
   add_library(lcms2 OBJECT empty.c)
 else(USE_SYSTEM_LCMS2)
-  add_subdirectory(core/src/fxcodec/lcms2)
+  add_subdirectory(third_party/lcms2-2.6)
 endif(USE_SYSTEM_LCMS2)
 
 if(USE_SYSTEM_OPENJPEG)
@@ -166,7 +166,7 @@ if(USE_SYSTEM_OPENJPEG)
   add_definitions(-DUSE_SYSTEM_OPENJPEG)
   add_library(openjpeg OBJECT empty.c)
 else(USE_SYSTEM_OPENJPEG)
-  add_subdirectory(core/src/fxcodec/fx_libopenjpeg)
+  add_subdirectory(third_party/libopenjpeg20)
   add_definitions(-DOPJ_STATIC)
 endif(USE_SYSTEM_OPENJPEG)
 
@@ -327,7 +327,6 @@ set(FXCODEC_SOURCES
   core/src/fxcodec/codec/fx_codec_jbig_enc.cpp
   core/src/fxcodec/codec/fx_codec_jpeg.cpp
   core/src/fxcodec/codec/fx_codec_jpx_opj.cpp
-  core/src/fxcodec/lcms2/src/fx_cmsmd5.c
 )
 
 #add_library(fxcodec STATIC ${FXCODEC_HEDAERS} ${FXCODEC_SOURCES})
@@ -390,16 +389,16 @@ set(FXGE_HEDAERS
   core/include/fxge/fx_ge.h
 #  core/include/fxge/fx_ge_apple.h
 #  core/include/fxge/fx_ge_win32.h
-  core/src/fxge/agg/include/fxfx_agg_basics.h
-  core/src/fxge/agg/include/fxfx_agg_clip_liang_barsky.h
-  core/src/fxge/agg/include/fxfx_agg_conv_dash.h
-  core/src/fxge/agg/include/fxfx_agg_conv_stroke.h
-  core/src/fxge/agg/include/fxfx_agg_curves.h
-  core/src/fxge/agg/include/fxfx_agg_path_storage.h
-  core/src/fxge/agg/include/fxfx_agg_rasterizer_scanline_aa.h
-  core/src/fxge/agg/include/fxfx_agg_renderer_scanline.h
-  core/src/fxge/agg/include/fxfx_agg_rendering_buffer.h
-  core/src/fxge/agg/include/fxfx_agg_scanline_u.h
+  third_party/agg23/agg_basics.h
+  third_party/agg23/agg_clip_liang_barsky.h
+  third_party/agg23/agg_conv_dash.h
+  third_party/agg23/agg_conv_stroke.h
+  third_party/agg23/agg_curves.h
+  third_party/agg23/agg_path_storage.h
+  third_party/agg23/agg_rasterizer_scanline_aa.h
+  third_party/agg23/agg_renderer_scanline.h
+  third_party/agg23/agg_rendering_buffer.h
+  third_party/agg23/agg_scanline_u.h
   core/src/fxge/agg/include/fx_agg_driver.h
 #   core/src/fxge/android/fpf_skiafont.h
 #   core/src/fxge/android/fpf_skiafontmgr.h
@@ -412,12 +411,12 @@ set(FXGE_HEDAERS
 )
 
 set(FXGE_SOURCES
-  core/src/fxge/agg/src/fxfx_agg_curves.cpp
-  core/src/fxge/agg/src/fxfx_agg_driver.cpp
-  core/src/fxge/agg/src/fxfx_agg_path_storage.cpp
-  core/src/fxge/agg/src/fxfx_agg_rasterizer_scanline_aa.cpp
-  core/src/fxge/agg/src/fxfx_agg_vcgen_dash.cpp
-  core/src/fxge/agg/src/fxfx_agg_vcgen_stroke.cpp
+  core/src/fxge/agg/src/fx_agg_driver.cpp
+  third_party/agg23/agg_curves.cpp
+  third_party/agg23/agg_path_storage.cpp
+  third_party/agg23/agg_rasterizer_scanline_aa.cpp
+  third_party/agg23/agg_vcgen_dash.cpp
+  third_party/agg23/agg_vcgen_stroke.cpp
 #   core/src/fxge/android/fpf_skiafont.cpp
 #   core/src/fxge/android/fpf_skiafontmgr.cpp        
 #   core/src/fxge/android/fpf_skiamodule.cpp        

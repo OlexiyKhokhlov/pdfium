@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _JS_OBJECT_H_
-#define _JS_OBJECT_H_
+#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_JS_OBJECT_H_
+#define FPDFSDK_INCLUDE_JAVASCRIPT_JS_OBJECT_H_
 
 #include "../fsdk_define.h"  // For FX_UINT
 #include "../fsdk_mgr.h"  // For CPDFDoc_Environment
@@ -17,7 +17,7 @@ class CJS_Object;
 class CJS_Timer;
 class CJS_Context;
 
-class CJS_EmbedObj 
+class CJS_EmbedObj
 {
 public:
 	CJS_EmbedObj(CJS_Object* pJSObject);
@@ -32,14 +32,14 @@ public:
 	operator					CJS_Object* (){return m_pJSObject;};
 
 	CPDFSDK_PageView *			JSGetPageView(IFXJS_Context* cc);
-	int							MsgBox(CPDFDoc_Environment* pApp, CPDFSDK_PageView* pPageView, FX_LPCWSTR swMsg, FX_LPCWSTR swTitle = NULL, FX_UINT nType = 0, FX_UINT nIcon = 0);
-	void						Alert(CJS_Context* pContext, FX_LPCWSTR swMsg);
+	int							MsgBox(CPDFDoc_Environment* pApp, CPDFSDK_PageView* pPageView, const FX_WCHAR* swMsg, const FX_WCHAR* swTitle = NULL, FX_UINT nType = 0, FX_UINT nIcon = 0);
+	void						Alert(CJS_Context* pContext, const FX_WCHAR* swMsg);
 
 protected:
 	CJS_Object*					m_pJSObject;
 };
 
-class CJS_Object 
+class CJS_Object
 {
 public:
 	CJS_Object(JSFXObject pObject);
@@ -48,7 +48,7 @@ public:
 	void						MakeWeak();
         void                                            Dispose();
 
-	virtual FX_BOOL				IsType(FX_LPCSTR sClassName){return TRUE;};
+	virtual FX_BOOL				IsType(const FX_CHAR* sClassName){return TRUE;};
 	virtual CFX_ByteString		GetClassName(){return "";};
 
 	virtual FX_BOOL				InitInstance(IFXJS_Context* cc){return TRUE;};
@@ -61,8 +61,8 @@ public:
 	CJS_EmbedObj *				GetEmbedObject(){return m_pEmbedObj;};
 
 	static CPDFSDK_PageView *	JSGetPageView(IFXJS_Context* cc);
-	static int					MsgBox(CPDFDoc_Environment* pApp, CPDFSDK_PageView* pPageView, FX_LPCWSTR swMsg, FX_LPCWSTR swTitle = NULL, FX_UINT nType = 0,FX_UINT nIcon = 0);
-	static void					Alert(CJS_Context* pContext, FX_LPCWSTR swMsg);
+	static int					MsgBox(CPDFDoc_Environment* pApp, CPDFSDK_PageView* pPageView, const FX_WCHAR* swMsg, const FX_WCHAR* swTitle = NULL, FX_UINT nType = 0,FX_UINT nIcon = 0);
+	static void					Alert(CJS_Context* pContext, const FX_WCHAR* swMsg);
 
 	v8::Isolate*					GetIsolate() {return m_pIsolate;}
 protected:
@@ -291,4 +291,5 @@ private:
 
 	CPDFDoc_Environment*			m_pApp;
 };
-#endif //_JS_OBJECT_H_
+
+#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_JS_OBJECT_H_

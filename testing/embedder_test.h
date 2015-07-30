@@ -7,7 +7,6 @@
 
 #include <string>
 
-#include "../core/include/fxcrt/fx_system.h"
 #include "../public/fpdf_dataavail.h"
 #include "../public/fpdf_ext.h"
 #include "../public/fpdf_formfill.h"
@@ -36,6 +35,12 @@ class EmbedderTest : public ::testing::Test,
                       int type, int icon) {
       return 0;
     }
+
+    // Equivalent to FPDF_FORMFILLINFO::FFI_SetTimer().
+    virtual int SetTimer(int msecs, TimerCallback fn) { return 0; }
+
+    // Equivalent to FPDF_FORMFILLINFO::FFI_KillTimer().
+    virtual void KillTimer(int id) { }
   };
 
   EmbedderTest();
@@ -81,6 +86,7 @@ class EmbedderTest : public ::testing::Test,
   FX_DOWNLOADHINTS hints_;
   FPDF_FILEACCESS file_access_;
   FX_FILEAVAIL file_avail_;
+  v8::Platform* platform_;
   v8::StartupData natives_;
   v8::StartupData snapshot_;
   TestLoader* loader_;
@@ -91,7 +97,9 @@ class EmbedderTest : public ::testing::Test,
   static void UnsupportedHandlerTrampoline(UNSUPPORT_INFO*, int type);
   static int AlertTrampoline(IPDF_JSPLATFORM* plaform, FPDF_WIDESTRING message,
                              FPDF_WIDESTRING title, int type, int icon);
+  static int SetTimerTrampoline(FPDF_FORMFILLINFO* info, int msecs,
+                                TimerCallback fn);
+  static void KillTimerTrampoline(FPDF_FORMFILLINFO* info, int id);
 };
 
 #endif  // TESTING_EMBEDDER_TEST_H_
-

@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/fpdfdoc/fpdf_doc.h"
@@ -112,9 +112,11 @@ FX_DWORD CPDF_ActionFields::GetFieldsCount() const
     int iType = pFields->GetType();
     if (iType == PDFOBJ_DICTIONARY) {
         return 1;
-    } else if (iType == PDFOBJ_STRING) {
+    }
+    if (iType == PDFOBJ_STRING) {
         return 1;
-    } else if (iType == PDFOBJ_ARRAY) {
+    }
+    if (iType == PDFOBJ_ARRAY) {
         return ((CPDF_Array*)pFields)->GetCount();
     }
     return 0;
@@ -207,18 +209,19 @@ CFX_WideString CPDF_Action::GetJavaScript() const
 }
 CPDF_Dictionary* CPDF_Action::GetAnnot() const
 {
-    if (m_pDict == NULL) {
-        return NULL;
+    if (!m_pDict) {
+        return nullptr;
     }
     CFX_ByteString csType = m_pDict->GetString("S");
     if (csType == FX_BSTRC("Rendition")) {
         return m_pDict->GetDict("AN");
-    } else if (csType == FX_BSTRC("Movie")) {
+    }
+    if (csType == FX_BSTRC("Movie")) {
         return m_pDict->GetDict("Annotation");
     }
-    return NULL;
+    return nullptr;
 }
-FX_INT32 CPDF_Action::GetOperationType() const
+int32_t CPDF_Action::GetOperationType() const
 {
     if (m_pDict == NULL) {
         return 0;
@@ -226,15 +229,19 @@ FX_INT32 CPDF_Action::GetOperationType() const
     CFX_ByteString csType = m_pDict->GetString("S");
     if (csType == FX_BSTRC("Rendition")) {
         return m_pDict->GetInteger("OP");
-    } else if (csType == FX_BSTRC("Movie")) {
+    }
+    if (csType == FX_BSTRC("Movie")) {
         CFX_ByteString csOP = m_pDict->GetString("Operation");
         if (csOP == FX_BSTRC("Play")) {
             return 0;
-        } else if (csOP == FX_BSTRC("Stop")) {
+        }
+        if (csOP == FX_BSTRC("Stop")) {
             return 1;
-        } else if (csOP == FX_BSTRC("Pause")) {
+        }
+        if (csOP == FX_BSTRC("Pause")) {
             return 2;
-        } else if (csOP == FX_BSTRC("Resume")) {
+        }
+        if (csOP == FX_BSTRC("Resume")) {
             return 3;
         }
     }

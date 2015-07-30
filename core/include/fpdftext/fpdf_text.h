@@ -1,21 +1,22 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _FPDF_TEXT_H_
-#define _FPDF_TEXT_H_
-#ifndef _FPDF_PARSER_
+#ifndef CORE_INCLUDE_FPDFTEXT_FPDF_TEXT_H_
+#define CORE_INCLUDE_FPDFTEXT_FPDF_TEXT_H_
+
 #include "../fpdfapi/fpdf_parser.h"
-#endif
-#ifndef _FPDF_PAGEOBJ_H_
-#include "../fpdfapi/fpdf_pageobj.h"
-#endif
-#ifndef _FPDF_PAGE_
-#include "../fpdfapi/fpdf_page.h"
-#endif
+
+class CPDF_Page;
 class CPDF_PageObjects;
+class CPDF_TextObject;
+class IPDF_LinkExtract;
+class IPDF_ReflowedPage;
+class IPDF_TextPage;
+class IPDF_TextPageFind;
+
 #define PDF2TXT_AUTO_ROTATE		1
 #define PDF2TXT_AUTO_WIDTH		2
 #define PDF2TXT_KEEP_COLUMN		4
@@ -28,9 +29,6 @@ void PDF_GetPageText_Unicode(CFX_WideStringArray& lines, CPDF_Document* pDoc, CP
 void PDF_GetTextStream_Unicode(CFX_WideTextBuf& buffer, CPDF_Document* pDoc, CPDF_Dictionary* pPage,
                                FX_DWORD flags);
 CFX_WideString PDF_GetFirstTextLine_Unicode(CPDF_Document* pDoc, CPDF_Dictionary* pPage);
-class IPDF_TextPage;
-class IPDF_LinkExtract;
-class IPDF_TextPageFind;
 #define CHAR_ERROR			-1
 #define CHAR_NORMAL			0
 #define CHAR_GENERATED		1
@@ -38,7 +36,7 @@ class IPDF_TextPageFind;
 typedef struct {
     FX_WCHAR			m_Unicode;
     FX_WCHAR			m_Charcode;
-    FX_INT32			m_Flag;
+    int32_t			m_Flag;
     FX_FLOAT			m_FontSize;
     FX_FLOAT			m_OriginX;
     FX_FLOAT			m_OriginY;
@@ -54,12 +52,11 @@ typedef	CFX_ArrayTemplate<CFX_FloatRect> CFX_RectArray;
 #define FPDFTEXT_RIGHT			1
 #define FPDFTEXT_UP				-2
 #define FPDFTEXT_DOWN			2
-class IPDF_ReflowedPage;
 #define FPDFTEXT_WRITINGMODE_UNKNOW	0
 #define FPDFTEXT_WRITINGMODE_LRTB	1
 #define FPDFTEXT_WRITINGMODE_RLTB	2
 #define FPDFTEXT_WRITINGMODE_TBRL	3
-class CPDFText_ParseOptions 
+class CPDFText_ParseOptions
 {
 public:
 
@@ -68,7 +65,7 @@ public:
     FX_BOOL			m_bNormalizeObjs;
     FX_BOOL			m_bOutputHyphen;
 };
-class IPDF_TextPage 
+class IPDF_TextPage
 {
 public:
 
@@ -103,8 +100,6 @@ public:
 
     virtual int				GetIndexAtPos(FX_FLOAT x, FX_FLOAT y, FX_FLOAT xTorelance, FX_FLOAT yTorelance) const = 0;
 
-    virtual	int				GetOrderByDirection(int index, int direction) const = 0;
-
     virtual CFX_WideString	GetTextByRect(const CFX_FloatRect& rect) const = 0;
 
     virtual void			GetRectsArrayByRect(const CFX_FloatRect& rect, CFX_RectArray& resRectArray) const = 0;
@@ -130,7 +125,7 @@ public:
 #define FPDFTEXT_MATCHCASE      0x00000001
 #define FPDFTEXT_MATCHWHOLEWORD 0x00000002
 #define FPDFTEXT_CONSECUTIVE	0x00000004
-class IPDF_TextPageFind 
+class IPDF_TextPageFind
 {
 public:
 
@@ -151,7 +146,7 @@ public:
 
     virtual int					GetMatchedCount() const = 0;
 };
-class IPDF_LinkExtract 
+class IPDF_LinkExtract
 {
 public:
 
@@ -170,4 +165,5 @@ public:
 
     virtual void				GetRects(int index, CFX_RectArray& rects) const = 0;
 };
-#endif
+
+#endif  // CORE_INCLUDE_FPDFTEXT_FPDF_TEXT_H_

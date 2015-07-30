@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include <algorithm>
@@ -13,12 +13,12 @@
 #ifdef USE_SYSTEM_OPENJPEG
   #include <openjpeg.h>
 #else
-  #include "../fx_libopenjpeg/libopenjpeg20/openjpeg.h"
+    #include "../../../../third_party/libopenjpeg20/openjpeg.h"
 #endif
 #ifdef USE_SYSTEM_LCMS2
   #include <lcms2.h>
 #else
-  #include "../lcms2/include/fx_lcms2.h"
+  #include "../../../../third_party/lcms2-2.6/include/lcms2.h"
 #endif  
   
 static void fx_error_callback(const char *msg, void *client_data)
@@ -481,9 +481,9 @@ void color_apply_icc_profile(opj_image_t *image)
         image->comps[1] = image->comps[0];
         image->comps[2] = image->comps[0];
         image->comps[1].data = FX_Alloc(int, (size_t)max);
-        FXSYS_memset8(image->comps[1].data, 0, sizeof(int) * (size_t)max);
+        FXSYS_memset(image->comps[1].data, 0, sizeof(int) * (size_t)max);
         image->comps[2].data = FX_Alloc(int, (size_t)max);
-        FXSYS_memset8(image->comps[2].data, 0, sizeof(int) * (size_t)max);
+        FXSYS_memset(image->comps[2].data, 0, sizeof(int) * (size_t)max);
         image->numcomps += 2;
         r = image->comps[0].data;
         for(int i = 0; i < max; ++i) {
@@ -591,15 +591,15 @@ void color_apply_conversion(opj_image_t *image)
         return;
     }
 }
-class CJPX_Decoder 
+class CJPX_Decoder
 {
 public:
     CJPX_Decoder();
     ~CJPX_Decoder();
     FX_BOOL	Init(const unsigned char* src_data, int src_size);
     void	GetInfo(FX_DWORD& width, FX_DWORD& height, FX_DWORD& codestream_nComps, FX_DWORD& output_nComps);
-    FX_BOOL	Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateColor, FX_LPBYTE offsets);
-    FX_LPCBYTE m_SrcData;
+    FX_BOOL	Decode(uint8_t* dest_buf, int pitch, FX_BOOL bTranslateColor, uint8_t* offsets);
+    const uint8_t* m_SrcData;
     int m_SrcSize;
     opj_image_t *image;
     opj_codec_t* l_codec;
@@ -639,7 +639,7 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
     opj_set_default_decoder_parameters(&parameters);
     parameters.decod_format = 0;
     parameters.cod_format = 3;
-    if(FXSYS_memcmp32(m_SrcData, szJP2Header, sizeof(szJP2Header)) == 0) {
+    if(FXSYS_memcmp(m_SrcData, szJP2Header, sizeof(szJP2Header)) == 0) {
         l_codec = opj_create_decompress(OPJ_CODEC_JP2);
         parameters.decod_format = 1;
     } else {
@@ -658,13 +658,6 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
         image = NULL;
         return FALSE;
     }
-/*
-    if(this->m_useColorSpace) {
-        image->useColorSpace = 1;
-    } else {
-        image->useColorSpace = 0;
-    }
-*/
     if (!parameters.nb_tile_to_decode) {
         if (!opj_set_decode_area(l_codec, image, parameters.DA_x0,
                                     parameters.DA_y0, parameters.DA_x1, parameters.DA_y1)) {
@@ -694,7 +687,6 @@ FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size)
     if(image->color_space == OPJ_CLRSPC_SYCC) {
         color_sycc_to_rgb(image);
     }
-    //if(image->icc_profile_buf && !image->useColorSpace) {
     if(image->icc_profile_buf) {
         FX_Free(image->icc_profile_buf);
         image->icc_profile_buf = NULL;
@@ -711,10 +703,12 @@ void CJPX_Decoder::GetInfo(FX_DWORD& width, FX_DWORD& height, FX_DWORD& codestre
     height = (FX_DWORD)image->y1;
     output_nComps = codestream_nComps = (FX_DWORD)image->numcomps;
 }
-FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateColor, FX_LPBYTE offsets)
+FX_BOOL CJPX_Decoder::Decode(uint8_t* dest_buf, int pitch, FX_BOOL bTranslateColor, uint8_t* offsets)
 {
     int i, wid, hei, row, col, channel, src;
-    FX_LPBYTE pChannel, pScanline, pPixel;
+    uint8_t* pChannel;
+    uint8_t* pScanline;
+    uint8_t* pPixel;
 
     if(image->comps[0].w != image->x1 || image->comps[0].h != image->y1) {
         return FALSE;
@@ -722,8 +716,8 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
     if(pitch < (int)(image->comps[0].w * 8 * image->numcomps + 31) >> 5 << 2) {
         return FALSE;
     }
-    FXSYS_memset8(dest_buf, 0xff, image->y1 * pitch);
-    FX_BYTE** channel_bufs = FX_Alloc(FX_BYTE*, image->numcomps);
+    FXSYS_memset(dest_buf, 0xff, image->y1 * pitch);
+    uint8_t** channel_bufs = FX_Alloc(uint8_t*, image->numcomps);
     FX_BOOL result = FALSE;
     int* adjust_comps = FX_Alloc(int, image->numcomps);
     for (i = 0; i < (int)image->numcomps; i ++) {
@@ -751,7 +745,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
                     if (adjust_comps[channel] > 0) {
                         *pPixel = 0;
                     } else {
-                        *pPixel = (FX_BYTE)(src << -adjust_comps[channel]);
+                        *pPixel = (uint8_t)(src << -adjust_comps[channel]);
                     }
                 }
             }
@@ -766,7 +760,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
                     src = image->comps[channel].data[row * wid + col];
                     src += image->comps[channel].sgnd ? 1 << (image->comps[channel].prec - 1) : 0;
                     if (adjust_comps[channel] - 1 < 0) {
-                        *pPixel = (FX_BYTE)((src >> adjust_comps[channel]));
+                        *pPixel = (uint8_t)((src >> adjust_comps[channel]));
                     } else {
                         int tmpPixel = (src >> adjust_comps[channel]) + ((src >> (adjust_comps[channel] - 1)) % 2);
                         if (tmpPixel > 255) {
@@ -774,7 +768,7 @@ FX_BOOL CJPX_Decoder::Decode(FX_LPBYTE dest_buf, int pitch, FX_BOOL bTranslateCo
                         } else if (tmpPixel < 0) {
                             tmpPixel = 0;
                         }
-                        *pPixel = (FX_BYTE)tmpPixel;
+                        *pPixel = (uint8_t)tmpPixel;
                     }
                 }
             }
@@ -793,7 +787,7 @@ void initialize_sign_lut();
 CCodec_JpxModule::CCodec_JpxModule()
 {
 }
-void* CCodec_JpxModule::CreateDecoder(FX_LPCBYTE src_buf, FX_DWORD src_size , FX_BOOL useColorSpace)
+void* CCodec_JpxModule::CreateDecoder(const uint8_t* src_buf, FX_DWORD src_size , FX_BOOL useColorSpace)
 {
     CJPX_Decoder* pDecoder = new CJPX_Decoder;
     pDecoder->m_useColorSpace = useColorSpace;
@@ -803,13 +797,13 @@ void* CCodec_JpxModule::CreateDecoder(FX_LPCBYTE src_buf, FX_DWORD src_size , FX
     }
     return pDecoder;
 }
-void CCodec_JpxModule::GetImageInfo(FX_LPVOID ctx, FX_DWORD& width, FX_DWORD& height,
+void CCodec_JpxModule::GetImageInfo(void* ctx, FX_DWORD& width, FX_DWORD& height,
                                     FX_DWORD& codestream_nComps, FX_DWORD& output_nComps)
 {
     CJPX_Decoder* pDecoder = (CJPX_Decoder*)ctx;
     pDecoder->GetInfo(width, height, codestream_nComps, output_nComps);
 }
-FX_BOOL CCodec_JpxModule::Decode(void* ctx, FX_LPBYTE dest_data, int pitch, FX_BOOL bTranslateColor, FX_LPBYTE offsets)
+FX_BOOL CCodec_JpxModule::Decode(void* ctx, uint8_t* dest_data, int pitch, FX_BOOL bTranslateColor, uint8_t* offsets)
 {
     CJPX_Decoder* pDecoder = (CJPX_Decoder*)ctx;
     return pDecoder->Decode(dest_data, pitch, bTranslateColor, offsets);

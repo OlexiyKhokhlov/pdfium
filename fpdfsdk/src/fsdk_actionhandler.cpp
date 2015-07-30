@@ -11,27 +11,9 @@
 
 /* -------------------------- CBA_ActionHandler -------------------------- */
 
-CPDFSDK_ActionHandler::CPDFSDK_ActionHandler(CPDFDoc_Environment* pEvi) :
-	m_pFormActionHandler(NULL),
-	m_pMediaActionHandler(NULL)
-{
-		m_pFormActionHandler = new CPDFSDK_FormActionHandler;
-}
-
-CPDFSDK_ActionHandler::~CPDFSDK_ActionHandler()
-{
-	if(m_pFormActionHandler)
-	{
-		delete m_pFormActionHandler;
-		m_pFormActionHandler = NULL;
-	}
-}
-
-void CPDFSDK_ActionHandler::SetFormActionHandler(CPDFSDK_FormActionHandler* pHandler)
-{
-	ASSERT(pHandler != NULL);
-	ASSERT(m_pFormActionHandler == NULL);
-	m_pFormActionHandler = pHandler;
+CPDFSDK_ActionHandler::CPDFSDK_ActionHandler(CPDFDoc_Environment* pEvi)
+    : m_pFormActionHandler(new CPDFSDK_FormActionHandler),
+      m_pMediaActionHandler(NULL) {
 }
 
 void CPDFSDK_ActionHandler::SetMediaActionHandler(CPDFSDK_MediaActionHandler* pHandler)
@@ -39,11 +21,6 @@ void CPDFSDK_ActionHandler::SetMediaActionHandler(CPDFSDK_MediaActionHandler* pH
 	ASSERT(pHandler != NULL);
 	ASSERT(m_pMediaActionHandler == NULL);
 	m_pMediaActionHandler = pHandler;
-}
-
-void CPDFSDK_ActionHandler::Destroy()
-{
-	delete this;
 }
 
 //document open
@@ -106,14 +83,14 @@ FX_BOOL	CPDFSDK_ActionHandler::DoAction_BookMark(CPDF_Bookmark *pBookMark, const
 							CPDFSDK_Document* pDocument)
 {
 	CFX_PtrList list;
-	return this->ExecuteBookMark(action, pDocument, pBookMark, list);
+	return ExecuteBookMark(action, pDocument, pBookMark, list);
 }
 
 FX_BOOL	CPDFSDK_ActionHandler::DoAction_Screen(const CPDF_Action& action, CPDF_AAction::AActionType type,
 										CPDFSDK_Document* pDocument, CPDFSDK_Annot* pScreen)
 {
 	CFX_PtrList list;
-	return this->ExecuteScreenAction(action, type, pDocument, pScreen, list);
+	return ExecuteScreenAction(action, type, pDocument, pScreen, list);
 }
 
 FX_BOOL	CPDFSDK_ActionHandler::DoAction_Link(const CPDF_Action& action,
@@ -158,7 +135,7 @@ FX_BOOL	CPDFSDK_ActionHandler::ExecuteDocumentOpenAction(const CPDF_Action& acti
 		DoAction_NoJs(action, pDocument);
 	}
 
-	for (FX_INT32 i=0,sz=action.GetSubActionsCount(); i<sz; i++)
+	for (int32_t i=0,sz=action.GetSubActionsCount(); i<sz; i++)
 	{
 		CPDF_Action subaction = action.GetSubAction(i);
 		if (!ExecuteDocumentOpenAction(subaction, pDocument, list)) return FALSE;
@@ -213,7 +190,7 @@ FX_BOOL CPDFSDK_ActionHandler::ExecuteLinkAction(const CPDF_Action& action,	CPDF
 		DoAction_NoJs(action, pDocument);
 	}
 
-	for (FX_INT32 i=0,sz=action.GetSubActionsCount(); i<sz; i++)
+	for (int32_t i=0,sz=action.GetSubActionsCount(); i<sz; i++)
 	{
 		CPDF_Action subaction = action.GetSubAction(i);
 		if (!ExecuteLinkAction(subaction, pDocument, list)) return FALSE;
@@ -254,7 +231,7 @@ FX_BOOL	CPDFSDK_ActionHandler::ExecuteDocumentPageAction(const CPDF_Action& acti
 	if (!IsValidDocView(pDocument))
 		return FALSE;
 
-	for (FX_INT32 i=0,sz=action.GetSubActionsCount(); i<sz; i++)
+	for (int32_t i=0,sz=action.GetSubActionsCount(); i<sz; i++)
 	{
 		CPDF_Action subaction = action.GetSubAction(i);
 		if (!ExecuteDocumentPageAction(subaction, type, pDocument, list)) return FALSE;
@@ -309,7 +286,7 @@ FX_BOOL	CPDFSDK_ActionHandler::ExecuteFieldAction(const CPDF_Action& action, CPD
 		DoAction_NoJs(action, pDocument);
 	}
 
-	for (FX_INT32 i=0,sz=action.GetSubActionsCount(); i<sz; i++)
+	for (int32_t i=0,sz=action.GetSubActionsCount(); i<sz; i++)
 	{
 		CPDF_Action subaction = action.GetSubAction(i);
 		if (!ExecuteFieldAction(subaction, type, pDocument, pFormField, data, list)) return FALSE;
@@ -399,7 +376,7 @@ FX_BOOL CPDFSDK_ActionHandler::ExecuteScreenAction(const CPDF_Action& action, CP
 		DoAction_NoJs(action, pDocument);
 	}
 
-	for (FX_INT32 i=0,sz=action.GetSubActionsCount(); i<sz; i++)
+	for (int32_t i=0,sz=action.GetSubActionsCount(); i<sz; i++)
 	{
 		CPDF_Action subaction = action.GetSubAction(i);
 		if (!ExecuteScreenAction(subaction, type, pDocument, pScreen, list)) return FALSE;
@@ -454,7 +431,7 @@ FX_BOOL	CPDFSDK_ActionHandler::ExecuteBookMark(const CPDF_Action& action, CPDFSD
 		DoAction_NoJs(action, pDocument);
 	}
 
-	for (FX_INT32 i=0,sz=action.GetSubActionsCount(); i<sz; i++)
+	for (int32_t i=0,sz=action.GetSubActionsCount(); i<sz; i++)
 	{
 		CPDF_Action subaction = action.GetSubAction(i);
 		if (!ExecuteBookMark(subaction, pDocument, pBookmark, list)) return FALSE;
@@ -600,7 +577,7 @@ void CPDFSDK_ActionHandler::DoAction_URI(CPDFSDK_Document* pDocument, const CPDF
  	ASSERT(pApp != NULL);
 
  	CFX_ByteString sURI = action.GetURI(pDocument->GetDocument());
- 	pApp->FFI_DoURIAction(FX_LPCSTR(sURI));
+ 	pApp->FFI_DoURIAction(sURI.c_str());
 }
 
 void CPDFSDK_ActionHandler::DoAction_Named(CPDFSDK_Document* pDocument, const CPDF_Action& action)
@@ -653,7 +630,7 @@ void CPDFSDK_ActionHandler::RunFieldJavaScript(CPDFSDK_Document* pDocument, CPDF
 		pContext->OnField_Blur(data.bModifier, data.bShift, pFormField, data.sValue);
 		break;
 	case CPDF_AAction::KeyStroke:
-		pContext->OnField_Keystroke(data.nCommitKey, data.sChange, data.sChangeEx, data.bKeyDown,
+		pContext->OnField_Keystroke(data.sChange, data.sChangeEx, data.bKeyDown,
 			data.bModifier, data.nSelEnd, data.nSelStart, data.bShift, pFormField, data.sValue,
 			data.bWillCommit, data.bFieldFull, data.bRC);
 		break;

@@ -1,7 +1,7 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../../include/fpdfapi/fpdf_page.h"
@@ -34,10 +34,8 @@ CPDF_TilingPattern::CPDF_TilingPattern(CPDF_Document* pDoc, CPDF_Object* pPatter
 }
 CPDF_TilingPattern::~CPDF_TilingPattern()
 {
-    if (m_pForm) {
-        delete m_pForm;
-        m_pForm = NULL;
-    }
+    delete m_pForm;
+    m_pForm = NULL;
 }
 FX_BOOL CPDF_TilingPattern::Load()
 {
@@ -92,12 +90,10 @@ CPDF_ShadingPattern::~CPDF_ShadingPattern()
 void CPDF_ShadingPattern::Clear()
 {
     for (int i = 0; i < m_nFuncs; i ++) {
-        if (m_pFunctions[i]) {
-            delete m_pFunctions[i];
-        }
+        delete m_pFunctions[i];
         m_pFunctions[i] = NULL;
     }
-    CPDF_ColorSpace* pCS = m_pCountedCS ? m_pCountedCS->m_Obj : NULL;
+    CPDF_ColorSpace* pCS = m_pCountedCS ? m_pCountedCS->get() : NULL;
     if (pCS && m_pDocument) {
         m_pDocument->GetPageData()->ReleaseColorSpace(pCS->GetArray());
     }
@@ -117,9 +113,7 @@ FX_BOOL CPDF_ShadingPattern::Load()
     }
     if (m_nFuncs) {
         for (int i = 0; i < m_nFuncs; i ++)
-            if (m_pFunctions[i]) {
-                delete m_pFunctions[i];
-            }
+            delete m_pFunctions[i];
         m_nFuncs = 0;
     }
     CPDF_Object* pFunc = pShadingDict->GetElementValue(FX_BSTRC("Function"));
@@ -217,7 +211,7 @@ void CPDF_MeshStream::GetColor(FX_FLOAT& r, FX_FLOAT& g, FX_FLOAT& b)
         static const int kMaxResults = 8;
         FX_FLOAT result[kMaxResults];
         int nResults;
-        FXSYS_memset32(result, 0, sizeof(result));
+        FXSYS_memset(result, 0, sizeof(result));
         for (FX_DWORD i = 0; i < m_nFuncs; i ++) {
             if (m_pFuncs[i] && m_pFuncs[i]->CountOutputs() <= kMaxResults) {
                 m_pFuncs[i]->Call(color_value, 1, result, nResults);

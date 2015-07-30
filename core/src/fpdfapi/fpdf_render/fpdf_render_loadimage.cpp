@@ -1,32 +1,37 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../../include/fxge/fx_ge.h"
-#include "../../../include/fxcodec/fx_codec.h"
+#include "../../../../third_party/base/nonstd_unique_ptr.h"
 #include "../../../include/fpdfapi/fpdf_module.h"
-#include "../../../include/fpdfapi/fpdf_render.h"
 #include "../../../include/fpdfapi/fpdf_pageobj.h"
-#include "../../../src/fxcrt/fx_safe_types.h"
+#include "../../../include/fpdfapi/fpdf_render.h"
+#include "../../../include/fxcodec/fx_codec.h"
+#include "../../../include/fxcrt/fx_safe_types.h"
+#include "../../../include/fxge/fx_ge.h"
 #include "../fpdf_page/pageint.h"
 #include "render_int.h"
 
 namespace {
 
-unsigned int _GetBits8(FX_LPCBYTE pData, int bitpos, int nbits)
+unsigned int _GetBits8(const uint8_t* pData, int bitpos, int nbits)
 {
     unsigned int byte = pData[bitpos / 8];
     if (nbits == 8) {
         return byte;
-    } else if (nbits == 4) {
+    }
+    if (nbits == 4) {
         return (bitpos % 8) ? (byte & 0x0f) : (byte >> 4);
-    } else if (nbits == 2) {
+    }
+    if (nbits == 2) {
         return (byte >> (6 - bitpos % 8)) & 0x03;
-    } else if (nbits == 1) {
+    }
+    if (nbits == 1) {
         return (byte >> (7 - bitpos % 8)) & 0x01;
-    } else if (nbits == 16) {
+    }
+    if (nbits == 16) {
         return byte * 256 + pData[bitpos / 8 + 1];
     }
     return 0;
@@ -54,6 +59,49 @@ FX_SAFE_DWORD CalculatePitch32(int bpp, int width)
     pitch /= 8;
     return pitch;
 }
+
+// Wrapper class to hold objects allocated in CPDF_DIBSource::LoadJpxBitmap(),
+// because nonstd::unique_ptr does not support custom deleters yet.
+class JpxBitMapContext
+{
+  public:
+    explicit JpxBitMapContext(ICodec_JpxModule* jpx_module)
+        : jpx_module_(jpx_module),
+          ctx_(nullptr),
+          output_offsets_(nullptr) {}
+
+    ~JpxBitMapContext() {
+        FX_Free(output_offsets_);
+        jpx_module_->DestroyDecoder(ctx_);
+    }
+
+    // Takes ownership of |ctx|.
+    void set_context(void* ctx) {
+        ctx_ = ctx;
+    }
+
+    void* context() {
+        return ctx_;
+    }
+
+    // Takes ownership of |output_offsets|.
+    void set_output_offsets(unsigned char* output_offsets) {
+      output_offsets_ = output_offsets;
+    }
+
+    unsigned char* output_offsets() {
+      return output_offsets_;
+    }
+
+  private:
+    ICodec_JpxModule* jpx_module_;  // Weak pointer.
+    void* ctx_;  // Decoder context, owned.
+    unsigned char* output_offsets_;  // Output offsets for decoding, owned.
+
+    // Disallow evil constructors
+    JpxBitMapContext(const JpxBitMapContext&);
+    void operator=(const JpxBitMapContext&);
+};
 
 }  // namespace
 
@@ -124,7 +172,6 @@ CPDF_DIBSource::CPDF_DIBSource()
     m_pCompData = NULL;
     m_bColorKey = FALSE;
     m_pMaskedLine = m_pLineBuf = NULL;
-    m_pCachedBitmap = NULL;
     m_pDecoder = NULL;
     m_nComponents = 0;
     m_bpc = 0;
@@ -148,7 +195,7 @@ CPDF_DIBSource::~CPDF_DIBSource()
     if (m_pLineBuf) {
         FX_Free(m_pLineBuf);
     }
-    delete m_pCachedBitmap;
+    m_pCachedBitmap.reset();
     delete m_pDecoder;
     if (m_pCompData) {
         FX_Free(m_pCompData);
@@ -165,10 +212,7 @@ CPDF_DIBSource::~CPDF_DIBSource()
 }
 CFX_DIBitmap* CPDF_DIBSource::GetBitmap() const
 {
-    if (m_pCachedBitmap) {
-        return m_pCachedBitmap;
-    }
-    return Clone();
+    return m_pCachedBitmap ? m_pCachedBitmap.get() : Clone();
 }
 void CPDF_DIBSource::ReleaseBitmap(CFX_DIBitmap* pBitmap) const
 {
@@ -230,7 +274,7 @@ FX_BOOL CPDF_DIBSource::Load(CPDF_Document* pDoc, const CPDF_Stream* pStream, CP
     if (!pitch.IsValid()) {
         return FALSE;
     }
-    m_pLineBuf = FX_Alloc(FX_BYTE, pitch.ValueOrDie());
+    m_pLineBuf = FX_Alloc(uint8_t, pitch.ValueOrDie());
     if (m_pColorSpace && bStdCS) {
         m_pColorSpace->EnableStdConversion(TRUE);
     }
@@ -242,7 +286,7 @@ FX_BOOL CPDF_DIBSource::Load(CPDF_Document* pDoc, const CPDF_Stream* pStream, CP
         if (!pitch.IsValid()) {
             return FALSE;
         }
-        m_pMaskedLine = FX_Alloc(FX_BYTE, pitch.ValueOrDie());
+        m_pMaskedLine = FX_Alloc(uint8_t, pitch.ValueOrDie());
     }
     m_Pitch = pitch.ValueOrDie();
     if (ppMask) {
@@ -274,7 +318,7 @@ int	CPDF_DIBSource::ContinueToLoadMask()
     if (!pitch.IsValid()) {
         return 0;
     }
-    m_pLineBuf = FX_Alloc(FX_BYTE, pitch.ValueOrDie());
+    m_pLineBuf = FX_Alloc(uint8_t, pitch.ValueOrDie());
     if (m_pColorSpace && m_bStdCS) {
         m_pColorSpace->EnableStdConversion(TRUE);
     }
@@ -286,7 +330,7 @@ int	CPDF_DIBSource::ContinueToLoadMask()
         if (!pitch.IsValid()) {
             return 0;
         }
-        m_pMaskedLine = FX_Alloc(FX_BYTE, pitch.ValueOrDie());
+        m_pMaskedLine = FX_Alloc(uint8_t, pitch.ValueOrDie());
     }
     m_Pitch = pitch.ValueOrDie();
     return 1;
@@ -375,8 +419,7 @@ int	CPDF_DIBSource::ContinueLoadDIBSource(IFX_Pause* pPause)
                                             m_pGlobalStream ? m_pGlobalStream->GetData() : NULL, m_pGlobalStream ? m_pGlobalStream->GetSize() : 0, m_pCachedBitmap->GetBuffer(),
                                             m_pCachedBitmap->GetPitch(), pPause);
             if (ret < 0) {
-                delete m_pCachedBitmap;
-                m_pCachedBitmap = NULL;
+                m_pCachedBitmap.reset();
                 delete m_pGlobalStream;
                 m_pGlobalStream = NULL;
                 pJbig2Module->DestroyJbig2Context(m_pJbig2Context);
@@ -401,8 +444,7 @@ int	CPDF_DIBSource::ContinueLoadDIBSource(IFX_Pause* pPause)
         }
         FXCODEC_STATUS ret = pJbig2Module->ContinueDecode(m_pJbig2Context, pPause);
         if (ret < 0) {
-            delete m_pCachedBitmap;
-            m_pCachedBitmap = NULL;
+            m_pCachedBitmap.reset();
             delete m_pGlobalStream;
             m_pGlobalStream = NULL;
             pJbig2Module->DestroyJbig2Context(m_pJbig2Context);
@@ -424,7 +466,8 @@ int	CPDF_DIBSource::ContinueLoadDIBSource(IFX_Pause* pPause)
             m_pColorSpace->EnableStdConversion(FALSE);
         }
         return ret1;
-    } else if (m_Status == 2) {
+    }
+    if (m_Status == 2) {
         return ContinueLoadMaskDIB(pPause);
     }
     return 0;
@@ -546,9 +589,9 @@ DIB_COMP_DATA* CPDF_DIBSource::GetDecodeAndMaskArray(FX_BOOL& bDefaultDecode, FX
     }
     return pCompData;
 }
-ICodec_ScanlineDecoder* FPDFAPI_CreateFaxDecoder(FX_LPCBYTE src_buf, FX_DWORD src_size, int width, int height,
+ICodec_ScanlineDecoder* FPDFAPI_CreateFaxDecoder(const uint8_t* src_buf, FX_DWORD src_size, int width, int height,
         const CPDF_Dictionary* pParams);
-ICodec_ScanlineDecoder* FPDFAPI_CreateFlateDecoder(FX_LPCBYTE src_buf, FX_DWORD src_size, int width, int height,
+ICodec_ScanlineDecoder* FPDFAPI_CreateFlateDecoder(const uint8_t* src_buf, FX_DWORD src_size, int width, int height,
         int nComps, int bpc, const CPDF_Dictionary* pParams);
 int CPDF_DIBSource::CreateDecoder()
 {
@@ -559,14 +602,15 @@ int CPDF_DIBSource::CreateDecoder()
     if (m_bDoBpcCheck && m_bpc == 0) {
         return 0;
     }
-    FX_LPCBYTE src_data = m_pStreamAcc->GetData();
+    const uint8_t* src_data = m_pStreamAcc->GetData();
     FX_DWORD src_size = m_pStreamAcc->GetSize();
     const CPDF_Dictionary* pParams = m_pStreamAcc->GetImageParam();
     if (decoder == FX_BSTRC("CCITTFaxDecode")) {
         m_pDecoder = FPDFAPI_CreateFaxDecoder(src_data, src_size, m_Width, m_Height, pParams);
     } else if (decoder == FX_BSTRC("DCTDecode")) {
-        m_pDecoder = CPDF_ModuleMgr::Get()->GetJpegModule()->CreateDecoder(src_data, src_size, m_Width, m_Height,
-                     m_nComponents, pParams ? pParams->GetInteger(FX_BSTR("ColorTransform"), 1) : 1);
+        m_pDecoder = CPDF_ModuleMgr::Get()->GetJpegModule()->CreateDecoder(
+            src_data, src_size, m_Width, m_Height, m_nComponents,
+            pParams ? pParams->GetInteger("ColorTransform", 1) : 1);
         if (!m_pDecoder) {
             FX_BOOL bTransform = FALSE;
             int comps, bpc;
@@ -593,12 +637,11 @@ int CPDF_DIBSource::CreateDecoder()
         m_pDecoder = FPDFAPI_CreateFlateDecoder(src_data, src_size, m_Width, m_Height, m_nComponents, m_bpc, pParams);
     } else if (decoder == FX_BSTRC("JPXDecode")) {
         LoadJpxBitmap();
-        return m_pCachedBitmap != NULL ? 1 : 0;
+        return m_pCachedBitmap ? 1 : 0;
     } else if (decoder == FX_BSTRC("JBIG2Decode")) {
-        m_pCachedBitmap = new CFX_DIBitmap;
+        m_pCachedBitmap.reset(new CFX_DIBitmap);
         if (!m_pCachedBitmap->Create(m_Width, m_Height, m_bImageMask ? FXDIB_1bppMask : FXDIB_1bppRgb)) {
-            delete m_pCachedBitmap;
-            m_pCachedBitmap = NULL;
+            m_pCachedBitmap.reset();
             return 0;
         }
         m_Status = 1;
@@ -629,30 +672,37 @@ int CPDF_DIBSource::CreateDecoder()
 void CPDF_DIBSource::LoadJpxBitmap()
 {
     ICodec_JpxModule* pJpxModule = CPDF_ModuleMgr::Get()->GetJpxModule();
-    if (pJpxModule == NULL) {
+    if (!pJpxModule)
         return;
-    }
-    FX_LPVOID ctx = pJpxModule->CreateDecoder(m_pStreamAcc->GetData(), m_pStreamAcc->GetSize(), m_pColorSpace != NULL);
-    if (ctx == NULL) {
+
+    nonstd::unique_ptr<JpxBitMapContext> context(
+        new JpxBitMapContext(pJpxModule));
+    context->set_context(pJpxModule->CreateDecoder(m_pStreamAcc->GetData(),
+                                                   m_pStreamAcc->GetSize(),
+                                                   m_pColorSpace != nullptr));
+    if (!context->context())
         return;
-    }
-    FX_DWORD width = 0, height = 0, codestream_nComps = 0, image_nComps = 0;
-    pJpxModule->GetImageInfo(ctx, width, height, codestream_nComps, image_nComps);
-    if ((int)width < m_Width || (int)height < m_Height) {
-        pJpxModule->DestroyDecoder(ctx);
+
+    FX_DWORD width = 0;
+    FX_DWORD height = 0;
+    FX_DWORD codestream_nComps = 0;
+    FX_DWORD image_nComps = 0;
+    pJpxModule->GetImageInfo(context->context(), width, height,
+                             codestream_nComps, image_nComps);
+    if ((int)width < m_Width || (int)height < m_Height)
         return;
-    }
+
     int output_nComps;
-    FX_BOOL bTranslateColor, bSwapRGB = FALSE;
+    FX_BOOL bTranslateColor;
+    FX_BOOL bSwapRGB = FALSE;
     if (m_pColorSpace) {
-        if (codestream_nComps != (FX_DWORD)m_pColorSpace->CountComponents()) {
+        if (codestream_nComps != (FX_DWORD)m_pColorSpace->CountComponents())
             return;
-        }
         output_nComps = codestream_nComps;
         bTranslateColor = FALSE;
         if (m_pColorSpace == CPDF_ColorSpace::GetStockCS(PDFCS_DEVICERGB)) {
             bSwapRGB = TRUE;
-            m_pColorSpace = NULL;
+            m_pColorSpace = nullptr;
         }
     } else {
         bTranslateColor = TRUE;
@@ -680,35 +730,36 @@ void CPDF_DIBSource::LoadJpxBitmap()
         width = (width * output_nComps + 2) / 3;
         format = FXDIB_Rgb;
     }
-    m_pCachedBitmap = new CFX_DIBitmap;
+    m_pCachedBitmap.reset(new CFX_DIBitmap);
     if (!m_pCachedBitmap->Create(width, height, format)) {
-        delete m_pCachedBitmap;
-        m_pCachedBitmap = NULL;
+        m_pCachedBitmap.reset();
         return;
     }
     m_pCachedBitmap->Clear(0xFFFFFFFF);
-    FX_LPBYTE output_offsets = FX_Alloc(FX_BYTE, output_nComps);
-    for (int i = 0; i < output_nComps; i ++) {
-        output_offsets[i] = i;
-    }
+    context->set_output_offsets(FX_Alloc(uint8_t, output_nComps));
+    for (int i = 0; i < output_nComps; ++i)
+        context->output_offsets()[i] = i;
     if (bSwapRGB) {
-        output_offsets[0] = 2;
-        output_offsets[2] = 0;
+        context->output_offsets()[0] = 2;
+        context->output_offsets()[2] = 0;
     }
-    if (!pJpxModule->Decode(ctx, m_pCachedBitmap->GetBuffer(), m_pCachedBitmap->GetPitch(), bTranslateColor, output_offsets)) {
-        delete m_pCachedBitmap;
-        m_pCachedBitmap = NULL;
+    if (!pJpxModule->Decode(context->context(),
+                            m_pCachedBitmap->GetBuffer(),
+                            m_pCachedBitmap->GetPitch(),
+                            bTranslateColor,
+                            context->output_offsets())) {
+        m_pCachedBitmap.reset();
         return;
     }
-    FX_Free(output_offsets);
-    pJpxModule->DestroyDecoder(ctx);
-    if (m_pColorSpace && m_pColorSpace->GetFamily() == PDFCS_INDEXED && m_bpc < 8) {
+    if (m_pColorSpace &&
+        m_pColorSpace->GetFamily() == PDFCS_INDEXED &&
+        m_bpc < 8) {
         int scale = 8 - m_bpc;
-        for (FX_DWORD row = 0; row < height; row ++) {
-            FX_LPBYTE scanline = (FX_LPBYTE)m_pCachedBitmap->GetScanline(row);
-            for (FX_DWORD col = 0; col < width; col ++) {
+        for (FX_DWORD row = 0; row < height; ++row) {
+            uint8_t* scanline = (uint8_t*)m_pCachedBitmap->GetScanline(row);
+            for (FX_DWORD col = 0; col < width; ++col) {
                 *scanline = (*scanline) >> scale;
-                scanline++;
+                ++scanline;
             }
         }
     }
@@ -915,7 +966,7 @@ void CPDF_DIBSource::ValidateDictParam()
     }
 }
 #define NORMALCOLOR_MAX(color, max) (color) > (max) ? (max) : (color) < 0 ? 0 : (color);
-void CPDF_DIBSource::TranslateScanline24bpp(FX_LPBYTE dest_scan, FX_LPCBYTE src_scan) const
+void CPDF_DIBSource::TranslateScanline24bpp(uint8_t* dest_scan, const uint8_t* src_scan) const
 {
     if (m_bpc == 0) {
         return;
@@ -923,7 +974,7 @@ void CPDF_DIBSource::TranslateScanline24bpp(FX_LPBYTE dest_scan, FX_LPCBYTE src_
     int max_data = (1 << m_bpc) - 1;
     if (m_bDefaultDecode) {
         if (m_Family == PDFCS_DEVICERGB || m_Family == PDFCS_CALRGB) {
-            FX_LPCBYTE src_pos = src_scan;
+            const uint8_t* src_pos = src_scan;
             switch (m_bpc) {
                 case 16:
                     for (int col = 0; col < m_Width; col ++) {
@@ -962,7 +1013,8 @@ void CPDF_DIBSource::TranslateScanline24bpp(FX_LPBYTE dest_scan, FX_LPCBYTE src_
                     break;
             }
             return;
-        } else if (m_bpc == 8) {
+        }
+        if (m_bpc == 8) {
             if (m_nComponents == m_pColorSpace->CountComponents())
                 m_pColorSpace->TranslateImageLine(dest_scan, src_scan, m_Width, m_Width, m_Height,
                                                   m_bLoadMask && m_GroupFamily == PDFCS_DEVICECMYK && m_Family == PDFCS_DEVICECMYK);
@@ -992,9 +1044,9 @@ void CPDF_DIBSource::TranslateScanline24bpp(FX_LPBYTE dest_scan, FX_LPCBYTE src_
             R = NORMALCOLOR_MAX(R, 1);
             G = NORMALCOLOR_MAX(G, 1);
             B = NORMALCOLOR_MAX(B, 1);
-            dest_scan[dest_byte_pos] = (FX_INT32)(B * 255);
-            dest_scan[dest_byte_pos + 1] = (FX_INT32)(G * 255);
-            dest_scan[dest_byte_pos + 2] = (FX_INT32)(R * 255);
+            dest_scan[dest_byte_pos] = (int32_t)(B * 255);
+            dest_scan[dest_byte_pos + 1] = (int32_t)(G * 255);
+            dest_scan[dest_byte_pos + 2] = (int32_t)(R * 255);
             dest_byte_pos += 3;
         }
     } else {
@@ -1018,21 +1070,21 @@ void CPDF_DIBSource::TranslateScanline24bpp(FX_LPBYTE dest_scan, FX_LPCBYTE src_
             R = NORMALCOLOR_MAX(R, 1);
             G = NORMALCOLOR_MAX(G, 1);
             B = NORMALCOLOR_MAX(B, 1);
-            dest_scan[dest_byte_pos] = (FX_INT32)(B * 255);
-            dest_scan[dest_byte_pos + 1] = (FX_INT32)(G * 255);
-            dest_scan[dest_byte_pos + 2] = (FX_INT32)(R * 255);
+            dest_scan[dest_byte_pos] = (int32_t)(B * 255);
+            dest_scan[dest_byte_pos + 1] = (int32_t)(G * 255);
+            dest_scan[dest_byte_pos + 2] = (int32_t)(R * 255);
             dest_byte_pos += 3;
         }
     }
 }
-FX_LPBYTE CPDF_DIBSource::GetBuffer() const
+uint8_t* CPDF_DIBSource::GetBuffer() const
 {
     if (m_pCachedBitmap) {
         return m_pCachedBitmap->GetBuffer();
     }
     return NULL;
 }
-FX_LPCBYTE CPDF_DIBSource::GetScanline(int line) const
+const uint8_t* CPDF_DIBSource::GetScanline(int line) const
 {
     if (m_bpc == 0) {
         return NULL;
@@ -1041,7 +1093,7 @@ FX_LPCBYTE CPDF_DIBSource::GetScanline(int line) const
     if (!src_pitch.IsValid())
         return NULL;
     FX_DWORD src_pitch_value = src_pitch.ValueOrDie();
-    FX_LPCBYTE pSrcLine = NULL;
+    const uint8_t* pSrcLine = NULL;
     if (m_pCachedBitmap) {
         if (line >= m_pCachedBitmap->GetHeight()) {
             line = m_pCachedBitmap->GetHeight() - 1;
@@ -1055,8 +1107,8 @@ FX_LPCBYTE CPDF_DIBSource::GetScanline(int line) const
         }
     }
     if (pSrcLine == NULL) {
-        FX_LPBYTE pLineBuf = m_pMaskedLine ? m_pMaskedLine : m_pLineBuf;
-        FXSYS_memset8(pLineBuf, 0xff, m_Pitch);
+        uint8_t* pLineBuf = m_pMaskedLine ? m_pMaskedLine : m_pLineBuf;
+        FXSYS_memset(pLineBuf, 0xff, m_Pitch);
         return pLineBuf;
     }
     if (m_bpc * m_nComponents == 1) {
@@ -1087,13 +1139,13 @@ FX_LPCBYTE CPDF_DIBSource::GetScanline(int line) const
             }
             return m_pMaskedLine;
         } else {
-            FXSYS_memcpy32(m_pLineBuf, pSrcLine, src_pitch_value);
+            FXSYS_memcpy(m_pLineBuf, pSrcLine, src_pitch_value);
         }
         return m_pLineBuf;
     }
     if (m_bpc * m_nComponents <= 8) {
         if (m_bpc == 8) {
-            FXSYS_memcpy32(m_pLineBuf, pSrcLine, src_pitch_value);
+            FXSYS_memcpy(m_pLineBuf, pSrcLine, src_pitch_value);
         } else {
             int src_bit_pos = 0;
             for (int col = 0; col < m_Width; col ++) {
@@ -1107,10 +1159,10 @@ FX_LPCBYTE CPDF_DIBSource::GetScanline(int line) const
             }
         }
         if (m_bColorKey) {
-            FX_LPBYTE pDestPixel = m_pMaskedLine;
-            FX_LPCBYTE pSrcPixel = m_pLineBuf;
+            uint8_t* pDestPixel = m_pMaskedLine;
+            const uint8_t* pSrcPixel = m_pLineBuf;
             for (int col = 0; col < m_Width; col ++) {
-                FX_BYTE index = *pSrcPixel++;
+                uint8_t index = *pSrcPixel++;
                 if (m_pPalette) {
                     *pDestPixel++ = FXARGB_B(m_pPalette[index]);
                     *pDestPixel++ = FXARGB_G(m_pPalette[index]);
@@ -1129,15 +1181,15 @@ FX_LPCBYTE CPDF_DIBSource::GetScanline(int line) const
     }
     if (m_bColorKey) {
         if (m_nComponents == 3 && m_bpc == 8) {
-            FX_LPBYTE alpha_channel = m_pMaskedLine + 3;
+            uint8_t* alpha_channel = m_pMaskedLine + 3;
             for (int col = 0; col < m_Width; col ++) {
-                FX_LPCBYTE pPixel = pSrcLine + col * 3;
+                const uint8_t* pPixel = pSrcLine + col * 3;
                 alpha_channel[col * 4] = (pPixel[0] < m_pCompData[0].m_ColorKeyMin || pPixel[0] > m_pCompData[0].m_ColorKeyMax ||
                                           pPixel[1] < m_pCompData[1].m_ColorKeyMin || pPixel[1] > m_pCompData[1].m_ColorKeyMax ||
                                           pPixel[2] < m_pCompData[2].m_ColorKeyMin || pPixel[2] > m_pCompData[2].m_ColorKeyMax) ? 0xff : 0;
             }
         } else {
-            FXSYS_memset8(m_pMaskedLine, 0xff, m_Pitch);
+            FXSYS_memset(m_pMaskedLine, 0xff, m_Pitch);
         }
     }
     if (m_pColorSpace) {
@@ -1145,8 +1197,8 @@ FX_LPCBYTE CPDF_DIBSource::GetScanline(int line) const
         pSrcLine = m_pLineBuf;
     }
     if (m_bColorKey) {
-        FX_LPCBYTE pSrcPixel = pSrcLine;
-        FX_LPBYTE pDestPixel = m_pMaskedLine;
+        const uint8_t* pSrcPixel = pSrcLine;
+        uint8_t* pDestPixel = m_pMaskedLine;
         for (int col = 0; col < m_Width; col ++) {
             *pDestPixel++ = *pSrcPixel++;
             *pDestPixel++ = *pSrcPixel++;
@@ -1164,7 +1216,7 @@ FX_BOOL CPDF_DIBSource::SkipToScanline(int line, IFX_Pause* pPause) const
     }
     return FALSE;
 }
-void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_bpp,
+void CPDF_DIBSource::DownSampleScanline(int line, uint8_t* dest_scan, int dest_bpp,
                                         int dest_width, FX_BOOL bFlipX, int clip_left, int clip_width) const
 {
     if (line < 0 || dest_scan == NULL || dest_bpp <= 0 ||
@@ -1178,7 +1230,7 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
         return;
     }
 
-    FX_LPCBYTE pSrcLine = NULL;
+    const uint8_t* pSrcLine = NULL;
     if (m_pCachedBitmap) {
         pSrcLine = m_pCachedBitmap->GetScanline(line);
     } else if (m_pDecoder) {
@@ -1197,7 +1249,7 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
     int orig_Bpp = m_bpc * m_nComponents / 8;
     int dest_Bpp = dest_bpp / 8;
     if (pSrcLine == NULL) {
-        FXSYS_memset32(dest_scan, 0xff, dest_Bpp * clip_width);
+        FXSYS_memset(dest_scan, 0xff, dest_Bpp * clip_width);
         return;
     }
 
@@ -1209,7 +1261,7 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
         return;
     }
 
-    CFX_FixedBufGrow<FX_BYTE, 128> temp(orig_Bpp);
+    CFX_FixedBufGrow<uint8_t, 128> temp(orig_Bpp);
     if (m_bpc * m_nComponents == 1) {
         FX_DWORD set_argb = (FX_DWORD) - 1, reset_argb = 0;
         if (m_bImageMask) {
@@ -1257,7 +1309,7 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
             int dest_pos = i * dest_Bpp;
             if (pSrcLine[src_x / 8] & (1 << (7 - src_x % 8))) {
                 if (dest_Bpp == 1) {
-                    dest_scan[dest_pos] = (FX_BYTE)set_argb;
+                    dest_scan[dest_pos] = (uint8_t)set_argb;
                 } else if (dest_Bpp == 3) {
                     dest_scan[dest_pos] = FXARGB_B(set_argb);
                     dest_scan[dest_pos + 1] = FXARGB_G(set_argb);
@@ -1267,7 +1319,7 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
                 }
             } else {
                 if (dest_Bpp == 1) {
-                    dest_scan[dest_pos] = (FX_BYTE)reset_argb;
+                    dest_scan[dest_pos] = (uint8_t)reset_argb;
                 } else if (dest_Bpp == 3) {
                     dest_scan[dest_pos] = FXARGB_B(reset_argb);
                     dest_scan[dest_pos + 1] = FXARGB_G(reset_argb);
@@ -1299,8 +1351,8 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
                     src_x = src_width - src_x - 1;
                 }
                 src_x %= src_width;
-                FX_LPBYTE pDestPixel = dest_scan + i * 4;
-                FX_BYTE index = pSrcLine[src_x];
+                uint8_t* pDestPixel = dest_scan + i * 4;
+                uint8_t index = pSrcLine[src_x];
                 if (m_pPalette) {
                     *pDestPixel++ = FXARGB_B(m_pPalette[index]);
                     *pDestPixel++ = FXARGB_G(m_pPalette[index]);
@@ -1320,7 +1372,7 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
                 src_x = src_width - src_x - 1;
             }
             src_x %= src_width;
-            FX_BYTE index = pSrcLine[src_x];
+            uint8_t index = pSrcLine[src_x];
             if (dest_Bpp == 1) {
                 dest_scan[i] = index;
             } else {
@@ -1339,21 +1391,21 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
         FX_FLOAT unit_To8Bpc = 255.0f / ((1 << m_bpc) - 1);
         for (int i = 0; i < clip_width; i ++) {
             int dest_x = clip_left + i;
-            FX_DWORD src_x = (bFlipX ? (dest_width - dest_x - 1) : dest_x) * (FX_INT64)src_width / dest_width;
+            FX_DWORD src_x = (bFlipX ? (dest_width - dest_x - 1) : dest_x) * (int64_t)src_width / dest_width;
             src_x %= src_width;
-            FX_LPCBYTE pSrcPixel = NULL;
+            const uint8_t* pSrcPixel = NULL;
             if (m_bpc % 8 == 0) {
                 pSrcPixel = pSrcLine + src_x * orig_Bpp;
             } else {
                 pSrcPixel = pSrcLine + (int)(src_x * orig_Not8Bpp);
             }
-            FX_LPBYTE pDestPixel = dest_scan + i * dest_Bpp;
+            uint8_t* pDestPixel = dest_scan + i * dest_Bpp;
             FX_ARGB argb;
             if (src_x == last_src_x) {
                 argb = last_argb;
             } else {
                 if (m_pColorSpace) {
-                    FX_BYTE color[4];
+                    uint8_t color[4];
                     if (!m_bDefaultDecode) {
                         for (int i = 0; i < m_nComponents; i ++) {
                             int color_value = (int)((m_pCompData[i].m_DecodeMin + m_pCompData[i].m_DecodeStep * (FX_FLOAT)pSrcPixel[i]) * 255.0f + 0.5f);
@@ -1367,7 +1419,7 @@ void CPDF_DIBSource::DownSampleScanline(int line, FX_LPBYTE dest_scan, int dest_
                                 src_bit_pos = 4;
                             }
                             for (FX_DWORD i = 0; i < m_nComponents; i ++) {
-                                temp[i] = (FX_BYTE)(_GetBits8(pSrcPixel, src_bit_pos, m_bpc) * unit_To8Bpc);
+                                temp[i] = (uint8_t)(_GetBits8(pSrcPixel, src_bit_pos, m_bpc) * unit_To8Bpc);
                                 src_bit_pos += m_bpc;
                             }
                             m_pColorSpace->TranslateImageLine(color, temp, 1, 0, 0, m_bLoadMask && m_GroupFamily == PDFCS_DEVICECMYK && m_Family == PDFCS_DEVICECMYK);
@@ -1428,7 +1480,7 @@ CPDF_ProgressiveImageLoaderHandle::CPDF_ProgressiveImageLoaderHandle()
 CPDF_ProgressiveImageLoaderHandle::~CPDF_ProgressiveImageLoaderHandle()
 {
 }
-FX_BOOL CPDF_ProgressiveImageLoaderHandle::Start(CPDF_ImageLoader* pImageLoader, const CPDF_ImageObject* pImage, CPDF_PageRenderCache* pCache, FX_BOOL bStdCS, FX_DWORD GroupFamily, FX_BOOL bLoadMask, CPDF_RenderStatus* pRenderStatus, FX_INT32 nDownsampleWidth, FX_INT32 nDownsampleHeight)
+FX_BOOL CPDF_ProgressiveImageLoaderHandle::Start(CPDF_ImageLoader* pImageLoader, const CPDF_ImageObject* pImage, CPDF_PageRenderCache* pCache, FX_BOOL bStdCS, FX_DWORD GroupFamily, FX_BOOL bLoadMask, CPDF_RenderStatus* pRenderStatus, int32_t nDownsampleWidth, int32_t nDownsampleHeight)
 {
     m_pImageLoader = pImageLoader;
     m_pCache = pCache;
@@ -1491,7 +1543,7 @@ FX_BOOL CPDF_ImageLoader::Load(const CPDF_ImageObject* pImage, CPDF_PageRenderCa
     }
     return FALSE;
 }
-FX_BOOL CPDF_ImageLoader::StartLoadImage(const CPDF_ImageObject* pImage, CPDF_PageRenderCache* pCache, FX_LPVOID& LoadHandle, FX_BOOL bStdCS, FX_DWORD GroupFamily, FX_BOOL bLoadMask, CPDF_RenderStatus* pRenderStatus, FX_INT32 nDownsampleWidth, FX_INT32 nDownsampleHeight)
+FX_BOOL CPDF_ImageLoader::StartLoadImage(const CPDF_ImageObject* pImage, CPDF_PageRenderCache* pCache, void*& LoadHandle, FX_BOOL bStdCS, FX_DWORD GroupFamily, FX_BOOL bLoadMask, CPDF_RenderStatus* pRenderStatus, int32_t nDownsampleWidth, int32_t nDownsampleHeight)
 {
     m_nDownsampleWidth = nDownsampleWidth;
     m_nDownsampleHeight = nDownsampleHeight;
@@ -1500,7 +1552,7 @@ FX_BOOL CPDF_ImageLoader::StartLoadImage(const CPDF_ImageObject* pImage, CPDF_Pa
     LoadHandle = pLoaderHandle;
     return ret;
 }
-FX_BOOL	CPDF_ImageLoader::Continue(FX_LPVOID LoadHandle, IFX_Pause* pPause)
+FX_BOOL	CPDF_ImageLoader::Continue(void* LoadHandle, IFX_Pause* pPause)
 {
     return ((CPDF_ProgressiveImageLoaderHandle*)LoadHandle)->Continue(pPause);
 }

@@ -1,11 +1,11 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _CONSTS_H_
-#define _CONSTS_H_
+#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_CONSTS_H_
+#define FPDFSDK_INCLUDE_JAVASCRIPT_CONSTS_H_
 
 #include "JS_Define.h"
 
@@ -124,5 +124,4 @@ public:
 	static int				Init(IJS_Runtime* pRuntime);
 };
 
-#endif //_CONSTS_H_
-
+#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_CONSTS_H_

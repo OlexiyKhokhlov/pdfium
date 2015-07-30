@@ -38,11 +38,11 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize)
             m_nSize = m_nMaxSize = 0;
             return FALSE;
         }
-        m_pData = FX_Alloc(FX_BYTE, totalSize.ValueOrDie());
+        m_pData = FX_Alloc(uint8_t, totalSize.ValueOrDie());
         m_nSize = m_nMaxSize = nNewSize;
     } else if (nNewSize <= m_nMaxSize) {
         if (nNewSize > m_nSize) {
-            FXSYS_memset32(m_pData + m_nSize * m_nUnitSize, 0, (nNewSize - m_nSize) * m_nUnitSize);
+            FXSYS_memset(m_pData + m_nSize * m_nUnitSize, 0, (nNewSize - m_nSize) * m_nUnitSize);
         }
         m_nSize = nNewSize;
     } else {
@@ -52,11 +52,11 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize)
         if (!totalSize.IsValid() || nNewMax < m_nSize) {
             return FALSE;
         }
-        FX_LPBYTE pNewData = FX_Realloc(FX_BYTE, m_pData, totalSize.ValueOrDie());
+        uint8_t* pNewData = FX_Realloc(uint8_t, m_pData, totalSize.ValueOrDie());
         if (pNewData == NULL) {
             return FALSE;
         }
-        FXSYS_memset32(pNewData + m_nSize * m_nUnitSize, 0, (nNewMax - m_nSize) * m_nUnitSize);
+        FXSYS_memset(pNewData + m_nSize * m_nUnitSize, 0, (nNewMax - m_nSize) * m_nUnitSize);
         m_pData = pNewData;
         m_nSize = nNewSize;
         m_nMaxSize = nNewMax;
@@ -72,7 +72,7 @@ FX_BOOL CFX_BasicArray::Append(const CFX_BasicArray& src)
         return FALSE;
     }
 
-    FXSYS_memcpy32(m_pData + nOldSize * m_nUnitSize, src.m_pData, src.m_nSize * m_nUnitSize);
+    FXSYS_memcpy(m_pData + nOldSize * m_nUnitSize, src.m_pData, src.m_nSize * m_nUnitSize);
     return TRUE;
 }
 FX_BOOL CFX_BasicArray::Copy(const CFX_BasicArray& src)
@@ -80,10 +80,10 @@ FX_BOOL CFX_BasicArray::Copy(const CFX_BasicArray& src)
     if (!SetSize(src.m_nSize)) {
         return FALSE;
     }
-    FXSYS_memcpy32(m_pData, src.m_pData, src.m_nSize * m_nUnitSize);
+    FXSYS_memcpy(m_pData, src.m_pData, src.m_nSize * m_nUnitSize);
     return TRUE;
 }
-FX_LPBYTE CFX_BasicArray::InsertSpaceAt(int nIndex, int nCount)
+uint8_t* CFX_BasicArray::InsertSpaceAt(int nIndex, int nCount)
 {
     if (nIndex < 0 || nCount <= 0) {
         return NULL;
@@ -97,9 +97,9 @@ FX_LPBYTE CFX_BasicArray::InsertSpaceAt(int nIndex, int nCount)
         if (!SetSize(m_nSize + nCount)) {
             return NULL;
         }
-        FXSYS_memmove32(m_pData + (nIndex + nCount)*m_nUnitSize, m_pData + nIndex * m_nUnitSize,
+        FXSYS_memmove(m_pData + (nIndex + nCount)*m_nUnitSize, m_pData + nIndex * m_nUnitSize,
                         (nOldSize - nIndex) * m_nUnitSize);
-        FXSYS_memset32(m_pData + nIndex * m_nUnitSize, 0, nCount * m_nUnitSize);
+        FXSYS_memset(m_pData + nIndex * m_nUnitSize, 0, nCount * m_nUnitSize);
     }
     return m_pData + nIndex * m_nUnitSize;
 }
@@ -110,7 +110,7 @@ FX_BOOL CFX_BasicArray::RemoveAt(int nIndex, int nCount)
     }
     int nMoveCount = m_nSize - (nIndex + nCount);
     if (nMoveCount) {
-        FXSYS_memmove32(m_pData + nIndex * m_nUnitSize, m_pData + (nIndex + nCount) * m_nUnitSize, nMoveCount * m_nUnitSize);
+        FXSYS_memmove(m_pData + nIndex * m_nUnitSize, m_pData + (nIndex + nCount) * m_nUnitSize, nMoveCount * m_nUnitSize);
     }
     m_nSize -= nCount;
     return TRUE;
@@ -126,7 +126,7 @@ FX_BOOL CFX_BasicArray::InsertAt(int nStartIndex, const CFX_BasicArray* pNewArra
     if (!InsertSpaceAt(nStartIndex, pNewArray->m_nSize)) {
         return FALSE;
     }
-    FXSYS_memcpy32(m_pData + nStartIndex * m_nUnitSize, pNewArray->m_pData, pNewArray->m_nSize * m_nUnitSize);
+    FXSYS_memcpy(m_pData + nStartIndex * m_nUnitSize, pNewArray->m_pData, pNewArray->m_nSize * m_nUnitSize);
     return TRUE;
 }
 const void* CFX_BasicArray::GetDataPtr(int index) const
@@ -185,7 +185,7 @@ void* CFX_BaseSegmentedArray::Add()
     if (m_DataSize % m_SegmentSize) {
         return GetAt(m_DataSize ++);
     }
-    void* pSegment = FX_Alloc2D(FX_BYTE, m_UnitSize, m_SegmentSize);
+    void* pSegment = FX_Alloc2D(uint8_t, m_UnitSize, m_SegmentSize);
     if (m_pIndex == NULL) {
         m_pIndex = pSegment;
         m_DataSize ++;
@@ -243,7 +243,8 @@ void** CFX_BaseSegmentedArray::GetIndex(int seg_index) const
     ASSERT(m_IndexDepth != 0);
     if (m_IndexDepth == 1) {
         return (void**)m_pIndex;
-    } else if (m_IndexDepth == 2) {
+    }
+    if (m_IndexDepth == 2) {
         return (void**)((void**)m_pIndex)[seg_index / m_IndexSize];
     }
     int tree_size = 1;
@@ -259,7 +260,7 @@ void** CFX_BaseSegmentedArray::GetIndex(int seg_index) const
     }
     return pSpot;
 }
-void* CFX_BaseSegmentedArray::IterateSegment(FX_LPCBYTE pSegment, int count, FX_BOOL (*callback)(void* param, void* pData), void* param) const
+void* CFX_BaseSegmentedArray::IterateSegment(const uint8_t* pSegment, int count, FX_BOOL (*callback)(void* param, void* pData), void* param) const
 {
     for (int i = 0; i < count; i ++) {
         if (!callback(param, (void*)(pSegment + i * m_UnitSize))) {
@@ -276,7 +277,7 @@ void* CFX_BaseSegmentedArray::IterateIndex(int level, int& start, void** pIndex,
             count = m_SegmentSize;
         }
         start += count;
-        return IterateSegment((FX_LPCBYTE)pIndex, count, callback, param);
+        return IterateSegment((const uint8_t*)pIndex, count, callback, param);
     }
     for (int i = 0; i < m_IndexSize; i ++) {
         if (pIndex[i] == NULL) {
@@ -303,10 +304,10 @@ void* CFX_BaseSegmentedArray::GetAt(int index) const
         return NULL;
     }
     if (m_IndexDepth == 0) {
-        return (FX_LPBYTE)m_pIndex + m_UnitSize * index;
+        return (uint8_t*)m_pIndex + m_UnitSize * index;
     }
     int seg_index = index / m_SegmentSize;
-    return (FX_LPBYTE)GetIndex(seg_index)[seg_index % m_IndexSize] + (index % m_SegmentSize) * m_UnitSize;
+    return (uint8_t*)GetIndex(seg_index)[seg_index % m_IndexSize] + (index % m_SegmentSize) * m_UnitSize;
 }
 void CFX_BaseSegmentedArray::Delete(int index, int count)
 {
@@ -315,8 +316,8 @@ void CFX_BaseSegmentedArray::Delete(int index, int count)
     }
     int i;
     for (i = index; i < m_DataSize - count; i ++) {
-        FX_BYTE* pSrc = (FX_BYTE*)GetAt(i + count);
-        FX_BYTE* pDest = (FX_BYTE*)GetAt(i);
+        uint8_t* pSrc = (uint8_t*)GetAt(i + count);
+        uint8_t* pDest = (uint8_t*)GetAt(i);
         for (int j = 0; j < m_UnitSize; j ++) {
             pDest[j] = pSrc[j];
         }

@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _FX_MEMORY_H_
-#define _FX_MEMORY_H_
+#ifndef CORE_INCLUDE_FXCRT_FX_MEMORY_H_
+#define CORE_INCLUDE_FXCRT_FX_MEMORY_H_
 
 #include "fx_system.h"
 
@@ -70,13 +70,13 @@ inline void* FX_ReallocOrDie(void* ptr, size_t num_members, size_t member_size) 
 
 #define FX_Free(ptr) free(ptr)
 
-class CFX_DestructObject 
+class CFX_DestructObject
 {
 public:
 
     virtual ~CFX_DestructObject() {}
 };
-class CFX_GrowOnlyPool 
+class CFX_GrowOnlyPool
 {
 public:
 
@@ -89,14 +89,14 @@ public:
         m_TrunkSize = trunk_size;
     }
 
-    void*	AllocDebug(size_t size, FX_LPCSTR file, int line)
+    void*	AllocDebug(size_t size, const FX_CHAR* file, int line)
     {
         return Alloc(size);
     }
 
     void*	Alloc(size_t size);
 
-    void*	ReallocDebug(void* p, size_t new_size, FX_LPCSTR file, int line)
+    void*	ReallocDebug(void* p, size_t new_size, const FX_CHAR* file, int line)
     {
         return NULL;
     }
@@ -115,5 +115,6 @@ private:
 
     void*	m_pFirstTrunk;
 };
-#endif  // __cplusplust
-#endif  // _FX_MEMORY_H_
+#endif  // __cplusplus
+
+#endif  // CORE_INCLUDE_FXCRT_FX_MEMORY_H_

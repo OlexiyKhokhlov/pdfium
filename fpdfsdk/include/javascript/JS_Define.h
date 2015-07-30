@@ -1,15 +1,14 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef _JS_DEFINE_H_
-#define _JS_DEFINE_H_
+#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_JS_DEFINE_H_
+#define FPDFSDK_INCLUDE_JAVASCRIPT_JS_DEFINE_H_
 
 #include "../jsapi/fxjs_v8.h"
 #include "resource.h"
-
 #include "JS_Object.h"
 #include "JS_Value.h"
 
@@ -18,7 +17,7 @@ struct JSConstSpec
 	const wchar_t* pName;
 	double number;
 	const wchar_t* string;
-	FX_BYTE t; //0:double 1:str
+	uint8_t t; //0:double 1:str
 };
 
 struct JSPropertySpec
@@ -184,7 +183,7 @@ void js_class_name::JSDestructor(JSFXObject obj) \
 \
 int js_class_name::Init(IJS_Runtime* pRuntime, FXJSOBJTYPE eObjType)\
 {\
-	int nObjDefnID = JS_DefineObj(pRuntime, js_class_name::m_pClassName, eObjType, JSConstructor, JSDestructor, 0);\
+	int nObjDefnID = JS_DefineObj(pRuntime, js_class_name::m_pClassName, eObjType, JSConstructor, JSDestructor);\
 	if (nObjDefnID >= 0)\
 	{\
 		for (int j=0, szj=sizeof(JS_Class_Properties)/sizeof(JSPropertySpec)-1; j<szj; j++)\
@@ -213,7 +212,7 @@ int js_class_name::Init(IJS_Runtime* pRuntime, FXJSOBJTYPE eObjType)\
 const wchar_t* js_class_name::m_pClassName = JS_WIDESTRING(class_name);\
 int js_class_name::Init(IJS_Runtime* pRuntime, FXJSOBJTYPE eObjType)\
 {\
-	int nObjDefnID = JS_DefineObj(pRuntime, js_class_name::m_pClassName, eObjType, NULL, NULL, 0);\
+	int nObjDefnID = JS_DefineObj(pRuntime, js_class_name::m_pClassName, eObjType, NULL, NULL);\
 	if (nObjDefnID >=0)\
 	{\
 		for (int i=0, sz=sizeof(JS_Class_Consts)/sizeof(JSConstSpec)-1; i<sz; i++)\
@@ -360,7 +359,7 @@ void js_class_name::JSDestructor(JSFXObject obj) \
 int js_class_name::Init(IJS_Runtime* pRuntime, FXJSOBJTYPE eObjType)\
 {\
 \
-	int nObjDefnID = JS_DefineObj(pRuntime, js_class_name::m_pClassName, eObjType, JSConstructor, JSDestructor, 0);\
+	int nObjDefnID = JS_DefineObj(pRuntime, js_class_name::m_pClassName, eObjType, JSConstructor, JSDestructor);\
 \
 	if (nObjDefnID >= 0)\
 	{\
@@ -466,4 +465,4 @@ if (JS_DefineGlobalConst(pRuntime, (const wchar_t*)ArrayName, prop.ToV8Value()) 
 
 FXJSVALUETYPE GET_VALUE_TYPE(v8::Local<v8::Value> p);
 
-#endif //_JS_DEFINE_H_
+#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_JS_DEFINE_H_

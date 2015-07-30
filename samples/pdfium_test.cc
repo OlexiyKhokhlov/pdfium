@@ -215,7 +215,7 @@ static void WriteBmp(const char* pdf_name, int num, const void* buffer,
   if (!fp)
     return;
 
-  BITMAPINFO bmi = {0};
+  BITMAPINFO bmi = {};
   bmi.bmiHeader.biSize = sizeof(bmi) - sizeof(RGBQUAD);
   bmi.bmiHeader.biWidth = width;
   bmi.bmiHeader.biHeight = -height;  // top-down image
@@ -224,7 +224,7 @@ static void WriteBmp(const char* pdf_name, int num, const void* buffer,
   bmi.bmiHeader.biCompression = BI_RGB;
   bmi.bmiHeader.biSizeImage = 0;
 
-  BITMAPFILEHEADER file_header = {0};
+  BITMAPFILEHEADER file_header = {};
   file_header.bfType = 0x4d42;
   file_header.bfSize = sizeof(file_header) + bmi.bmiHeader.biSize + out_len;
   file_header.bfOffBits = file_header.bfSize - out_len;
@@ -426,7 +426,7 @@ void RenderPdf(const std::string& name, const char* pBuf, size_t len,
 
   IPDF_JSPLATFORM platform_callbacks;
   memset(&platform_callbacks, '\0', sizeof(platform_callbacks));
-  platform_callbacks.version = 1;
+  platform_callbacks.version = 2;
   platform_callbacks.app_alert = ExampleAppAlert;
   platform_callbacks.Doc_gotoPage = ExampleDocGotoPage;
 
@@ -550,8 +550,8 @@ void RenderPdf(const std::string& name, const char* pBuf, size_t len,
   }
 
   FORM_DoDocumentAAction(form, FPDFDOC_AACTION_WC);
-  FPDF_CloseDocument(doc);
   FPDFDOC_ExitFormFillEnvironment(form);
+  FPDF_CloseDocument(doc);
   FPDFAvail_Destroy(pdf_avail);
 
   fprintf(stderr, "Rendered %d pages.\n", rendered_pages);
@@ -582,6 +582,11 @@ int main(int argc, const char* argv[]) {
   v8::Platform* platform = v8::platform::CreateDefaultPlatform();
   v8::V8::InitializePlatform(platform);
   v8::V8::Initialize();
+
+  // By enabling predictable mode, V8 won't post any background tasks.
+  static const char predictable_flag[] = "--predictable";
+  v8::V8::SetFlagsFromString(predictable_flag,
+                             static_cast<int>(strlen(predictable_flag)));
 
 #ifdef V8_USE_EXTERNAL_STARTUP_DATA
   v8::StartupData natives;
