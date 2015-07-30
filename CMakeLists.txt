@@ -158,7 +158,7 @@ if(USE_SYSTEM_LCMS2)
   find_package(LCMS2 REQUIRED)
   include_directories(${LCMS2_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_LCMS2)
-  add_library(lcms2 OBJECT empty.c)
+  add_library(lcms2 OBJECT empty.c third_party/lcms2-2.6/src/cmsmd5.c)
 else(USE_SYSTEM_LCMS2)
   add_subdirectory(third_party/lcms2-2.6)
 endif(USE_SYSTEM_LCMS2)
@@ -292,7 +292,6 @@ set(FPDFAPI_SOURCES
   core/src/fpdfapi/fpdf_render/fpdf_render_text.cpp
   core/src/fpdfapi/fpdf_render/render_int.h
 )
-#add_library(fpdfapi STATIC ${FPDFAPI_HEDAERS} ${FPDFAPI_SOURCES})
 
 ######################## FPDFTEXT #############################################
 set(FPDFTEXT_HEDAERS
@@ -308,8 +307,6 @@ set(FPDFTEXT_SOURCES
   core/src/fpdftext/unicodenormalization.cpp
   core/src/fpdftext/unicodenormalizationdata.cpp
 )
-
-#add_library(fpdftext STATIC ${FPDFTEXT_HEDAERS} ${FPDFTEXT_SOURCES})
 
 ######################## FXCODEC #############################################
 set(FXCODEC_HEDAERS
@@ -329,8 +326,6 @@ set(FXCODEC_SOURCES
   core/src/fxcodec/codec/fx_codec_jpeg.cpp
   core/src/fxcodec/codec/fx_codec_jpx_opj.cpp
 )
-
-#add_library(fxcodec STATIC ${FXCODEC_HEDAERS} ${FXCODEC_SOURCES})
 
 ######################## FXCRT #############################################
 set(FXCRT_HEDAERS
@@ -378,8 +373,6 @@ set(FXCRT_SOURCES
   core/src/fxcrt/fx_xml_composer.cpp
   core/src/fxcrt/fx_xml_parser.cpp
 )
-
-#add_library(fxcrt STATIC ${FXCRT_HEDAERS} ${FXCRT_SOURCES})
 
 ######################## FXGE #############################################
 set(FXGE_HEDAERS
@@ -458,8 +451,6 @@ set(FXGE_SOURCES
   core/src/fxge/ge/fx_ge_text.cpp
 )
 
-#add_library(fxge STATIC ${FXGE_HEDAERS} ${FXGE_SOURCES})
-
 ######################## FXEDIT #############################################
 set(FXEDIT_HEDAERS
   fpdfsdk/include/fxedit/fx_edit.h
@@ -475,8 +466,6 @@ set(FXEDIT_SOURCES
   fpdfsdk/src/fxedit/fxet_module.cpp
   fpdfsdk/src/fxedit/fxet_pageobjs.cpp
 )
-
-#add_library(fxedit STATIC ${FXEDIT_HEDAERS} ${FXEDIT_SOURCES})
 
 ######################## PDFWINDOW #############################################
 set(PDFWINDOW_HEDAERS
@@ -521,8 +510,6 @@ set(PDFWINDOW_SOURCES
   fpdfsdk/src/pdfwindow/PWL_Wnd.cpp
 )
 
-#add_library(pdfwindow STATIC ${PDFWINDOW_HEDAERS} ${PDFWINDOW_SOURCES})
-
 ######################## FORMFILLER #############################################
 set(FORMFILLER_HEDAERS
   fpdfsdk/include/formfiller/FFL_CBA_Fontmap.h
@@ -552,8 +539,6 @@ set(FORMFILLER_SOURCES
   fpdfsdk/src/formfiller/FFL_TextField.cpp
   fpdfsdk/src/formfiller/FFL_Utils.cpp
 )
-
-#add_library(formfiller STATIC ${FORMFILLER_HEDAERS} ${FORMFILLER_SOURCES})
 
 ######################### FPDFSDK #############################################
 set(FPDFSDK_HEDAERS
