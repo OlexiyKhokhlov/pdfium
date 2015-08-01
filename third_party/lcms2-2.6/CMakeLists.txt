@@ -1,6 +1,10 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+if(WIN32)
+  add_definitions(-D_WIN32 -DWIN32_LEAN_AND_MEAN)
+else(WIN32)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread")
+endif(WIN32)
 
 set(lcms2_HEADERS
 )
@@ -33,4 +37,4 @@ set(lcms2_SOURCES
   src/cmsmd5.c
 )
 
-add_library(lcms2 OBJECT ${lcms2_HEADERS} ${lcms2_SOURCES})
+add_library(internal_lcms2 OBJECT ${lcms2_HEADERS} ${lcms2_SOURCES})

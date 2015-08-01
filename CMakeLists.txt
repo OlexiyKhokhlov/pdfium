@@ -17,9 +17,27 @@ if(USE_BINUTILS_WORKAROUND)
     set(CMAKE_RANLIB gcc-ranlib)
 endif(USE_BINUTILS_WORKAROUND)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x -Wc++0x-compat -fno-exceptions -pthread -fvisibility=hidden")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread -fvisibility=hidden")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wc++0x-compat -fno-exceptions -fvisibility=hidden")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+
+if(WIN32)
+  add_definitions(-D_WIN32)
+  set(WINDOWS_SOURCES
+    core/src/fxge/win32/dwrite_int.h
+    core/src/fxge/win32/fx_win32_device.cpp
+    core/src/fxge/win32/fx_win32_dib.cpp
+    core/src/fxge/win32/fx_win32_dwrite.cpp
+    core/src/fxge/win32/fx_win32_gdipext.cpp
+    core/src/fxge/win32/fx_win32_print.cpp
+    core/src/fxge/win32/win32_int.h
+    core/src/fxcrt/fxcrt_windows.h
+    core/src/fxcrt/fxcrt_windows.cpp
+  )
+else(WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -pthread")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+endif(WIN32)
 
 set(USE_STATIC_LIBRARY ON CACHE BOOL "build as static library. Otherwise - shared")
 
@@ -130,7 +148,7 @@ if(USE_SYSTEM_FREETYPE)
   find_package(Freetype REQUIRED)
   include_directories(${FREETYPE_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_FREETYPE)
-  add_library(freetype OBJECT empty.c)
+  add_library(internal_freetype OBJECT empty.c)
 else(USE_SYSTEM_FREETYPE)
   add_subdirectory(third_party/freetype)
   include_directories(third_party/freetype/include)
@@ -140,7 +158,7 @@ if(USE_SYSTEM_JPEG)
   find_package(JPEG REQUIRED)
   include_directories(${JPEG_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_JPEG)
-  add_library(jpeg OBJECT empty.c)
+  add_library(internal_jpeg OBJECT empty.c)
 else(USE_SYSTEM_JPEG)
   add_subdirectory(third_party/libjpeg)
 endif(USE_SYSTEM_JPEG)
@@ -149,7 +167,7 @@ if(USE_SYSTEM_ZLIB)
   find_package(ZLIB REQUIRED)
   include_directories(${ZLIB_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_ZLIB)
-  add_library(zlib OBJECT empty.c)
+  add_library(internal_zlib OBJECT empty.c)
 else(USE_SYSTEM_ZLIB)
   add_subdirectory(third_party/zlib_v128)
 endif(USE_SYSTEM_ZLIB)
@@ -158,7 +176,7 @@ if(USE_SYSTEM_LCMS2)
   find_package(LCMS2 REQUIRED)
   include_directories(${LCMS2_INCLUDE_DIRS})
   add_definitions(-DUSE_SYSTEM_LCMS2)
-  add_library(lcms2 OBJECT empty.c third_party/lcms2-2.6/src/cmsmd5.c)
+  add_library(internal_lcms2 OBJECT empty.c third_party/lcms2-2.6/src/cmsmd5.c)
 else(USE_SYSTEM_LCMS2)
   add_subdirectory(third_party/lcms2-2.6)
 endif(USE_SYSTEM_LCMS2)
@@ -167,7 +185,7 @@ if(USE_SYSTEM_OPENJPEG)
   find_package(OpenJpeg REQUIRED)
   include_directories(${OPENJPEG_INCLUDE_DIR})
   add_definitions(-DUSE_SYSTEM_OPENJPEG)
-  add_library(openjpeg OBJECT empty.c)
+  add_library(internal_openjpeg OBJECT empty.c)
 else(USE_SYSTEM_OPENJPEG)
   add_subdirectory(third_party/libopenjpeg20)
   add_definitions(-DOPJ_STATIC)
@@ -177,7 +195,7 @@ endif(USE_SYSTEM_OPENJPEG)
 add_subdirectory(core/src/fxcodec/jbig2)
 
 add_definitions(
-  -D_FPDFSDK_LIB
+#  -D_FPDFSDK_LIB
   -D_NO_GDIPLUS_ # workaround text rendering issues on Windows
   )
 
@@ -602,27 +620,28 @@ set(ALL_SOURCES
   ${PDFWINDOW_HEDAERS} ${PDFWINDOW_SOURCES}
   ${FORMFILLER_HEDAERS} ${FORMFILLER_SOURCES}
   ${FPDFSDK_HEDAERS} ${FPDFSDK_SOURCES}
+  ${WINDOWS_SOURCES}
 )
 
 if(USE_STATIC_LIBRARY)
     add_library(pdfium STATIC
         ${ALL_SOURCES}
-	$<TARGET_OBJECTS:jpeg>
-	$<TARGET_OBJECTS:zlib>
-	$<TARGET_OBJECTS:lcms2>
-	$<TARGET_OBJECTS:openjpeg>
-	$<TARGET_OBJECTS:jbig2>
-	$<TARGET_OBJECTS:freetype>
+        $<TARGET_OBJECTS:internal_jpeg>
+        $<TARGET_OBJECTS:internal_zlib>
+        $<TARGET_OBJECTS:internal_lcms2>
+        $<TARGET_OBJECTS:internal_openjpeg>
+        $<TARGET_OBJECTS:internal_jbig2>
+        $<TARGET_OBJECTS:internal_freetype>
     )
 else(USE_STATIC_LIBRARY)
     add_library(pdfium SHARED
         ${ALL_SOURCES}
-	$<TARGET_OBJECTS:jpeg>
-	$<TARGET_OBJECTS:zlib>
-	$<TARGET_OBJECTS:lcms2>
-	$<TARGET_OBJECTS:openjpeg>
-	$<TARGET_OBJECTS:jbig2>
-	$<TARGET_OBJECTS:freetype>
+        $<TARGET_OBJECTS:internal_jpeg>
+        $<TARGET_OBJECTS:internal_zlib>
+        $<TARGET_OBJECTS:internal_lcms2>
+        $<TARGET_OBJECTS:internal_openjpeg>
+        $<TARGET_OBJECTS:internal_jbig2>
+        $<TARGET_OBJECTS:internal_freetype>
     )
 endif(USE_STATIC_LIBRARY)
 

@@ -1,6 +1,10 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+if(WIN32)
+  add_definitions(-D_WIN32)
+else(WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+endif(WIN32)
 
 set(jbig2_HEADERS
   JBig2_ArithDecoder.h
@@ -36,4 +40,4 @@ set(jbig2_SOURCES
   JBig2_SymbolDict.cpp
 )
 
-add_library(jbig2 OBJECT ${jbig2_HEADERS} ${jbig2_SOURCES})
+add_library(internal_jbig2 OBJECT ${jbig2_HEADERS} ${jbig2_SOURCES})

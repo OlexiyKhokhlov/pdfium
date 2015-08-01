@@ -1,6 +1,10 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+if(WIN32)
+  add_definitions(-D_WIN32 -DWIN32_LEAN_AND_MEAN)
+else(WIN32)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread")
+endif(WIN32)
 
 set(openjpeg_HEADERS
   openjpeg.h
@@ -26,6 +30,7 @@ set(openjpeg_SOURCES
   t2.c
   tcd.c
   tgt.c
+  jp2.c
 )
 
-add_library(openjpeg OBJECT ${openjpeg_HEADERS} ${openjpeg_SOURCES})
+add_library(internal_openjpeg OBJECT ${openjpeg_HEADERS} ${openjpeg_SOURCES})

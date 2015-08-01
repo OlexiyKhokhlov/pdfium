@@ -76,7 +76,7 @@ Most compilers implement their own version of this keyword ...
 	#define OPJ_DEPRECATED(func) func
 #endif
 
-#if defined(OPJ_STATIC) || !defined(_WIN32)
+#if defined(OPJ_STATIC) || !defined(_WIN32) || defined(__GNUC__)
 /* http://gcc.gnu.org/wiki/Visibility */
 #	if __GNUC__ >= 4
 #		if defined(OPJ_STATIC) /* static library uses "hidden" */
