@@ -119,8 +119,8 @@ if(USE_JAPAN1_MAPS)
    core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-HW-V_4.cpp
    core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-H_4.cpp
    core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UCS2-V_4.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-H_5.cpp
-   core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-V_5.cpp
+#    core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-H_5.cpp
+#    core/src/fpdfapi/fpdf_cmaps/Japan1/UniJIS-UTF16-V_5.cpp
    core/src/fpdfapi/fpdf_cmaps/Japan1/V_1.cpp
   )
   add_definitions(-DUSE_JAPAN1_MAPS)
@@ -293,12 +293,12 @@ set(FPDFAPI_SOURCES
   core/src/fpdfapi/fpdf_page/fpdf_page_path.cpp
   core/src/fpdfapi/fpdf_page/fpdf_page_pattern.cpp
   core/src/fpdfapi/fpdf_page/pageint.h
-  core/src/fpdfapi/fpdf_parser/filters_int.h
+  #core/src/fpdfapi/fpdf_parser/filters_int.h
   core/src/fpdfapi/fpdf_parser/fpdf_parser_decode.cpp
   core/src/fpdfapi/fpdf_parser/fpdf_parser_document.cpp
   core/src/fpdfapi/fpdf_parser/fpdf_parser_encrypt.cpp
   core/src/fpdfapi/fpdf_parser/fpdf_parser_fdf.cpp
-  core/src/fpdfapi/fpdf_parser/fpdf_parser_filters.cpp
+  #core/src/fpdfapi/fpdf_parser/fpdf_parser_filters.cpp
   core/src/fpdfapi/fpdf_parser/fpdf_parser_objects.cpp
   core/src/fpdfapi/fpdf_parser/fpdf_parser_parser.cpp
   core/src/fpdfapi/fpdf_parser/fpdf_parser_utility.cpp
@@ -347,8 +347,9 @@ set(FXCODEC_SOURCES
 
 ######################## FXCRT #############################################
 set(FXCRT_HEDAERS
-  core/include/fxcrt/fx_arb.h
+#   core/include/fxcrt/fx_arb.h
   core/include/fxcrt/fx_basic.h
+  core/include/fxcrt/fx_bidi.h
   core/include/fxcrt/fx_coordinates.h
   core/include/fxcrt/fx_ext.h
   core/include/fxcrt/fx_memory.h
@@ -361,7 +362,7 @@ set(FXCRT_HEDAERS
   core/src/fxcrt/fxcrt_platforms.h
   core/src/fxcrt/fxcrt_posix.h
   #core/src/fxcrt/fxcrt_windows.h
-  core/src/fxcrt/fx_arabic.h
+  #score/src/fxcrt/fx_arabic.h
   core/src/fxcrt/mem_int.h
   core/src/fxcrt/plex.h
   core/src/fxcrt/xml_int.h
@@ -371,7 +372,8 @@ set(FXCRT_SOURCES
   core/src/fxcrt/fxcrt_platforms.cpp        
   core/src/fxcrt/fxcrt_posix.cpp        
 #  core/src/fxcrt/fxcrt_windows.cpp        
-  core/src/fxcrt/fx_arabic.cpp        
+#  core/src/fxcrt/fx_arabic.cpp        
+  core/src/fxcrt/fx_bidi.cpp
   core/src/fxcrt/fx_basic_array.cpp
   core/src/fxcrt/fx_basic_bstring.cpp
   core/src/fxcrt/fx_basic_buffer.cpp

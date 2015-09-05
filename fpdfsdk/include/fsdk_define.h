@@ -27,40 +27,53 @@
 
 #ifndef FX_ARGBTOCOLORREF
 /** @brief Convert a #FX_ARGB to a #FX_COLORREF. */
-#define FX_ARGBTOCOLORREF(argb)		((((FX_DWORD)argb & 0x00FF0000) >> 16)|((FX_DWORD)argb & 0x0000FF00)|(((FX_DWORD)argb & 0x000000FF) << 16))
+#define FX_ARGBTOCOLORREF(argb)                                            \
+  ((((FX_DWORD)argb & 0x00FF0000) >> 16) | ((FX_DWORD)argb & 0x0000FF00) | \
+   (((FX_DWORD)argb & 0x000000FF) << 16))
 #endif
 
 #ifndef FX_COLORREFTOARGB
 /** @brief Convert a #FX_COLORREF to a #FX_ARGB. */
-#define FX_COLORREFTOARGB(rgb)		((FX_DWORD)0xFF000000|(((FX_DWORD)rgb & 0x000000FF) << 16)|((FX_DWORD)rgb & 0x0000FF00)|(((FX_DWORD)rgb & 0x00FF0000) >> 16))
+#define FX_COLORREFTOARGB(rgb)                                   \
+  ((FX_DWORD)0xFF000000 | (((FX_DWORD)rgb & 0x000000FF) << 16) | \
+   ((FX_DWORD)rgb & 0x0000FF00) | (((FX_DWORD)rgb & 0x00FF0000) >> 16))
 #endif
 
 typedef unsigned int FX_UINT;
 class CRenderContext;
 class IFSDK_PAUSE_Adapter;
 
-class CPDF_CustomAccess final : public IFX_FileRead
-{
-public:
-	CPDF_CustomAccess(FPDF_FILEACCESS* pFileAccess);
-	~CPDF_CustomAccess() {}
+class CPDF_CustomAccess final : public IFX_FileRead {
+ public:
+  CPDF_CustomAccess(FPDF_FILEACCESS* pFileAccess);
+  ~CPDF_CustomAccess() override {}
 
-	virtual FX_FILESIZE	GetSize() override { return m_FileAccess.m_FileLen; }
+  FX_FILESIZE GetSize() override { return m_FileAccess.m_FileLen; }
 
-	virtual void		Release() override { delete this; }
+  void Release() override { delete this; }
 
-	virtual FX_BOOL		ReadBlock(void* buffer, FX_FILESIZE offset, size_t size) override;
+  FX_BOOL ReadBlock(void* buffer, FX_FILESIZE offset, size_t size) override;
 
-private:
-	FPDF_FILEACCESS		m_FileAccess;
+ private:
+  FPDF_FILEACCESS m_FileAccess;
 };
 
 void DropContext(void* data);
 void FSDK_SetSandBoxPolicy(FPDF_DWORD policy, FPDF_BOOL enable);
 FPDF_BOOL FSDK_IsSandBoxPolicyEnabled(FPDF_DWORD policy);
-void FPDF_RenderPage_Retail(CRenderContext* pContext, FPDF_PAGE page,
-                            int start_x, int start_y, int size_x, int size_y,
-                            int rotate, int flags, FX_BOOL bNeedToRestore,
+void FPDF_RenderPage_Retail(CRenderContext* pContext,
+                            FPDF_PAGE page,
+                            int start_x,
+                            int start_y,
+                            int size_x,
+                            int size_y,
+                            int rotate,
+                            int flags,
+                            FX_BOOL bNeedToRestore,
                             IFSDK_PAUSE_Adapter* pause);
+
+void CheckUnSupportError(CPDF_Document* pDoc, FX_DWORD err_code);
+void CheckUnSupportAnnot(CPDF_Document* pDoc, CPDF_Annot* pPDFAnnot);
+void ProcessParseError(FX_DWORD err_code);
 
 #endif  // FPDFSDK_INCLUDE_FSDK_DEFINE_H_

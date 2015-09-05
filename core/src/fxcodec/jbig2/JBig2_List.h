@@ -1,67 +1,40 @@
 // Copyright 2014 PDFium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
- 
+
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #ifndef _JBIG2_LIST_H_
 #define _JBIG2_LIST_H_
-#include "JBig2_Define.h"
-#include "JBig2_Object.h"
+
+#include <vector>
+
 template <class TYPE>
-class CJBig2_List : public CJBig2_Object
-{
-public:
+class CJBig2_List {
+ public:
+  CJBig2_List() {}
 
-    CJBig2_List(int32_t nSize = 8)
-    {
-        m_nSize = nSize;
-        m_pArray = (TYPE**)m_pModule->JBig2_Malloc2(sizeof(TYPE*), nSize);
-        m_nLength = 0;
-    }
+  ~CJBig2_List() {
+    clear();
+  }
 
-    ~CJBig2_List()
-    {
-        clear();
-        m_pModule->JBig2_Free(m_pArray);
-    }
+  void clear() {
+    for (size_t i = 0; i < m_vector.size(); ++i)
+      delete m_vector[i];
+    m_vector.clear();
+  }
 
-    void clear()
-    {
-        int32_t i;
-        for(i = 0; i < m_nLength; i++) {
-            delete m_pArray[i];
-        }
-        m_nLength = 0;
-    }
+  void push_back(TYPE* pItem) { m_vector.push_back(pItem); }
 
-    void addItem(TYPE *pItem)
-    {
-        if(m_nLength >= m_nSize) {
-            m_nSize += 8;
-            m_pArray = (TYPE**)m_pModule->JBig2_Realloc(m_pArray, sizeof(TYPE*)*m_nSize);
-        }
-        m_pArray[m_nLength++] = pItem;
-    }
+  size_t size() const { return m_vector.size(); }
+  void resize(size_t count) { m_vector.resize(count); }
 
+  TYPE* get(size_t index) { return m_vector[index]; }
 
-    int32_t getLength()
-    {
-        return m_nLength;
-    }
+  TYPE* back() { return m_vector.back(); }
 
-    TYPE *getAt(int32_t nIndex)
-    {
-        return m_pArray[nIndex];
-    }
-
-    TYPE *getLast()
-    {
-        return m_pArray[m_nLength - 1];
-    }
-private:
-    int32_t m_nSize;
-    TYPE **m_pArray;
-    int32_t m_nLength;
+ private:
+  std::vector<TYPE*> m_vector;
 };
+
 #endif
