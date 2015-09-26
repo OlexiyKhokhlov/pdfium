@@ -10,7 +10,13 @@
 CCodec_Jbig2Context::CCodec_Jbig2Context() {
   FXSYS_memset(this, 0, sizeof(CCodec_Jbig2Context));
 }
-CCodec_Jbig2Module::~CCodec_Jbig2Module() {}
+
+CCodec_Jbig2Module::~CCodec_Jbig2Module() {
+  for (auto it : m_SymbolDictCache) {
+    delete it.second;
+  }
+}
+
 void* CCodec_Jbig2Module::CreateJbig2Context() {
   return new CCodec_Jbig2Context();
 }
@@ -48,14 +54,13 @@ FXCODEC_STATUS CCodec_Jbig2Module::StartDecode(void* pJbig2Context,
   m_pJbig2Context->m_bFileReader = FALSE;
   FXSYS_memset(dest_buf, 0, height * dest_pitch);
   m_pJbig2Context->m_pContext = CJBig2_Context::CreateContext(
-      &m_Module, (uint8_t*)global_data, global_size, (uint8_t*)src_buf,
-      src_size, JBIG2_EMBED_STREAM, &m_SymbolDictCache, pPause);
+      global_data, global_size, src_buf, src_size, &m_SymbolDictCache, pPause);
   if (!m_pJbig2Context->m_pContext) {
     return FXCODEC_STATUS_ERROR;
   }
   int ret = m_pJbig2Context->m_pContext->getFirstPage(dest_buf, width, height,
                                                       dest_pitch, pPause);
-  if (m_pJbig2Context->m_pContext->GetProcessiveStatus() ==
+  if (m_pJbig2Context->m_pContext->GetProcessingStatus() ==
       FXCODEC_STATUS_DECODE_FINISH) {
     CJBig2_Context::DestroyContext(m_pJbig2Context->m_pContext);
     m_pJbig2Context->m_pContext = NULL;
@@ -69,15 +74,15 @@ FXCODEC_STATUS CCodec_Jbig2Module::StartDecode(void* pJbig2Context,
     }
     return FXCODEC_STATUS_DECODE_FINISH;
   }
-  return m_pJbig2Context->m_pContext->GetProcessiveStatus();
+  return m_pJbig2Context->m_pContext->GetProcessingStatus();
 }
 FXCODEC_STATUS CCodec_Jbig2Module::ContinueDecode(void* pJbig2Context,
                                                   IFX_Pause* pPause) {
   CCodec_Jbig2Context* m_pJbig2Context = (CCodec_Jbig2Context*)pJbig2Context;
   int ret = m_pJbig2Context->m_pContext->Continue(pPause);
-  if (m_pJbig2Context->m_pContext->GetProcessiveStatus() !=
+  if (m_pJbig2Context->m_pContext->GetProcessingStatus() !=
       FXCODEC_STATUS_DECODE_FINISH) {
-    return m_pJbig2Context->m_pContext->GetProcessiveStatus();
+    return m_pJbig2Context->m_pContext->GetProcessingStatus();
   }
   if (m_pJbig2Context->m_bFileReader) {
     CJBig2_Context::DestroyContext(m_pJbig2Context->m_pContext);

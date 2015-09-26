@@ -9,7 +9,8 @@
 #include "../include/fsdk_define.h"
 #include "../include/fsdk_mgr.h"
 #include "../include/formfiller/FFL_FormFiller.h"
-#include "../include/javascript/IJavaScript.h"
+//#include "../include/javascript/IJavaScript.h"
+//#include "../include/javascript/JS_Runtime.h"
 
 #if _FX_OS_ == _FX_ANDROID_
 #include "time.h"
@@ -203,32 +204,20 @@ FX_SYSTEMTIME CFX_SystemHandler::GetLocalTime() {
   return m_pEnv->FFI_GetLocalTime();
 }
 
-CJS_RuntimeFactory* GetJSRuntimeFactory() {
-//   static CJS_RuntimeFactory s_JSRuntimeFactory;
-//   return &s_JSRuntimeFactory;
-     return nullptr;
-}
-
 CPDFDoc_Environment::CPDFDoc_Environment(CPDF_Document* pDoc,
                                          FPDF_FORMFILLINFO* pFFinfo)
     : m_pAnnotHandlerMgr(NULL),
       m_pActionHandler(NULL),
-      m_pJSRuntime(NULL),
       m_pInfo(pFFinfo),
       m_pSDKDoc(NULL),
       m_pPDFDoc(pDoc),
       m_pIFormFiller(NULL) {
   m_pSysHandler = new CFX_SystemHandler(this);
-//   m_pJSRuntimeFactory = GetJSRuntimeFactory();
-//   m_pJSRuntimeFactory->AddRef();
 }
 
 CPDFDoc_Environment::~CPDFDoc_Environment() {
   delete m_pIFormFiller;
   m_pIFormFiller = NULL;
-//   if (m_pJSRuntime && m_pJSRuntimeFactory)
-//     m_pJSRuntimeFactory->DeleteJSRuntime(m_pJSRuntime);
-//   m_pJSRuntimeFactory->Release();
 
   delete m_pSysHandler;
   m_pSysHandler = NULL;
@@ -382,11 +371,7 @@ void CPDFDoc_Environment::JS_docmailForm(void* mailData,
 }
 
 IFXJS_Runtime* CPDFDoc_Environment::GetJSRuntime() {
-//  if (!IsJSInitiated())
     return NULL;
-//   if (!m_pJSRuntime)
-//     m_pJSRuntime = m_pJSRuntimeFactory->NewJSRuntime(this);
-//   return m_pJSRuntime;
 }
 
 CPDFSDK_AnnotHandlerMgr* CPDFDoc_Environment::GetAnnotHandlerMgr() {
@@ -635,16 +620,22 @@ CPDFSDK_PageView::CPDFSDK_PageView(CPDFSDK_Document* pSDKDoc, CPDF_Page* page)
 }
 
 CPDFSDK_PageView::~CPDFSDK_PageView() {
-  CPDFDoc_Environment* pEnv = m_pSDKDoc->GetEnv();
-  int nAnnotCount = m_fxAnnotArray.GetSize();
+  // if there is a focused annot on the page, we should kill the focus first.
+  if (CPDFSDK_Annot* focusedAnnot = m_pSDKDoc->GetFocusAnnot()) {
+    for (int i = 0, count = m_fxAnnotArray.GetSize(); i < count; i++) {
+      CPDFSDK_Annot* pAnnot = (CPDFSDK_Annot*)m_fxAnnotArray.GetAt(i);
+      if (pAnnot == focusedAnnot) {
+        KillFocusAnnot();
+        break;
+      }
+    }
+  }
 
-  for (int i = 0; i < nAnnotCount; i++) {
+  CPDFDoc_Environment* pEnv = m_pSDKDoc->GetEnv();
+  CPDFSDK_AnnotHandlerMgr* pAnnotHandlerMgr = pEnv->GetAnnotHandlerMgr();
+  ASSERT(pAnnotHandlerMgr);
+  for (int i = 0, count = m_fxAnnotArray.GetSize(); i < count; i++) {
     CPDFSDK_Annot* pAnnot = (CPDFSDK_Annot*)m_fxAnnotArray.GetAt(i);
-    // if there is a focused annot on the page, we should kill the focus first.
-    if (pAnnot == m_pSDKDoc->GetFocusAnnot())
-      KillFocusAnnot();
-    CPDFSDK_AnnotHandlerMgr* pAnnotHandlerMgr = pEnv->GetAnnotHandlerMgr();
-    ASSERT(pAnnotHandlerMgr);
     pAnnotHandlerMgr->ReleaseAnnot(pAnnot);
   }
   m_fxAnnotArray.RemoveAll();

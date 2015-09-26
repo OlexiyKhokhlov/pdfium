@@ -27,85 +27,22 @@
 #include "../../include/javascript/global.h"
 #include "../../include/javascript/console.h"
 
-CJS_RuntimeFactory::~CJS_RuntimeFactory() {}
-
-IFXJS_Runtime* CJS_RuntimeFactory::NewJSRuntime(CPDFDoc_Environment* pApp) {
-  if (!m_bInit) {
-    unsigned int embedderDataSlot = 0;
-    if (pApp->GetFormFillInfo()->m_pJsPlatform->version >= 2) {
-      embedderDataSlot =
-          pApp->GetFormFillInfo()->m_pJsPlatform->m_v8EmbedderSlot;
-    }
-    JS_Initial(embedderDataSlot);
-    m_bInit = TRUE;
-  }
-  return new CJS_Runtime(pApp);
-}
-void CJS_RuntimeFactory::AddRef() {
-  // to do.Should be implemented as atom manipulation.
-  m_nRef++;
-}
-void CJS_RuntimeFactory::Release() {
-  if (m_bInit) {
-    // to do.Should be implemented as atom manipulation.
-    if (--m_nRef == 0) {
-      JS_Release();
-      ReleaseGlobalData();
-      m_bInit = FALSE;
-    }
-  }
-}
-
-void CJS_RuntimeFactory::DeleteJSRuntime(IFXJS_Runtime* pRuntime) {
-  delete (CJS_Runtime*)pRuntime;
-}
-
-CJS_GlobalData* CJS_RuntimeFactory::NewGlobalData(CPDFDoc_Environment* pApp) {
-  if (m_pGlobalData) {
-    m_nGlobalDataCount++;
-    return m_pGlobalData;
-  }
-  m_nGlobalDataCount = 1;
-  m_pGlobalData = new CJS_GlobalData(pApp);
-  return m_pGlobalData;
-}
-
-void CJS_RuntimeFactory::ReleaseGlobalData() {
-  m_nGlobalDataCount--;
-
-  if (m_nGlobalDataCount <= 0) {
-    delete m_pGlobalData;
-    m_pGlobalData = NULL;
-  }
-}
-
-void* CJS_ArrayBufferAllocator::Allocate(size_t length) {
-  return calloc(1, length);
-}
-
-void* CJS_ArrayBufferAllocator::AllocateUninitialized(size_t length) {
-  return malloc(length);
-}
-
-void CJS_ArrayBufferAllocator::Free(void* data, size_t length) {
-  free(data);
-}
-
 /* ------------------------------ CJS_Runtime ------------------------------ */
 
 CJS_Runtime::CJS_Runtime(CPDFDoc_Environment* pApp)
     : m_pApp(pApp),
       m_pDocument(NULL),
       m_bBlocking(FALSE),
-      m_pFieldEventPath(NULL),
       m_isolate(NULL),
       m_isolateManaged(false) {
+  unsigned int embedderDataSlot = 0;
   if (m_pApp->GetFormFillInfo()->m_pJsPlatform->version >= 2) {
     m_isolate = reinterpret_cast<v8::Isolate*>(
         m_pApp->GetFormFillInfo()->m_pJsPlatform->m_isolate);
+    embedderDataSlot = pApp->GetFormFillInfo()->m_pJsPlatform->m_v8EmbedderSlot;
   }
   if (!m_isolate) {
-    m_pArrayBufferAllocator.reset(new CJS_ArrayBufferAllocator());
+    m_pArrayBufferAllocator.reset(new FXJS_ArrayBufferAllocator());
 
     v8::Isolate::CreateParams params;
     params.array_buffer_allocator = m_pArrayBufferAllocator.get();
@@ -113,10 +50,11 @@ CJS_Runtime::CJS_Runtime(CPDFDoc_Environment* pApp)
     m_isolateManaged = true;
   }
 
-  InitJSObjects();
+  FXJS_Initialize(embedderDataSlot);
+  DefineJSObjects();
 
   CJS_Context* pContext = (CJS_Context*)NewContext();
-  JS_InitialRuntime(*this, this, pContext, m_context);
+  FXJS_InitializeRuntime(GetIsolate(), this, pContext, m_context);
   ReleaseContext(pContext);
 }
 
@@ -125,82 +63,61 @@ CJS_Runtime::~CJS_Runtime() {
     delete m_ContextArray.GetAt(i);
 
   m_ContextArray.RemoveAll();
-
-  JS_ReleaseRuntime(*this, m_context);
-
-  RemoveEventsInLoop(m_pFieldEventPath);
+  FXJS_ReleaseRuntime(GetIsolate(), m_context);
 
   m_pApp = NULL;
   m_pDocument = NULL;
-  m_pFieldEventPath = NULL;
   m_context.Reset();
 
   if (m_isolateManaged)
     m_isolate->Dispose();
 }
 
-FX_BOOL CJS_Runtime::InitJSObjects() {
+void CJS_Runtime::DefineJSObjects() {
   v8::Isolate::Scope isolate_scope(GetIsolate());
   v8::HandleScope handle_scope(GetIsolate());
   v8::Local<v8::Context> context = v8::Context::New(GetIsolate());
   v8::Context::Scope context_scope(context);
-  // 0 - 8
-  if (CJS_Border::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Display::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Font::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Highlight::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Position::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_ScaleHow::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_ScaleWhen::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Style::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Zoomtype::Init(*this, JS_STATIC) < 0)
-    return FALSE;
 
-  // 9 - 11
-  if (CJS_App::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Color::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Console::Init(*this, JS_STATIC) < 0)
-    return FALSE;
+  // The call order determines the "ObjDefID" assigned to each class.
+  // ObjDefIDs 0 - 2
+  CJS_Border::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Display::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Font::DefineJSObjects(GetIsolate(), FXJS_STATIC);
 
-  // 12 - 14
-  if (CJS_Document::Init(*this, JS_DYNAMIC) < 0)
-    return FALSE;
-  if (CJS_Event::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Field::Init(*this, JS_DYNAMIC) < 0)
-    return FALSE;
+  // ObjDefIDs 3 - 5
+  CJS_Highlight::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Position::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_ScaleHow::DefineJSObjects(GetIsolate(), FXJS_STATIC);
 
-  // 15 - 17
-  if (CJS_Global::Init(*this, JS_STATIC) < 0)
-    return FALSE;
-  if (CJS_Icon::Init(*this, JS_DYNAMIC) < 0)
-    return FALSE;
-  if (CJS_Util::Init(*this, JS_STATIC) < 0)
-    return FALSE;
+  // ObjDefIDs 6 - 8
+  CJS_ScaleWhen::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Style::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Zoomtype::DefineJSObjects(GetIsolate(), FXJS_STATIC);
 
-  if (CJS_PublicMethods::Init(*this) < 0)
-    return FALSE;
-  if (CJS_GlobalConsts::Init(*this) < 0)
-    return FALSE;
-  if (CJS_GlobalArrays::Init(*this) < 0)
-    return FALSE;
+  // ObjDefIDs 9 - 11
+  CJS_App::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Color::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Console::DefineJSObjects(GetIsolate(), FXJS_STATIC);
 
-  if (CJS_TimerObj::Init(*this, JS_DYNAMIC) < 0)
-    return FALSE;
-  if (CJS_PrintParamsObj::Init(*this, JS_DYNAMIC) < 0)
-    return FALSE;
+  // ObjDefIDs 12 - 14
+  CJS_Document::DefineJSObjects(GetIsolate(), FXJS_DYNAMIC);
+  CJS_Event::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Field::DefineJSObjects(GetIsolate(), FXJS_DYNAMIC);
 
-  return TRUE;
+  // ObjDefIDs 15 - 17
+  CJS_Global::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+  CJS_Icon::DefineJSObjects(GetIsolate(), FXJS_DYNAMIC);
+  CJS_Util::DefineJSObjects(GetIsolate(), FXJS_STATIC);
+
+  // ObjDefIDs 18 - 20 (these can't fail, return void).
+  CJS_PublicMethods::DefineJSObjects(GetIsolate());
+  CJS_GlobalConsts::DefineJSObjects(GetIsolate());
+  CJS_GlobalArrays::DefineJSObjects(GetIsolate());
+
+  // ObjDefIDs 21 - 22.
+  CJS_TimerObj::DefineJSObjects(GetIsolate(), FXJS_DYNAMIC);
+  CJS_PrintParamsObj::DefineJSObjects(GetIsolate(), FXJS_DYNAMIC);
 }
 
 IFXJS_Context* CJS_Runtime::NewContext() {
@@ -236,93 +153,28 @@ void CJS_Runtime::SetReaderDocument(CPDFSDK_Document* pReaderDoc) {
     v8::Context::Scope context_scope(context);
 
     m_pDocument = pReaderDoc;
-
     if (pReaderDoc) {
-      JSObject pThis = JS_GetThisObj(*this);
+      v8::Local<v8::Object> pThis = FXJS_GetThisObj(GetIsolate());
       if (!pThis.IsEmpty()) {
-        if (JS_GetObjDefnID(pThis) == JS_GetObjDefnID(*this, L"Document")) {
-          if (CJS_Document* pJSDocument = (CJS_Document*)JS_GetPrivate(pThis)) {
+        if (FXJS_GetObjDefnID(pThis) ==
+            FXJS_GetObjDefnID(GetIsolate(), L"Document")) {
+          if (CJS_Document* pJSDocument =
+                  (CJS_Document*)FXJS_GetPrivate(GetIsolate(), pThis)) {
             if (Document* pDocument = (Document*)pJSDocument->GetEmbedObject())
               pDocument->AttachDoc(pReaderDoc);
           }
         }
       }
-      JS_SetThisObj(*this, JS_GetObjDefnID(*this, L"Document"));
-    } else {
-      JS_SetThisObj(*this, JS_GetObjDefnID(*this, L"app"));
     }
   }
 }
 
-FX_BOOL CJS_Runtime::AddEventToLoop(const CFX_WideString& sTargetName,
-                                    JS_EVENT_T eEventType) {
-  if (m_pFieldEventPath == NULL) {
-    m_pFieldEventPath = new CJS_FieldEvent;
-    m_pFieldEventPath->sTargetName = sTargetName;
-    m_pFieldEventPath->eEventType = eEventType;
-    m_pFieldEventPath->pNext = NULL;
-
-    return TRUE;
-  }
-
-  // to search
-  CJS_FieldEvent* p = m_pFieldEventPath;
-  CJS_FieldEvent* pLast = m_pFieldEventPath;
-  while (p) {
-    if (p->eEventType == eEventType && p->sTargetName == sTargetName)
-      return FALSE;
-
-    pLast = p;
-    p = p->pNext;
-  }
-
-  // to add
-  CJS_FieldEvent* pNew = new CJS_FieldEvent;
-  pNew->sTargetName = sTargetName;
-  pNew->eEventType = eEventType;
-  pNew->pNext = NULL;
-
-  pLast->pNext = pNew;
-
-  return TRUE;
+bool CJS_Runtime::AddEventToSet(const FieldEvent& event) {
+  return m_FieldEventSet.insert(event).second;
 }
 
-void CJS_Runtime::RemoveEventInLoop(const CFX_WideString& sTargetName,
-                                    JS_EVENT_T eEventType) {
-  FX_BOOL bFind = FALSE;
-
-  CJS_FieldEvent* p = m_pFieldEventPath;
-  CJS_FieldEvent* pLast = NULL;
-  while (p) {
-    if (p->eEventType == eEventType && p->sTargetName == sTargetName) {
-      bFind = TRUE;
-      break;
-    }
-
-    pLast = p;
-    p = p->pNext;
-  }
-
-  if (bFind) {
-    RemoveEventsInLoop(p);
-
-    if (p == m_pFieldEventPath)
-      m_pFieldEventPath = NULL;
-
-    if (pLast)
-      pLast->pNext = NULL;
-  }
-}
-
-void CJS_Runtime::RemoveEventsInLoop(CJS_FieldEvent* pStart) {
-  CJS_FieldEvent* p = pStart;
-
-  while (p) {
-    CJS_FieldEvent* pOld = p;
-    p = pOld->pNext;
-
-    delete pOld;
-  }
+void CJS_Runtime::RemoveEventFromSet(const FieldEvent& event) {
+  m_FieldEventSet.erase(event);
 }
 
 v8::Local<v8::Context> CJS_Runtime::NewJSContext() {

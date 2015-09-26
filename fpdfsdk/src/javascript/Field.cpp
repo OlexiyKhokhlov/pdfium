@@ -1038,7 +1038,7 @@ FX_BOOL Field::currentValueIndices(IFXJS_Context* cc,
 
     CFX_DWordArray array;
 
-    if (vp.GetType() == VT_number) {
+    if (vp.GetType() == CJS_Value::VT_number) {
       int iSelecting = 0;
       vp >> iSelecting;
       array.Add(iSelecting);
@@ -3300,8 +3300,6 @@ FX_BOOL Field::buttonGetIcon(IFXJS_Context* cc,
     return FALSE;
 
   CPDF_FormField* pFormField = (CPDF_FormField*)FieldArray.ElementAt(0);
-  ASSERT(pFormField != NULL);
-
   if (pFormField->GetFieldType() != FIELDTYPE_PUSHBUTTON)
     return FALSE;
 
@@ -3310,20 +3308,14 @@ FX_BOOL Field::buttonGetIcon(IFXJS_Context* cc,
     return FALSE;
 
   CJS_Context* pContext = (CJS_Context*)cc;
-  ASSERT(pContext != NULL);
-
   CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-  ASSERT(pRuntime != NULL);
-
-  JSFXObject pObj = JS_NewFxDynamicObj(*pRuntime, pContext,
-                                       JS_GetObjDefnID(*pRuntime, L"Icon"));
+  v8::Local<v8::Object> pObj =
+      FXJS_NewFxDynamicObj(pRuntime->GetIsolate(), pContext,
+                           FXJS_GetObjDefnID(pRuntime->GetIsolate(), L"Icon"));
   ASSERT(pObj.IsEmpty() == FALSE);
 
-  CJS_Icon* pJS_Icon = (CJS_Icon*)JS_GetPrivate(pObj);
-  ASSERT(pJS_Icon != NULL);
-
+  CJS_Icon* pJS_Icon = (CJS_Icon*)FXJS_GetPrivate(pRuntime->GetIsolate(), pObj);
   Icon* pIcon = (Icon*)pJS_Icon->GetEmbedObject();
-  ASSERT(pIcon != NULL);
 
   CPDF_Stream* pIconStream = NULL;
   if (nface == 0)
@@ -3340,8 +3332,6 @@ FX_BOOL Field::buttonGetIcon(IFXJS_Context* cc,
 
   return TRUE;
 }
-
-//#pragma warning(default: 4800)
 
 FX_BOOL Field::buttonImportIcon(IFXJS_Context* cc,
                                 const CJS_Parameters& params,
@@ -3528,25 +3518,20 @@ FX_BOOL Field::getArray(IFXJS_Context* cc,
 
   CJS_Array FormFieldArray(m_isolate);
   for (int j = 0, jsz = swSort.GetSize(); j < jsz; j++) {
-    CFX_WideString* pStr = swSort.GetAt(j);
-
-    JSFXObject pObj = JS_NewFxDynamicObj(*pRuntime, pContext,
-                                         JS_GetObjDefnID(*pRuntime, L"Field"));
+    nonstd::unique_ptr<CFX_WideString> pStr(swSort.GetAt(j));
+    v8::Local<v8::Object> pObj = FXJS_NewFxDynamicObj(
+        pRuntime->GetIsolate(), pContext,
+        FXJS_GetObjDefnID(pRuntime->GetIsolate(), L"Field"));
     ASSERT(pObj.IsEmpty() == FALSE);
 
-    CJS_Field* pJSField = (CJS_Field*)JS_GetPrivate(pObj);
-    ASSERT(pJSField != NULL);
-
+    CJS_Field* pJSField =
+        (CJS_Field*)FXJS_GetPrivate(pRuntime->GetIsolate(), pObj);
     Field* pField = (Field*)pJSField->GetEmbedObject();
-    ASSERT(pField != NULL);
-
     pField->AttachField(m_pJSDoc, *pStr);
 
     CJS_Value FormFieldValue(m_isolate);
     FormFieldValue = pJSField;
     FormFieldArray.SetElement(j, FormFieldValue);
-
-    delete pStr;
   }
 
   vRet = FormFieldArray;
