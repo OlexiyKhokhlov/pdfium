@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_CONSTS_H_
-#define FPDFSDK_INCLUDE_JAVASCRIPT_CONSTS_H_
+#ifndef FPDFSDK_SRC_JAVASCRIPT_CONSTS_H_
+#define FPDFSDK_SRC_JAVASCRIPT_CONSTS_H_
 
 #include "JS_Define.h"
 
@@ -103,14 +103,14 @@ class CJS_Zoomtype : public CJS_Object {
 
 class CJS_GlobalConsts : public CJS_Object {
  public:
-  static void DefineJSObjects(v8::Isolate* pIsolate);
+  static void DefineJSObjects(CJS_Runtime* pRuntime);
 };
 
 /* ------------------------------ CJS_GlobalArrays -------------------------- */
 
 class CJS_GlobalArrays : public CJS_Object {
  public:
-  static void DefineJSObjects(v8::Isolate* pIsolate);
+  static void DefineJSObjects(CJS_Runtime* pRuntmie);
 };
 
-#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_CONSTS_H_
+#endif  // FPDFSDK_SRC_JAVASCRIPT_CONSTS_H_

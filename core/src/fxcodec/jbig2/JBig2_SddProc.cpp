@@ -7,6 +7,7 @@
 #include "JBig2_SddProc.h"
 
 #include "../../../../third_party/base/nonstd_unique_ptr.h"
+#include "../../../../third_party/base/stl_util.h"
 #include "../../../include/fxcrt/fx_basic.h"
 #include "JBig2_ArithIntDecoder.h"
 #include "JBig2_GrdProc.h"
@@ -16,10 +17,12 @@
 #include "JBig2_SymbolDict.h"
 #include "JBig2_TrdProc.h"
 
+using pdfium::vector_as_array;
+
 CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
     CJBig2_ArithDecoder* pArithDecoder,
-    JBig2ArithCtx* gbContext,
-    JBig2ArithCtx* grContext) {
+    std::vector<JBig2ArithCtx>* gbContext,
+    std::vector<JBig2ArithCtx>* grContext) {
   CJBig2_Image** SDNEWSYMS;
   FX_DWORD HCHEIGHT, NSYMSDECODED;
   int32_t HCDH;
@@ -31,11 +34,9 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
   FX_DWORD EXINDEX;
   FX_BOOL CUREXFLAG;
   FX_DWORD EXRUNLENGTH;
-  int32_t nVal;
   FX_DWORD nTmp;
   FX_DWORD SBNUMSYMS;
   uint8_t SBSYMCODELEN;
-  FX_DWORD IDI;
   int32_t RDXI, RDYI;
   CJBig2_Image** SBSYMS;
   nonstd::unique_ptr<CJBig2_ArithIaidDecoder> IAID;
@@ -65,9 +66,7 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
   NSYMSDECODED = 0;
   while (NSYMSDECODED < SDNUMNEWSYMS) {
     BS = nullptr;
-    if (IADH->decode(pArithDecoder, &HCDH) == -1) {
-      goto failed;
-    }
+    IADH->decode(pArithDecoder, &HCDH);
     HCHEIGHT = HCHEIGHT + HCDH;
     if ((int)HCHEIGHT < 0 || (int)HCHEIGHT > JBIG2_MAX_IMAGE_SIZE) {
       goto failed;
@@ -75,26 +74,23 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
     SYMWIDTH = 0;
     TOTWIDTH = 0;
     for (;;) {
-      nVal = IADW->decode(pArithDecoder, &DW);
-      if (nVal == JBIG2_OOB) {
+      if (!IADW->decode(pArithDecoder, &DW))
         break;
-      } else if (nVal != 0) {
+
+      if (NSYMSDECODED >= SDNUMNEWSYMS)
         goto failed;
-      } else {
-        if (NSYMSDECODED >= SDNUMNEWSYMS) {
-          goto failed;
-        }
-        SYMWIDTH = SYMWIDTH + DW;
-        if ((int)SYMWIDTH < 0 || (int)SYMWIDTH > JBIG2_MAX_IMAGE_SIZE) {
-          goto failed;
-        } else if (HCHEIGHT == 0 || SYMWIDTH == 0) {
-          TOTWIDTH = TOTWIDTH + SYMWIDTH;
-          SDNEWSYMS[NSYMSDECODED] = nullptr;
-          NSYMSDECODED = NSYMSDECODED + 1;
-          continue;
-        }
+
+      SYMWIDTH = SYMWIDTH + DW;
+      if ((int)SYMWIDTH < 0 || (int)SYMWIDTH > JBIG2_MAX_IMAGE_SIZE)
+        goto failed;
+
+      if (HCHEIGHT == 0 || SYMWIDTH == 0) {
         TOTWIDTH = TOTWIDTH + SYMWIDTH;
+        SDNEWSYMS[NSYMSDECODED] = nullptr;
+        NSYMSDECODED = NSYMSDECODED + 1;
+        continue;
       }
+      TOTWIDTH = TOTWIDTH + SYMWIDTH;
       if (SDREFAGG == 0) {
         nonstd::unique_ptr<CJBig2_GRDProc> pGRD(new CJBig2_GRDProc());
         pGRD->MMR = 0;
@@ -111,14 +107,12 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
         pGRD->GBAT[5] = SDAT[5];
         pGRD->GBAT[6] = SDAT[6];
         pGRD->GBAT[7] = SDAT[7];
-        BS = pGRD->decode_Arith(pArithDecoder, gbContext);
+        BS = pGRD->decode_Arith(pArithDecoder, vector_as_array(gbContext));
         if (!BS) {
           goto failed;
         }
       } else {
-        if (IAAI->decode(pArithDecoder, (int*)&REFAGGNINST) == -1) {
-          goto failed;
-        }
+        IAAI->decode(pArithDecoder, (int*)&REFAGGNINST);
         if (REFAGGNINST > 1) {
           nonstd::unique_ptr<CJBig2_TRDProc> pDecoder(new CJBig2_TRDProc());
           pDecoder->SBHUFF = SDHUFF;
@@ -201,7 +195,8 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
           ids.IARDX = IARDX.get();
           ids.IARDY = IARDY.get();
           ids.IAID = IAID.get();
-          BS = pDecoder->decode_Arith(pArithDecoder, grContext, &ids);
+          BS = pDecoder->decode_Arith(pArithDecoder, vector_as_array(grContext),
+                                      &ids);
           if (!BS) {
             FX_Free(SBSYMS);
             goto failed;
@@ -209,13 +204,10 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
           FX_Free(SBSYMS);
         } else if (REFAGGNINST == 1) {
           SBNUMSYMS = SDNUMINSYMS + NSYMSDECODED;
-          if (IAID->decode(pArithDecoder, (int*)&IDI) == -1) {
-            goto failed;
-          }
-          if ((IARDX->decode(pArithDecoder, &RDXI) == -1) ||
-              (IARDY->decode(pArithDecoder, &RDYI) == -1)) {
-            goto failed;
-          }
+          FX_DWORD IDI;
+          IAID->decode(pArithDecoder, &IDI);
+          IARDX->decode(pArithDecoder, &RDXI);
+          IARDY->decode(pArithDecoder, &RDYI);
           if (IDI >= SBNUMSYMS) {
             goto failed;
           }
@@ -239,7 +231,7 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
           pGRRD->GRAT[1] = SDRAT[1];
           pGRRD->GRAT[2] = SDRAT[2];
           pGRRD->GRAT[3] = SDRAT[3];
-          BS = pGRRD->decode(pArithDecoder, grContext);
+          BS = pGRRD->decode(pArithDecoder, vector_as_array(grContext));
           if (!BS) {
             FX_Free(SBSYMS);
             goto failed;
@@ -256,10 +248,7 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
   CUREXFLAG = 0;
   EXFLAGS = FX_Alloc(FX_BOOL, SDNUMINSYMS + SDNUMNEWSYMS);
   while (EXINDEX < SDNUMINSYMS + SDNUMNEWSYMS) {
-    if (IAEX->decode(pArithDecoder, (int*)&EXRUNLENGTH) == -1) {
-      FX_Free(EXFLAGS);
-      goto failed;
-    }
+    IAEX->decode(pArithDecoder, (int*)&EXRUNLENGTH);
     if (EXINDEX + EXRUNLENGTH > SDNUMINSYMS + SDNUMNEWSYMS) {
       FX_Free(EXFLAGS);
       goto failed;
@@ -273,23 +262,18 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Arith(
     CUREXFLAG = !CUREXFLAG;
   }
   pDict.reset(new CJBig2_SymbolDict);
-  pDict->SDNUMEXSYMS = SDNUMEXSYMS;
-  pDict->SDEXSYMS = FX_Alloc(CJBig2_Image*, SDNUMEXSYMS);
   I = J = 0;
   for (I = 0; I < SDNUMINSYMS + SDNUMNEWSYMS; I++) {
     if (EXFLAGS[I] && J < SDNUMEXSYMS) {
       if (I < SDNUMINSYMS) {
-        pDict->SDEXSYMS[J] = new CJBig2_Image(*SDINSYMS[I]);
+        pDict->AddImage(new CJBig2_Image(*SDINSYMS[I]));
       } else {
-        pDict->SDEXSYMS[J] = SDNEWSYMS[I - SDNUMINSYMS];
+        pDict->AddImage(SDNEWSYMS[I - SDNUMINSYMS]);
       }
-      J = J + 1;
+      ++J;
     } else if (!EXFLAGS[I] && I >= SDNUMINSYMS) {
       delete SDNEWSYMS[I - SDNUMINSYMS];
     }
-  }
-  if (J < SDNUMEXSYMS) {
-    pDict->SDNUMEXSYMS = J;
   }
   FX_Free(EXFLAGS);
   FX_Free(SDNEWSYMS);
@@ -305,10 +289,11 @@ failed:
   return nullptr;
 }
 
-CJBig2_SymbolDict* CJBig2_SDDProc::decode_Huffman(CJBig2_BitStream* pStream,
-                                                  JBig2ArithCtx* gbContext,
-                                                  JBig2ArithCtx* grContext,
-                                                  IFX_Pause* pPause) {
+CJBig2_SymbolDict* CJBig2_SDDProc::decode_Huffman(
+    CJBig2_BitStream* pStream,
+    std::vector<JBig2ArithCtx>* gbContext,
+    std::vector<JBig2ArithCtx>* grContext,
+    IFX_Pause* pPause) {
   CJBig2_Image** SDNEWSYMS;
   FX_DWORD* SDNEWSYMWIDTHS;
   FX_DWORD HCHEIGHT, NSYMSDECODED;
@@ -460,7 +445,7 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Huffman(CJBig2_BitStream* pStream,
           pDecoder->SBRAT[1] = SDRAT[1];
           pDecoder->SBRAT[2] = SDRAT[2];
           pDecoder->SBRAT[3] = SDRAT[3];
-          BS = pDecoder->decode_Huffman(pStream, grContext);
+          BS = pDecoder->decode_Huffman(pStream, vector_as_array(grContext));
           if (!BS) {
             FX_Free(SBSYMCODES);
             FX_Free(SBSYMS);
@@ -532,7 +517,7 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Huffman(CJBig2_BitStream* pStream,
           pGRRD->GRAT[3] = SDRAT[3];
           nonstd::unique_ptr<CJBig2_ArithDecoder> pArithDecoder(
               new CJBig2_ArithDecoder(pStream));
-          BS = pGRRD->decode(pArithDecoder.get(), grContext);
+          BS = pGRRD->decode(pArithDecoder.get(), vector_as_array(grContext));
           if (!BS) {
             FX_Free(SBSYMS);
             goto failed;
@@ -615,23 +600,18 @@ CJBig2_SymbolDict* CJBig2_SDDProc::decode_Huffman(CJBig2_BitStream* pStream,
     EXINDEX = EXINDEX + EXRUNLENGTH;
     CUREXFLAG = !CUREXFLAG;
   }
-  pDict->SDNUMEXSYMS = SDNUMEXSYMS;
-  pDict->SDEXSYMS = FX_Alloc(CJBig2_Image*, SDNUMEXSYMS);
   I = J = 0;
   for (I = 0; I < SDNUMINSYMS + SDNUMNEWSYMS; I++) {
     if (EXFLAGS[I] && J < SDNUMEXSYMS) {
       if (I < SDNUMINSYMS) {
-        pDict->SDEXSYMS[J] = new CJBig2_Image(*SDINSYMS[I]);
+        pDict->AddImage(new CJBig2_Image(*SDINSYMS[I]));
       } else {
-        pDict->SDEXSYMS[J] = SDNEWSYMS[I - SDNUMINSYMS];
+        pDict->AddImage(SDNEWSYMS[I - SDNUMINSYMS]);
       }
-      J = J + 1;
+      ++J;
     } else if (!EXFLAGS[I] && I >= SDNUMINSYMS) {
       delete SDNEWSYMS[I - SDNUMINSYMS];
     }
-  }
-  if (J < SDNUMEXSYMS) {
-    pDict->SDNUMEXSYMS = J;
   }
   FX_Free(EXFLAGS);
   FX_Free(SDNEWSYMS);

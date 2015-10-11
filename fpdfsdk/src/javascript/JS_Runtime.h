@@ -4,33 +4,45 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_JS_RUNTIME_H_
-#define FPDFSDK_INCLUDE_JAVASCRIPT_JS_RUNTIME_H_
+#ifndef FPDFSDK_SRC_JAVASCRIPT_JS_RUNTIME_H_
+#define FPDFSDK_SRC_JAVASCRIPT_JS_RUNTIME_H_
 
 #include <set>
 #include <utility>
 
-#include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../../../core/include/fxcrt/fx_basic.h"
-#include "../jsapi/fxjs_v8.h"
-#include "IJavaScript.h"
+#include "../../include/javascript/IJavaScript.h"
+#include "../../include/jsapi/fxjs_v8.h"
 #include "JS_EventHandler.h"
 
 class CJS_Context;
 
-class CJS_Runtime : public IFXJS_Runtime {
+class CJS_Runtime : public IJS_Runtime {
  public:
+  class Observer {
+   public:
+    virtual void OnDestroyed() = 0;
+
+   protected:
+    virtual ~Observer() {}
+  };
+
   using FieldEvent = std::pair<CFX_WideString, JS_EVENT_T>;
+
+  static CJS_Runtime* FromContext(const IJS_Context* cc);
 
   explicit CJS_Runtime(CPDFDoc_Environment* pApp);
   ~CJS_Runtime() override;
 
-  // IFXJS_Runtime
-  IFXJS_Context* NewContext() override;
-  void ReleaseContext(IFXJS_Context* pContext) override;
-  IFXJS_Context* GetCurrentContext() override;
+  // IJS_Runtime
+  IJS_Context* NewContext() override;
+  void ReleaseContext(IJS_Context* pContext) override;
+  IJS_Context* GetCurrentContext() override;
   void SetReaderDocument(CPDFSDK_Document* pReaderDoc) override;
   CPDFSDK_Document* GetReaderDocument() override { return m_pDocument; }
+  int Execute(IJS_Context* cc,
+              const wchar_t* script,
+              CFX_WideString* info) override;
 
   CPDFDoc_Environment* GetReaderApp() const { return m_pApp; }
 
@@ -45,6 +57,9 @@ class CJS_Runtime : public IFXJS_Runtime {
   v8::Isolate* GetIsolate() const { return m_isolate; }
   v8::Local<v8::Context> NewJSContext();
 
+  void AddObserver(Observer* observer);
+  void RemoveObserver(Observer* observer);
+
  private:
   void DefineJSObjects();
 
@@ -55,8 +70,8 @@ class CJS_Runtime : public IFXJS_Runtime {
   std::set<FieldEvent> m_FieldEventSet;
   v8::Isolate* m_isolate;
   bool m_isolateManaged;
-  nonstd::unique_ptr<FXJS_ArrayBufferAllocator> m_pArrayBufferAllocator;
   v8::Global<v8::Context> m_context;
+  std::set<Observer*> m_observers;
 };
 
-#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_JS_RUNTIME_H_
+#endif  // FPDFSDK_SRC_JAVASCRIPT_JS_RUNTIME_H_

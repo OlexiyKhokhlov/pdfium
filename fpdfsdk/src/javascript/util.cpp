@@ -4,31 +4,21 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../include/javascript/JavaScript.h"
+#include "util.h"
+
 #include "../../include/javascript/IJavaScript.h"
-#include "../../include/javascript/JS_Define.h"
-#include "../../include/javascript/JS_Object.h"
-#include "../../include/javascript/JS_Value.h"
-#include "../../include/javascript/util.h"
-#include "../../include/javascript/PublicMethods.h"
-#include "../../include/javascript/resource.h"
-#include "../../include/javascript/JS_Context.h"
-#include "../../include/javascript/JS_EventHandler.h"
-#include "../../include/javascript/JS_Runtime.h"
+#include "JS_Context.h"
+#include "JS_Define.h"
+#include "JS_EventHandler.h"
+#include "JS_Object.h"
+#include "JS_Runtime.h"
+#include "JS_Value.h"
+#include "PublicMethods.h"
+#include "resource.h"
 
 #if _FX_OS_ == _FX_ANDROID_
 #include <ctype.h>
 #endif
-
-static v8::Isolate* GetIsolate(IFXJS_Context* cc) {
-  CJS_Context* pContext = (CJS_Context*)cc;
-  ASSERT(pContext != NULL);
-
-  CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-  ASSERT(pRuntime != NULL);
-
-  return pRuntime->GetIsolate();
-}
 
 BEGIN_JS_STATIC_CONST(CJS_Util)
 END_JS_STATIC_CONST()
@@ -124,7 +114,7 @@ int util::ParstDataType(std::wstring* sFormat) {
   return -1;
 }
 
-FX_BOOL util::printf(IFXJS_Context* cc,
+FX_BOOL util::printf(IJS_Context* cc,
                      const CJS_Parameters& params,
                      CJS_Value& vRet,
                      CFX_WideString& sError) {
@@ -187,21 +177,20 @@ FX_BOOL util::printf(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL util::printd(IFXJS_Context* cc,
+FX_BOOL util::printd(IJS_Context* cc,
                      const CJS_Parameters& params,
                      CJS_Value& vRet,
                      CFX_WideString& sError) {
-  v8::Isolate* isolate = GetIsolate(cc);
-
   int iSize = params.size();
   if (iSize < 2)
     return FALSE;
 
-  CJS_Value p1(isolate);
+  CJS_Runtime* pRuntime = CJS_Runtime::FromContext(cc);
+  CJS_Value p1(pRuntime);
   p1 = params[0];
 
   CJS_Value p2 = params[1];
-  CJS_Date jsDate(isolate);
+  CJS_Date jsDate(pRuntime);
   if (!p2.ConvertToDate(jsDate)) {
     sError = JSGetStringFromID((CJS_Context*)cc, IDS_STRING_JSPRINT1);
     return FALSE;
@@ -400,7 +389,7 @@ void util::printd(const std::wstring& cFormat2,
   cPurpose = cFormat;
 }
 
-FX_BOOL util::printx(IFXJS_Context* cc,
+FX_BOOL util::printx(IJS_Context* cc,
                      const CJS_Parameters& params,
                      CJS_Value& vRet,
                      CFX_WideString& sError) {
@@ -500,11 +489,10 @@ void util::printx(const std::string& cFormat,
   }
 }
 
-FX_BOOL util::scand(IFXJS_Context* cc,
+FX_BOOL util::scand(IJS_Context* cc,
                     const CJS_Parameters& params,
                     CJS_Value& vRet,
                     CFX_WideString& sError) {
-  v8::Isolate* isolate = GetIsolate(cc);
   int iSize = params.size();
   if (iSize < 2)
     return FALSE;
@@ -518,8 +506,7 @@ FX_BOOL util::scand(IFXJS_Context* cc,
   }
 
   if (!JS_PortIsNan(dDate)) {
-    CJS_Date date(isolate, dDate);
-    vRet = date;
+    vRet = CJS_Date(CJS_Runtime::FromContext(cc), dDate);
   } else {
     vRet.SetNull();
   }
@@ -551,7 +538,7 @@ int64_t FX_atoi64(const char* nptr) {
   return sign == '-' ? -total : total;
 }
 
-FX_BOOL util::byteToChar(IFXJS_Context* cc,
+FX_BOOL util::byteToChar(IJS_Context* cc,
                          const CJS_Parameters& params,
                          CJS_Value& vRet,
                          CFX_WideString& sError) {

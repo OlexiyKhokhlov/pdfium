@@ -60,13 +60,13 @@ class CFX_Font {
   CFX_Font();
   ~CFX_Font();
 
-  FX_BOOL LoadSubst(const CFX_ByteString& face_name,
-                    FX_BOOL bTrueType,
-                    FX_DWORD flags,
-                    int weight,
-                    int italic_angle,
-                    int CharsetCP,
-                    FX_BOOL bVertical = FALSE);
+  void LoadSubst(const CFX_ByteString& face_name,
+                 FX_BOOL bTrueType,
+                 FX_DWORD flags,
+                 int weight,
+                 int italic_angle,
+                 int CharsetCP,
+                 FX_BOOL bVertical = FALSE);
   FX_BOOL LoadEmbedded(const uint8_t* data, FX_DWORD size);
   FXFT_Face GetFace() const { return m_Face; }
   const CFX_SubstFont* GetSubstFont() const { return m_pSubstFont; }
@@ -338,6 +338,13 @@ class CFX_FolderFontInfo : public IFX_SystemFontInfo {
                   FXSYS_FILE* pFile,
                   FX_DWORD filesize,
                   FX_DWORD offset);
+  void* GetSubstFont(const CFX_ByteString& face);
+  void* FindFont(int weight,
+                 FX_BOOL bItalic,
+                 int charset,
+                 int pitch_family,
+                 const FX_CHAR* family,
+                 FX_BOOL bMatchName);
 };
 class CFX_CountedFaceCache {
  public:

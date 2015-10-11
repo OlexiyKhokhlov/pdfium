@@ -7,6 +7,8 @@
 #ifndef CORE_INCLUDE_FXCODEC_FX_CODEC_H_
 #define CORE_INCLUDE_FXCODEC_FX_CODEC_H_
 
+#include <vector>
+
 #include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../fxcrt/fx_basic.h"
 #include "fx_codec_def.h"
@@ -14,6 +16,8 @@
 
 class CFX_DIBSource;
 class CJPX_Decoder;
+class CPDF_PrivateData;
+class CPDF_StreamAcc;
 class ICodec_ScanlineDecoder;
 class ICodec_BasicModule;
 class ICodec_FaxModule;
@@ -64,6 +68,7 @@ class ICodec_BasicModule {
                                                          int nComps,
                                                          int bpc) = 0;
 };
+
 class ICodec_ScanlineDecoder {
  public:
   virtual ~ICodec_ScanlineDecoder() {}
@@ -72,7 +77,7 @@ class ICodec_ScanlineDecoder {
 
   virtual void DownScale(int dest_width, int dest_height) = 0;
 
-  virtual uint8_t* GetScanline(int line) = 0;
+  virtual const uint8_t* GetScanline(int line) = 0;
 
   virtual FX_BOOL SkipToScanline(int line, IFX_Pause* pPause) = 0;
 
@@ -88,6 +93,7 @@ class ICodec_ScanlineDecoder {
 
   virtual void ClearImageData() = 0;
 };
+
 class ICodec_FlateModule {
  public:
   virtual ~ICodec_FlateModule() {}
@@ -211,10 +217,10 @@ class ICodec_JpxModule {
                             FX_DWORD* height,
                             FX_DWORD* components) = 0;
 
-  virtual FX_BOOL Decode(CJPX_Decoder* pDecoder,
-                         uint8_t* dest_data,
-                         int pitch,
-                         uint8_t* offsets) = 0;
+  virtual bool Decode(CJPX_Decoder* pDecoder,
+                      uint8_t* dest_data,
+                      int pitch,
+                      const std::vector<uint8_t>& offsets) = 0;
 
   virtual void DestroyDecoder(CJPX_Decoder* pDecoder) = 0;
 };
@@ -226,12 +232,11 @@ class ICodec_Jbig2Module {
   virtual void* CreateJbig2Context() = 0;
 
   virtual FXCODEC_STATUS StartDecode(void* pJbig2Context,
+                                     CFX_PrivateData* pPrivateData,
                                      FX_DWORD width,
                                      FX_DWORD height,
-                                     const uint8_t* src_buf,
-                                     FX_DWORD src_size,
-                                     const uint8_t* global_data,
-                                     FX_DWORD global_size,
+                                     CPDF_StreamAcc* src_stream,
+                                     CPDF_StreamAcc* global_stream,
                                      uint8_t* dest_buf,
                                      FX_DWORD dest_pitch,
                                      IFX_Pause* pPause) = 0;
@@ -330,5 +335,13 @@ void AdobeCMYK_to_sRGB1(uint8_t c,
                         uint8_t& G,
                         uint8_t& B);
 FX_BOOL MD5ComputeID(const void* buf, FX_DWORD dwSize, uint8_t ID[16]);
+
+void FaxG4Decode(const uint8_t* src_buf,
+                 FX_DWORD src_size,
+                 int* pbitpos,
+                 uint8_t* dest_buf,
+                 int width,
+                 int height,
+                 int pitch);
 
 #endif  // CORE_INCLUDE_FXCODEC_FX_CODEC_H_

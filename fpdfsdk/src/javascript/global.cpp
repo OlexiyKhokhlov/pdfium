@@ -4,17 +4,17 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include "global.h"
+
 #include "../../../core/include/fxcrt/fx_ext.h"
 #include "../../include/javascript/IJavaScript.h"
-#include "../../include/javascript/JS_Context.h"
-#include "../../include/javascript/JS_Define.h"
-#include "../../include/javascript/JS_EventHandler.h"
-#include "../../include/javascript/JS_GlobalData.h"
-#include "../../include/javascript/JS_Object.h"
-#include "../../include/javascript/JS_Value.h"
-#include "../../include/javascript/JavaScript.h"
-#include "../../include/javascript/global.h"
-#include "../../include/javascript/resource.h"
+#include "JS_Context.h"
+#include "JS_Define.h"
+#include "JS_EventHandler.h"
+#include "JS_GlobalData.h"
+#include "JS_Object.h"
+#include "JS_Value.h"
+#include "resource.h"
 
 /* ---------------------------- global ---------------------------- */
 
@@ -87,17 +87,12 @@ END_JS_STATIC_METHOD()
 
 IMPLEMENT_SPECIAL_JS_CLASS(CJS_Global, JSGlobalAlternate, global);
 
-FX_BOOL CJS_Global::InitInstance(IFXJS_Context* cc) {
-  CJS_Context* pContext = (CJS_Context*)cc;
-  ASSERT(pContext != NULL);
-
-  JSGlobalAlternate* pGlobal = (JSGlobalAlternate*)GetEmbedObject();
-  ASSERT(pGlobal != NULL);
-
-  pGlobal->Initial(pContext->GetReaderApp());
-
-  return TRUE;
-};
+void CJS_Global::InitInstance(IJS_Runtime* pIRuntime) {
+  CJS_Runtime* pRuntime = static_cast<CJS_Runtime*>(pIRuntime);
+  JSGlobalAlternate* pGlobal =
+      static_cast<JSGlobalAlternate*>(GetEmbedObject());
+  pGlobal->Initial(pRuntime->GetReaderApp());
+}
 
 JSGlobalAlternate::JSGlobalAlternate(CJS_Object* pJSObject)
     : CJS_EmbedObj(pJSObject), m_pApp(NULL) {
@@ -118,7 +113,7 @@ FX_BOOL JSGlobalAlternate::QueryProperty(const FX_WCHAR* propname) {
   return CFX_WideString(propname) != L"setPersistent";
 }
 
-FX_BOOL JSGlobalAlternate::DelProperty(IFXJS_Context* cc,
+FX_BOOL JSGlobalAlternate::DelProperty(IJS_Context* cc,
                                        const FX_WCHAR* propname,
                                        CFX_WideString& sError) {
   auto it = m_mapGlobal.find(CFX_ByteString::FromUnicode(propname));
@@ -129,7 +124,7 @@ FX_BOOL JSGlobalAlternate::DelProperty(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL JSGlobalAlternate::DoProperty(IFXJS_Context* cc,
+FX_BOOL JSGlobalAlternate::DoProperty(IJS_Context* cc,
                                       const FX_WCHAR* propname,
                                       CJS_PropValue& vp,
                                       CFX_WideString& sError) {
@@ -193,8 +188,8 @@ FX_BOOL JSGlobalAlternate::DoProperty(IFXJS_Context* cc,
         vp << pData->sData;
         return TRUE;
       case JS_GLOBALDATA_TYPE_OBJECT: {
-        v8::Local<v8::Object> obj =
-            v8::Local<v8::Object>::New(vp.GetIsolate(), pData->pData);
+        v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(
+            vp.GetJSRuntime()->GetIsolate(), pData->pData);
         vp << obj;
         return TRUE;
       }
@@ -208,7 +203,7 @@ FX_BOOL JSGlobalAlternate::DoProperty(IFXJS_Context* cc,
   return FALSE;
 }
 
-FX_BOOL JSGlobalAlternate::setPersistent(IFXJS_Context* cc,
+FX_BOOL JSGlobalAlternate::setPersistent(IJS_Context* cc,
                                          const CJS_Parameters& params,
                                          CJS_Value& vRet,
                                          CFX_WideString& sError) {
@@ -286,8 +281,7 @@ void JSGlobalAlternate::UpdateGlobalPersistentVariables() {
   }
 }
 
-void JSGlobalAlternate::CommitGlobalPersisitentVariables() {
-  ASSERT(m_pGlobalData);
+void JSGlobalAlternate::CommitGlobalPersisitentVariables(IJS_Context* cc) {
   for (auto it = m_mapGlobal.begin(); it != m_mapGlobal.end(); ++it) {
     CFX_ByteString name = it->first;
     JSGlobalData* pData = it->second;
@@ -308,12 +302,11 @@ void JSGlobalAlternate::CommitGlobalPersisitentVariables() {
           m_pGlobalData->SetGlobalVariablePersistent(name, pData->bPersistent);
           break;
         case JS_GLOBALDATA_TYPE_OBJECT:
-          // if (pData->pData)
           {
             CJS_GlobalVariableArray array;
             v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(
                 GetJSObject()->GetIsolate(), pData->pData);
-            ObjectToArray(obj, array);
+            ObjectToArray(cc, obj, array);
             m_pGlobalData->SetGlobalVariableObject(name, array);
             m_pGlobalData->SetGlobalVariablePersistent(name,
                                                        pData->bPersistent);
@@ -328,13 +321,15 @@ void JSGlobalAlternate::CommitGlobalPersisitentVariables() {
   }
 }
 
-void JSGlobalAlternate::ObjectToArray(v8::Local<v8::Object> pObj,
+void JSGlobalAlternate::ObjectToArray(IJS_Context* cc,
+                                      v8::Local<v8::Object> pObj,
                                       CJS_GlobalVariableArray& array) {
   v8::Local<v8::Context> context = pObj->CreationContext();
   v8::Isolate* isolate = context->GetIsolate();
+  CJS_Runtime* pRuntime = CJS_Runtime::FromContext(cc);
+
   v8::Local<v8::Array> pKeyList = FXJS_GetObjectElementNames(isolate, pObj);
   int nObjElements = pKeyList->Length();
-
   for (int i = 0; i < nObjElements; i++) {
     CFX_WideString ws =
         FXJS_ToString(isolate, FXJS_GetArrayElement(isolate, pKeyList, i));
@@ -358,7 +353,7 @@ void JSGlobalAlternate::ObjectToArray(v8::Local<v8::Object> pObj,
       } break;
       case CJS_Value::VT_string: {
         CFX_ByteString sValue =
-            CJS_Value(isolate, v, CJS_Value::VT_string).ToCFXByteString();
+            CJS_Value(pRuntime, v, CJS_Value::VT_string).ToCFXByteString();
         CJS_KeyValue* pObjElement = new CJS_KeyValue;
         pObjElement->nType = JS_GLOBALDATA_TYPE_STRING;
         pObjElement->sKey = sKey;
@@ -369,7 +364,7 @@ void JSGlobalAlternate::ObjectToArray(v8::Local<v8::Object> pObj,
         CJS_KeyValue* pObjElement = new CJS_KeyValue;
         pObjElement->nType = JS_GLOBALDATA_TYPE_OBJECT;
         pObjElement->sKey = sKey;
-        ObjectToArray(FXJS_ToObject(isolate, v), pObjElement->objData);
+        ObjectToArray(cc, FXJS_ToObject(isolate, v), pObjElement->objData);
         array.Add(pObjElement);
       } break;
       case CJS_Value::VT_null: {

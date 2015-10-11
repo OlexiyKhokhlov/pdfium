@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_REPORT_H_
-#define FPDFSDK_INCLUDE_JAVASCRIPT_REPORT_H_
+#ifndef FPDFSDK_SRC_JAVASCRIPT_REPORT_H_
+#define FPDFSDK_SRC_JAVASCRIPT_REPORT_H_
 
 #include "JS_Define.h"
 
@@ -15,11 +15,11 @@ class Report : public CJS_EmbedObj {
   ~Report() override;
 
  public:
-  FX_BOOL save(IFXJS_Context* cc,
+  FX_BOOL save(IJS_Context* cc,
                const CJS_Parameters& params,
                CJS_Value& vRet,
                CFX_WideString& sError);
-  FX_BOOL writeText(IFXJS_Context* cc,
+  FX_BOOL writeText(IJS_Context* cc,
                     const CJS_Parameters& params,
                     CJS_Value& vRet,
                     CFX_WideString& sError);
@@ -30,11 +30,10 @@ class CJS_Report : public CJS_Object {
   CJS_Report(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
   ~CJS_Report() override {}
 
- public:
-  DECLARE_JS_CLASS(CJS_Report);
+  DECLARE_JS_CLASS();
 
   JS_STATIC_METHOD(save, Report)
   JS_STATIC_METHOD(writeText, Report);
 };
 
-#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_REPORT_H_
+#endif  // FPDFSDK_SRC_JAVASCRIPT_REPORT_H_

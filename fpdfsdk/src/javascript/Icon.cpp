@@ -4,12 +4,12 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../include/javascript/JavaScript.h"
+#include "Icon.h"
+
 #include "../../include/javascript/IJavaScript.h"
-#include "../../include/javascript/JS_Define.h"
-#include "../../include/javascript/JS_Object.h"
-#include "../../include/javascript/JS_Value.h"
-#include "../../include/javascript/Icon.h"
+#include "JS_Define.h"
+#include "JS_Object.h"
+#include "JS_Value.h"
 
 /* ---------------------- Icon ---------------------- */
 
@@ -47,9 +47,7 @@ CFX_WideString Icon::GetIconName() {
   return m_swIconName;
 }
 
-FX_BOOL Icon::name(IFXJS_Context* cc,
-                   CJS_PropValue& vp,
-                   CFX_WideString& sError) {
+FX_BOOL Icon::name(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError) {
   if (!vp.IsGetting())
     return FALSE;
 

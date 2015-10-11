@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_UTIL_H_
-#define FPDFSDK_INCLUDE_JAVASCRIPT_UTIL_H_
+#ifndef FPDFSDK_SRC_JAVASCRIPT_UTIL_H_
+#define FPDFSDK_SRC_JAVASCRIPT_UTIL_H_
 
 #include <string>  // For std::wstring.
 
@@ -17,23 +17,23 @@ class util : public CJS_EmbedObj {
   ~util() override;
 
  public:
-  FX_BOOL printd(IFXJS_Context* cc,
+  FX_BOOL printd(IJS_Context* cc,
                  const CJS_Parameters& params,
                  CJS_Value& vRet,
                  CFX_WideString& sError);
-  FX_BOOL printf(IFXJS_Context* cc,
+  FX_BOOL printf(IJS_Context* cc,
                  const CJS_Parameters& params,
                  CJS_Value& vRet,
                  CFX_WideString& sError);
-  FX_BOOL printx(IFXJS_Context* cc,
+  FX_BOOL printx(IJS_Context* cc,
                  const CJS_Parameters& params,
                  CJS_Value& vRet,
                  CFX_WideString& sError);
-  FX_BOOL scand(IFXJS_Context* cc,
+  FX_BOOL scand(IJS_Context* cc,
                 const CJS_Parameters& params,
                 CJS_Value& vRet,
                 CFX_WideString& sError);
-  FX_BOOL byteToChar(IFXJS_Context* cc,
+  FX_BOOL byteToChar(IJS_Context* cc,
                      const CJS_Parameters& params,
                      CJS_Value& vRet,
                      CFX_WideString& sError);
@@ -54,7 +54,7 @@ class CJS_Util : public CJS_Object {
   CJS_Util(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
   ~CJS_Util() override {}
 
-  DECLARE_JS_CLASS(CJS_Util);
+  DECLARE_JS_CLASS();
 
   JS_STATIC_METHOD(printd, util);
   JS_STATIC_METHOD(printf, util);
@@ -65,4 +65,4 @@ class CJS_Util : public CJS_Object {
 
 int64_t FX_atoi64(const char* nptr);
 
-#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_UTIL_H_
+#endif  // FPDFSDK_SRC_JAVASCRIPT_UTIL_H_

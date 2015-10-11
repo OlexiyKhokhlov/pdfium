@@ -6,8 +6,10 @@
 
 #include <algorithm>
 #include <limits>
+#include <vector>
 
 #include "../../../include/fxcodec/fx_codec.h"
+#include "../../../include/fxcrt/fx_safe_types.h"
 #include "codec_int.h"
 
 #ifdef USE_SYSTEM_OPENJPEG
@@ -264,29 +266,58 @@ static void sycc422_to_rgb(opj_image_t* img) {
   img->comps[1].dy = img->comps[0].dy;
   img->comps[2].dy = img->comps[0].dy;
 }
-static void sycc420_to_rgb(opj_image_t* img) {
-  int *d0, *d1, *d2, *r, *g, *b, *nr, *ng, *nb;
-  const int *y, *cb, *cr, *ny;
-  int maxw, maxh, max, offset, upb;
-  int i, j;
-  i = (int)img->comps[0].prec;
-  offset = 1 << (i - 1);
-  upb = (1 << i) - 1;
-  maxw = (int)img->comps[0].w;
-  maxh = (int)img->comps[0].h;
-  max = maxw * maxh;
-  y = img->comps[0].data;
-  cb = img->comps[1].data;
-  cr = img->comps[2].data;
-  d0 = r = FX_Alloc(int, (size_t)max);
-  d1 = g = FX_Alloc(int, (size_t)max);
-  d2 = b = FX_Alloc(int, (size_t)max);
-  for (i = 0; (OPJ_UINT32)i < (maxh & ~(OPJ_UINT32)1); i += 2) {
-    ny = y + maxw;
-    nr = r + maxw;
-    ng = g + maxw;
-    nb = b + maxw;
-    for (j = 0; (OPJ_UINT32)j < (maxw & ~(OPJ_UINT32)1); j += 2) {
+static bool sycc420_size_is_valid(OPJ_UINT32 y, OPJ_UINT32 cbcr) {
+  if (!y || !cbcr)
+    return false;
+
+  return (cbcr == y / 2) || ((y & 1) && (cbcr == y / 2 + 1));
+}
+static bool sycc420_must_extend_cbcr(OPJ_UINT32 y, OPJ_UINT32 cbcr) {
+  return (y & 1) && (cbcr == y / 2);
+}
+void sycc420_to_rgb(opj_image_t* img) {
+  OPJ_UINT32 prec = img->comps[0].prec;
+  if (!prec)
+    return;
+  OPJ_UINT32 offset = 1 << (prec - 1);
+  OPJ_UINT32 upb = (1 << prec) - 1;
+  OPJ_UINT32 yw = img->comps[0].w;
+  OPJ_UINT32 yh = img->comps[0].h;
+  OPJ_UINT32 cbw = img->comps[1].w;
+  OPJ_UINT32 cbh = img->comps[1].h;
+  OPJ_UINT32 crw = img->comps[2].w;
+  OPJ_UINT32 crh = img->comps[2].h;
+  if (cbw != crw || cbh != crh)
+    return;
+  if (!sycc420_size_is_valid(yw, cbw) || !sycc420_size_is_valid(yh, cbh))
+    return;
+  bool extw = sycc420_must_extend_cbcr(yw, cbw);
+  bool exth = sycc420_must_extend_cbcr(yh, cbh);
+  FX_SAFE_DWORD safeSize = yw;
+  safeSize *= yh;
+  if (!safeSize.IsValid())
+    return;
+  int* r = FX_Alloc(int, safeSize.ValueOrDie());
+  int* g = FX_Alloc(int, safeSize.ValueOrDie());
+  int* b = FX_Alloc(int, safeSize.ValueOrDie());
+  int* d0 = r;
+  int* d1 = g;
+  int* d2 = b;
+  const int* y = img->comps[0].data;
+  const int* cb = img->comps[1].data;
+  const int* cr = img->comps[2].data;
+  const int* ny = nullptr;
+  int* nr = nullptr;
+  int* ng = nullptr;
+  int* nb = nullptr;
+  OPJ_UINT32 i = 0;
+  OPJ_UINT32 j = 0;
+  for (i = 0; i < (yh & ~(OPJ_UINT32)1); i += 2) {
+    ny = y + yw;
+    nr = r + yw;
+    ng = g + yw;
+    nb = b + yw;
+    for (j = 0; j < (yw & ~(OPJ_UINT32)1); j += 2) {
       sycc_to_rgb(offset, upb, *y, *cb, *cr, r, g, b);
       ++y;
       ++r;
@@ -310,7 +341,11 @@ static void sycc420_to_rgb(opj_image_t* img) {
       ++cb;
       ++cr;
     }
-    if (j < maxw) {
+    if (j < yw) {
+      if (extw) {
+        --cb;
+        --cr;
+      }
       sycc_to_rgb(offset, upb, *y, *cb, *cr, r, g, b);
       ++y;
       ++r;
@@ -324,13 +359,17 @@ static void sycc420_to_rgb(opj_image_t* img) {
       ++cb;
       ++cr;
     }
-    y += maxw;
-    r += maxw;
-    g += maxw;
-    b += maxw;
+    y += yw;
+    r += yw;
+    g += yw;
+    b += yw;
   }
-  if (i < maxh) {
-    for (j = 0; (OPJ_UINT32)j < (maxw & ~(OPJ_UINT32)1); j += 2) {
+  if (i < yh) {
+    if (exth) {
+      cb -= cbw;
+      cr -= crw;
+    }
+    for (j = 0; j < (yw & ~(OPJ_UINT32)1); j += 2) {
       sycc_to_rgb(offset, upb, *y, *cb, *cr, r, g, b);
       ++y;
       ++r;
@@ -344,7 +383,11 @@ static void sycc420_to_rgb(opj_image_t* img) {
       ++cb;
       ++cr;
     }
-    if (j < maxw) {
+    if (j < yw) {
+      if (extw) {
+        --cb;
+        --cr;
+      }
       sycc_to_rgb(offset, upb, *y, *cb, *cr, r, g, b);
     }
   }
@@ -355,14 +398,14 @@ static void sycc420_to_rgb(opj_image_t* img) {
   img->comps[1].data = d1;
   FX_Free(img->comps[2].data);
   img->comps[2].data = d2;
-  img->comps[1].w = maxw;
-  img->comps[1].h = maxh;
-  img->comps[2].w = maxw;
-  img->comps[2].h = maxh;
-  img->comps[1].w = (OPJ_UINT32)maxw;
-  img->comps[1].h = (OPJ_UINT32)maxh;
-  img->comps[2].w = (OPJ_UINT32)maxw;
-  img->comps[2].h = (OPJ_UINT32)maxh;
+  img->comps[1].w = yw;
+  img->comps[1].h = yh;
+  img->comps[2].w = yw;
+  img->comps[2].h = yh;
+  img->comps[1].w = yw;
+  img->comps[1].h = yh;
+  img->comps[2].w = yw;
+  img->comps[2].h = yh;
   img->comps[1].dx = img->comps[0].dx;
   img->comps[2].dx = img->comps[0].dx;
   img->comps[1].dy = img->comps[0].dy;
@@ -624,15 +667,15 @@ class CJPX_Decoder {
  public:
   explicit CJPX_Decoder(bool use_colorspace);
   ~CJPX_Decoder();
-  FX_BOOL Init(const unsigned char* src_data, int src_size);
+  FX_BOOL Init(const unsigned char* src_data, FX_DWORD src_size);
   void GetInfo(FX_DWORD* width, FX_DWORD* height, FX_DWORD* components);
-  FX_BOOL Decode(uint8_t* dest_buf,
-                 int pitch,
-                 uint8_t* offsets);
+  bool Decode(uint8_t* dest_buf,
+              int pitch,
+              const std::vector<uint8_t>& offsets);
 
  private:
   const uint8_t* m_SrcData;
-  int m_SrcSize;
+  FX_DWORD m_SrcSize;
   opj_image_t* image;
   opj_codec_t* l_codec;
   opj_stream_t* l_stream;
@@ -658,12 +701,12 @@ CJPX_Decoder::~CJPX_Decoder() {
   }
 }
 
-FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, int src_size) {
+FX_BOOL CJPX_Decoder::Init(const unsigned char* src_data, FX_DWORD src_size) {
   static const unsigned char szJP2Header[] = {
       0x00, 0x00, 0x00, 0x0c, 0x6a, 0x50, 0x20, 0x20, 0x0d, 0x0a, 0x87, 0x0a};
-  if (!src_data || src_size < sizeof(szJP2Header)) {
+  if (!src_data || src_size < sizeof(szJP2Header))
     return FALSE;
-  }
+
   image = NULL;
   m_SrcData = src_data;
   m_SrcSize = src_size;
@@ -747,45 +790,39 @@ void CJPX_Decoder::GetInfo(FX_DWORD* width,
   *components = (FX_DWORD)image->numcomps;
 }
 
-FX_BOOL CJPX_Decoder::Decode(uint8_t* dest_buf,
-                             int pitch,
-                             uint8_t* offsets) {
-  int i, wid, hei, row, col, channel, src;
-  uint8_t* pChannel;
-  uint8_t* pScanline;
-  uint8_t* pPixel;
+bool CJPX_Decoder::Decode(uint8_t* dest_buf,
+                          int pitch,
+                          const std::vector<uint8_t>& offsets) {
+  if (image->comps[0].w != image->x1 || image->comps[0].h != image->y1)
+    return false;
 
-  if (image->comps[0].w != image->x1 || image->comps[0].h != image->y1) {
-    return FALSE;
-  }
-  if (pitch<(int)(image->comps[0].w * 8 * image->numcomps + 31)>> 5 << 2) {
-    return FALSE;
-  }
+  if (pitch<(int)(image->comps[0].w * 8 * image->numcomps + 31)>> 5 << 2)
+    return false;
+
   FXSYS_memset(dest_buf, 0xff, image->y1 * pitch);
-  uint8_t** channel_bufs = FX_Alloc(uint8_t*, image->numcomps);
-  FX_BOOL result = FALSE;
-  int* adjust_comps = FX_Alloc(int, image->numcomps);
-  for (i = 0; i < (int)image->numcomps; i++) {
+  std::vector<uint8_t*> channel_bufs(image->numcomps);
+  std::vector<int> adjust_comps(image->numcomps);
+  for (uint32_t i = 0; i < image->numcomps; i++) {
     channel_bufs[i] = dest_buf + offsets[i];
     adjust_comps[i] = image->comps[i].prec - 8;
     if (i > 0) {
       if (image->comps[i].dx != image->comps[i - 1].dx ||
           image->comps[i].dy != image->comps[i - 1].dy ||
           image->comps[i].prec != image->comps[i - 1].prec) {
-        goto done;
+        return false;
       }
     }
   }
-  wid = image->comps[0].w;
-  hei = image->comps[0].h;
-  for (channel = 0; channel < (int)image->numcomps; channel++) {
-    pChannel = channel_bufs[channel];
+  int width = image->comps[0].w;
+  int height = image->comps[0].h;
+  for (uint32_t channel = 0; channel < image->numcomps; ++channel) {
+    uint8_t* pChannel = channel_bufs[channel];
     if (adjust_comps[channel] < 0) {
-      for (row = 0; row < hei; row++) {
-        pScanline = pChannel + row * pitch;
-        for (col = 0; col < wid; col++) {
-          pPixel = pScanline + col * image->numcomps;
-          src = image->comps[channel].data[row * wid + col];
+      for (int row = 0; row < height; ++row) {
+        uint8_t* pScanline = pChannel + row * pitch;
+        for (int col = 0; col < width; ++col) {
+          uint8_t* pPixel = pScanline + col * image->numcomps;
+          int src = image->comps[channel].data[row * width + col];
           src += image->comps[channel].sgnd
                      ? 1 << (image->comps[channel].prec - 1)
                      : 0;
@@ -797,14 +834,14 @@ FX_BOOL CJPX_Decoder::Decode(uint8_t* dest_buf,
         }
       }
     } else {
-      for (row = 0; row < hei; row++) {
-        pScanline = pChannel + row * pitch;
-        for (col = 0; col < wid; col++) {
-          pPixel = pScanline + col * image->numcomps;
+      for (int row = 0; row < height; ++row) {
+        uint8_t* pScanline = pChannel + row * pitch;
+        for (int col = 0; col < width; ++col) {
+          uint8_t* pPixel = pScanline + col * image->numcomps;
           if (!image->comps[channel].data) {
             continue;
           }
-          src = image->comps[channel].data[row * wid + col];
+          int src = image->comps[channel].data[row * width + col];
           src += image->comps[channel].sgnd
                      ? 1 << (image->comps[channel].prec - 1)
                      : 0;
@@ -824,12 +861,7 @@ FX_BOOL CJPX_Decoder::Decode(uint8_t* dest_buf,
       }
     }
   }
-  result = TRUE;
-
-done:
-  FX_Free(channel_bufs);
-  FX_Free(adjust_comps);
-  return result;
+  return true;
 }
 
 CCodec_JpxModule::CCodec_JpxModule() {}
@@ -850,10 +882,10 @@ void CCodec_JpxModule::GetImageInfo(CJPX_Decoder* pDecoder,
   pDecoder->GetInfo(width, height, components);
 }
 
-FX_BOOL CCodec_JpxModule::Decode(CJPX_Decoder* pDecoder,
-                                 uint8_t* dest_data,
-                                 int pitch,
-                                 uint8_t* offsets) {
+bool CCodec_JpxModule::Decode(CJPX_Decoder* pDecoder,
+                              uint8_t* dest_data,
+                              int pitch,
+                              const std::vector<uint8_t>& offsets) {
   return pDecoder->Decode(dest_data, pitch, offsets);
 }
 

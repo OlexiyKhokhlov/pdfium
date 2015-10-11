@@ -4,37 +4,37 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_COLOR_H_
-#define FPDFSDK_INCLUDE_JAVASCRIPT_COLOR_H_
+#ifndef FPDFSDK_SRC_JAVASCRIPT_COLOR_H_
+#define FPDFSDK_SRC_JAVASCRIPT_COLOR_H_
 
+#include "../../include/pdfwindow/PWL_Wnd.h"  // For CPWL_Color.
 #include "JS_Define.h"
-// TODO(tsepez): include CPWL_Color.h once its own IWYU is fixed.
 
 class color : public CJS_EmbedObj {
  public:
   color(CJS_Object* pJSObject);
   ~color() override;
 
-  FX_BOOL black(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL blue(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL cyan(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL dkGray(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL gray(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL green(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL ltGray(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL magenta(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL red(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL transparent(IFXJS_Context* cc,
+  FX_BOOL black(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL blue(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL cyan(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL dkGray(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL gray(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL green(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL ltGray(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL magenta(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL red(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL transparent(IJS_Context* cc,
                       CJS_PropValue& vp,
                       CFX_WideString& sError);
-  FX_BOOL white(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL yellow(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL white(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL yellow(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
 
-  FX_BOOL convert(IFXJS_Context* cc,
+  FX_BOOL convert(IJS_Context* cc,
                   const CJS_Parameters& params,
                   CJS_Value& vRet,
                   CFX_WideString& sError);
-  FX_BOOL equal(IFXJS_Context* cc,
+  FX_BOOL equal(IJS_Context* cc,
                 const CJS_Parameters& params,
                 CJS_Value& vRet,
                 CFX_WideString& sError);
@@ -63,7 +63,7 @@ class CJS_Color : public CJS_Object {
   CJS_Color(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
   ~CJS_Color() override {}
 
-  DECLARE_JS_CLASS(CJS_Color);
+  DECLARE_JS_CLASS();
 
   JS_STATIC_PROP(black, color);
   JS_STATIC_PROP(blue, color);
@@ -82,4 +82,4 @@ class CJS_Color : public CJS_Object {
   JS_STATIC_METHOD(equal, color);
 };
 
-#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_COLOR_H_
+#endif  // FPDFSDK_SRC_JAVASCRIPT_COLOR_H_

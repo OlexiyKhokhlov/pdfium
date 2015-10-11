@@ -19,8 +19,10 @@
 #include "../public/fpdf_text.h"
 #include "../public/fpdfview.h"
 #include "image_diff_png.h"
+#ifdef PDF_ENABLE_V8
 #include "v8/include/libplatform/libplatform.h"
 #include "v8/include/v8.h"
+#endif
 
 #ifdef _WIN32
 #define snprintf _snprintf
@@ -79,6 +81,7 @@ static char* GetFileContents(const char* filename, size_t* retlen) {
   return buffer;
 }
 
+#ifdef PDF_ENABLE_V8
 #ifdef V8_USE_EXTERNAL_STARTUP_DATA
 // Returns the full path for an external V8 data file based on either
 // the currect exectuable path or an explicit override.
@@ -116,6 +119,7 @@ static bool GetExternalData(const Options& options,
   return true;
 }
 #endif  // V8_USE_EXTERNAL_STARTUP_DATA
+#endif  // PDF_ENABLE_V8
 
 static bool CheckDimensions(int stride, int width, int height) {
   if (stride < 0 || width < 0 || height < 0)
@@ -373,6 +377,7 @@ bool ParseCommandLine(const std::vector<std::string>& args,
       options->output_format = OUTPUT_BMP;
     }
 #endif  // _WIN32
+#ifdef PDF_ENABLE_V8
 #ifdef V8_USE_EXTERNAL_STARTUP_DATA
     else if (cur_arg.size() > 10 && cur_arg.compare(0, 10, "--bin-dir=") == 0) {
       if (!options->bin_directory.empty()) {
@@ -382,6 +387,7 @@ bool ParseCommandLine(const std::vector<std::string>& args,
       options->bin_directory = cur_arg.substr(10);
     }
 #endif  // V8_USE_EXTERNAL_STARTUP_DATA
+#endif  // PDF_ENABLE_V8
     else if (cur_arg.size() > 8 && cur_arg.compare(0, 8, "--scale=") == 0) {
       if (!options->scale_factor_as_string.empty()) {
         fprintf(stderr, "Duplicate --scale argument\n");
@@ -437,7 +443,7 @@ void RenderPdf(const std::string& name, const char* pBuf, size_t len,
 
   IPDF_JSPLATFORM platform_callbacks;
   memset(&platform_callbacks, '\0', sizeof(platform_callbacks));
-  platform_callbacks.version = 2;
+  platform_callbacks.version = 3;
   platform_callbacks.app_alert = ExampleAppAlert;
   platform_callbacks.Doc_gotoPage = ExampleDocGotoPage;
 
@@ -595,6 +601,7 @@ int main(int argc, const char* argv[]) {
     return 1;
   }
 
+#ifdef PDF_ENABLE_V8
   v8::V8::InitializeICU();
   v8::Platform* platform = v8::platform::CreateDefaultPlatform();
   v8::V8::InitializePlatform(platform);
@@ -615,18 +622,21 @@ int main(int argc, const char* argv[]) {
   v8::V8::SetNativesDataBlob(&natives);
   v8::V8::SetSnapshotDataBlob(&snapshot);
 #endif  // V8_USE_EXTERNAL_STARTUP_DATA
+#endif  // PDF_ENABLE_V8
 
-  if (options.font_directory.empty()) {
-    FPDF_InitLibrary();
-  } else {
-    const char* path_array[2];
+  FPDF_LIBRARY_CONFIG config;
+  config.version = 2;
+  config.m_pUserFontPaths = nullptr;
+  config.m_pIsolate = nullptr;
+  config.m_v8EmbedderSlot = 0;
+
+  const char* path_array[2];
+  if (!options.font_directory.empty()) {
     path_array[0] = options.font_directory.c_str();
     path_array[1] = nullptr;
-    FPDF_LIBRARY_CONFIG config;
-    config.version = 1;
     config.m_pUserFontPaths = path_array;
-    FPDF_InitLibraryWithConfig(&config);
   }
+  FPDF_InitLibraryWithConfig(&config);
 
   UNSUPPORT_INFO unsuppored_info;
   memset(&unsuppored_info, '\0', sizeof(unsuppored_info));
@@ -647,8 +657,10 @@ int main(int argc, const char* argv[]) {
   }
 
   FPDF_DestroyLibrary();
+#ifdef PDF_ENABLE_V8
   v8::V8::ShutdownPlatform();
   delete platform;
+#endif  // PDF_ENABLE_V8
 
   return 0;
 }

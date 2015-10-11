@@ -4,6 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
+#include <vector>
+
 #include "../../../../third_party/base/nonstd_unique_ptr.h"
 #include "../../../include/fpdfapi/fpdf_module.h"
 #include "../../../include/fpdfapi/fpdf_pageobj.h"
@@ -57,15 +59,13 @@ FX_SAFE_DWORD CalculatePitch32(int bpp, int width) {
   return pitch;
 }
 
-// Wrapper class to hold objects allocated in CPDF_DIBSource::LoadJpxBitmap(),
-// because nonstd::unique_ptr does not support custom deleters yet.
+// Wrapper class to use with nonstd::unique_ptr for CJPX_Decoder.
 class JpxBitMapContext {
  public:
   explicit JpxBitMapContext(ICodec_JpxModule* jpx_module)
-      : jpx_module_(jpx_module), decoder_(nullptr), output_offsets_(nullptr) {}
+      : jpx_module_(jpx_module), decoder_(nullptr) {}
 
   ~JpxBitMapContext() {
-    FX_Free(output_offsets_);
     jpx_module_->DestroyDecoder(decoder_);
   }
 
@@ -74,17 +74,9 @@ class JpxBitMapContext {
 
   CJPX_Decoder* decoder() { return decoder_; }
 
-  // Takes ownership of |output_offsets|.
-  void set_output_offsets(unsigned char* output_offsets) {
-    output_offsets_ = output_offsets;
-  }
-
-  unsigned char* output_offsets() { return output_offsets_; }
-
  private:
-  ICodec_JpxModule* jpx_module_;   // Weak pointer.
-  CJPX_Decoder* decoder_;          // Decoder, owned.
-  unsigned char* output_offsets_;  // Output offsets for decoding, owned.
+  ICodec_JpxModule* const jpx_module_;  // Weak pointer.
+  CJPX_Decoder* decoder_;               // Decoder, owned.
 
   // Disallow evil constructors
   JpxBitMapContext(const JpxBitMapContext&);
@@ -415,12 +407,10 @@ int CPDF_DIBSource::ContinueLoadDIBSource(IFX_Pause* pPause) {
           m_pGlobalStream->LoadAllData(pGlobals, FALSE);
         }
       }
-      ret = pJbig2Module->StartDecode(
-          m_pJbig2Context, m_Width, m_Height, m_pStreamAcc->GetData(),
-          m_pStreamAcc->GetSize(),
-          m_pGlobalStream ? m_pGlobalStream->GetData() : NULL,
-          m_pGlobalStream ? m_pGlobalStream->GetSize() : 0,
-          m_pCachedBitmap->GetBuffer(), m_pCachedBitmap->GetPitch(), pPause);
+      ret = pJbig2Module->StartDecode(m_pJbig2Context, m_pDocument, m_Width,
+                                      m_Height, m_pStreamAcc, m_pGlobalStream,
+                                      m_pCachedBitmap->GetBuffer(),
+                                      m_pCachedBitmap->GetPitch(), pPause);
       if (ret < 0) {
         m_pCachedBitmap.reset();
         delete m_pGlobalStream;
@@ -747,16 +737,15 @@ void CPDF_DIBSource::LoadJpxBitmap() {
     return;
   }
   m_pCachedBitmap->Clear(0xFFFFFFFF);
-  context->set_output_offsets(FX_Alloc(uint8_t, components));
-  for (int i = 0; i < components; ++i)
-    context->output_offsets()[i] = i;
+  std::vector<uint8_t> output_offsets(components);
+  for (FX_DWORD i = 0; i < components; ++i)
+    output_offsets[i] = i;
   if (bSwapRGB) {
-    context->output_offsets()[0] = 2;
-    context->output_offsets()[2] = 0;
+    output_offsets[0] = 2;
+    output_offsets[2] = 0;
   }
   if (!pJpxModule->Decode(context->decoder(), m_pCachedBitmap->GetBuffer(),
-                          m_pCachedBitmap->GetPitch(),
-                          context->output_offsets())) {
+                          m_pCachedBitmap->GetPitch(), output_offsets)) {
     m_pCachedBitmap.reset();
     return;
   }
@@ -957,8 +946,11 @@ void CPDF_DIBSource::ValidateDictParam() {
         m_bpc = 1;
         m_nComponents = 1;
       }
-      if (filter == FX_BSTRC("RunLengthDecode") ||
-          filter == FX_BSTRC("DCTDecode")) {
+      if (filter == FX_BSTRC("RunLengthDecode")) {
+        if (m_bpc != 1) {
+          m_bpc = 8;
+        }
+      } else if (filter == FX_BSTRC("DCTDecode")) {
         m_bpc = 8;
       }
     } else if (pFilter->GetType() == PDFOBJ_ARRAY) {
@@ -1492,7 +1484,7 @@ void CPDF_DIBSource::DownSampleScanline32Bit(int orig_Bpp,
                                               bTransMask);
           }
         } else {
-          for (int j = 0; j < m_nComponents; ++j) {
+          for (FX_DWORD j = 0; j < m_nComponents; ++j) {
             int color_value =
                 (int)((m_pCompData[j].m_DecodeMin +
                        m_pCompData[j].m_DecodeStep * (FX_FLOAT)pSrcPixel[j]) *

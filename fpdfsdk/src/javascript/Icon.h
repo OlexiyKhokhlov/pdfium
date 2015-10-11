@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_ICON_H_
-#define FPDFSDK_INCLUDE_JAVASCRIPT_ICON_H_
+#ifndef FPDFSDK_SRC_JAVASCRIPT_ICON_H_
+#define FPDFSDK_SRC_JAVASCRIPT_ICON_H_
 
 #include "JS_Define.h"
 
@@ -14,7 +14,7 @@ class Icon : public CJS_EmbedObj {
   Icon(CJS_Object* pJSObject);
   ~Icon() override;
 
-  FX_BOOL name(IFXJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  FX_BOOL name(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
   void SetStream(CPDF_Stream* pIconStream);
   CPDF_Stream* GetStream();
   void SetIconName(CFX_WideString name);
@@ -30,10 +30,8 @@ class CJS_Icon : public CJS_Object {
   CJS_Icon(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
   ~CJS_Icon() override {}
 
- public:
-  DECLARE_JS_CLASS(CJS_Icon);
-
+  DECLARE_JS_CLASS();
   JS_STATIC_PROP(name, Icon);
 };
 
-#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_ICON_H_
+#endif  // FPDFSDK_SRC_JAVASCRIPT_ICON_H_

@@ -4,16 +4,15 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../include/javascript/JavaScript.h"
+#include "event.h"
+
 #include "../../include/javascript/IJavaScript.h"
-#include "../../include/javascript/JS_Define.h"
-#include "../../include/javascript/JS_Object.h"
-#include "../../include/javascript/JS_Value.h"
-#include "../../include/javascript/JS_EventHandler.h"
-//#include "../include/JS_ResMgr.h"
-#include "../../include/javascript/JS_Context.h"
-#include "../../include/javascript/event.h"
-#include "../../include/javascript/Field.h"
+#include "JS_Define.h"
+#include "JS_Object.h"
+#include "JS_Value.h"
+#include "JS_EventHandler.h"
+#include "JS_Context.h"
+#include "Field.h"
 
 /* -------------------------- event -------------------------- */
 
@@ -53,7 +52,7 @@ event::event(CJS_Object* pJsObject) : CJS_EmbedObj(pJsObject) {}
 event::~event() {
 }
 
-FX_BOOL event::change(IFXJS_Context* cc,
+FX_BOOL event::change(IJS_Context* cc,
                       CJS_PropValue& vp,
                       CFX_WideString& sError) {
   CJS_Context* pContext = (CJS_Context*)cc;
@@ -71,7 +70,7 @@ FX_BOOL event::change(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::changeEx(IFXJS_Context* cc,
+FX_BOOL event::changeEx(IJS_Context* cc,
                         CJS_PropValue& vp,
                         CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -86,7 +85,7 @@ FX_BOOL event::changeEx(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::commitKey(IFXJS_Context* cc,
+FX_BOOL event::commitKey(IJS_Context* cc,
                          CJS_PropValue& vp,
                          CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -101,7 +100,7 @@ FX_BOOL event::commitKey(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::fieldFull(IFXJS_Context* cc,
+FX_BOOL event::fieldFull(IJS_Context* cc,
                          CJS_PropValue& vp,
                          CFX_WideString& sError) {
   CJS_Context* pContext = (CJS_Context*)cc;
@@ -120,7 +119,7 @@ FX_BOOL event::fieldFull(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::keyDown(IFXJS_Context* cc,
+FX_BOOL event::keyDown(IJS_Context* cc,
                        CJS_PropValue& vp,
                        CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -138,7 +137,7 @@ FX_BOOL event::keyDown(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::modifier(IFXJS_Context* cc,
+FX_BOOL event::modifier(IJS_Context* cc,
                         CJS_PropValue& vp,
                         CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -156,7 +155,7 @@ FX_BOOL event::modifier(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::name(IFXJS_Context* cc,
+FX_BOOL event::name(IJS_Context* cc,
                     CJS_PropValue& vp,
                     CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -171,9 +170,7 @@ FX_BOOL event::name(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::rc(IFXJS_Context* cc,
-                  CJS_PropValue& vp,
-                  CFX_WideString& sError) {
+FX_BOOL event::rc(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError) {
   CJS_Context* pContext = (CJS_Context*)cc;
   ASSERT(pContext != NULL);
   CJS_EventHandler* pEvent = pContext->GetEventHandler();
@@ -188,7 +185,7 @@ FX_BOOL event::rc(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::richChange(IFXJS_Context* cc,
+FX_BOOL event::richChange(IJS_Context* cc,
                           CJS_PropValue& vp,
                           CFX_WideString& sError) {
   return TRUE;
@@ -199,7 +196,7 @@ FX_BOOL event::richChange(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::richChangeEx(IFXJS_Context* cc,
+FX_BOOL event::richChangeEx(IJS_Context* cc,
                             CJS_PropValue& vp,
                             CFX_WideString& sError) {
   return TRUE;
@@ -210,7 +207,7 @@ FX_BOOL event::richChangeEx(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::richValue(IFXJS_Context* cc,
+FX_BOOL event::richValue(IJS_Context* cc,
                          CJS_PropValue& vp,
                          CFX_WideString& sError) {
   return TRUE;
@@ -221,7 +218,7 @@ FX_BOOL event::richValue(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::selEnd(IFXJS_Context* cc,
+FX_BOOL event::selEnd(IJS_Context* cc,
                       CJS_PropValue& vp,
                       CFX_WideString& sError) {
   CJS_Context* pContext = (CJS_Context*)cc;
@@ -242,7 +239,7 @@ FX_BOOL event::selEnd(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::selStart(IFXJS_Context* cc,
+FX_BOOL event::selStart(IJS_Context* cc,
                         CJS_PropValue& vp,
                         CFX_WideString& sError) {
   CJS_Context* pContext = (CJS_Context*)cc;
@@ -262,7 +259,7 @@ FX_BOOL event::selStart(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::shift(IFXJS_Context* cc,
+FX_BOOL event::shift(IJS_Context* cc,
                      CJS_PropValue& vp,
                      CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -280,7 +277,7 @@ FX_BOOL event::shift(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::source(IFXJS_Context* cc,
+FX_BOOL event::source(IJS_Context* cc,
                       CJS_PropValue& vp,
                       CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -295,7 +292,7 @@ FX_BOOL event::source(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::target(IFXJS_Context* cc,
+FX_BOOL event::target(IJS_Context* cc,
                       CJS_PropValue& vp,
                       CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -310,7 +307,7 @@ FX_BOOL event::target(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::targetName(IFXJS_Context* cc,
+FX_BOOL event::targetName(IJS_Context* cc,
                           CJS_PropValue& vp,
                           CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -325,7 +322,7 @@ FX_BOOL event::targetName(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::type(IFXJS_Context* cc,
+FX_BOOL event::type(IJS_Context* cc,
                     CJS_PropValue& vp,
                     CFX_WideString& sError) {
   if (!vp.IsGetting())
@@ -340,7 +337,7 @@ FX_BOOL event::type(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::value(IFXJS_Context* cc,
+FX_BOOL event::value(IJS_Context* cc,
                      CJS_PropValue& vp,
                      CFX_WideString& sError) {
   CJS_Context* pContext = (CJS_Context*)cc;
@@ -361,7 +358,7 @@ FX_BOOL event::value(IFXJS_Context* cc,
   return TRUE;
 }
 
-FX_BOOL event::willCommit(IFXJS_Context* cc,
+FX_BOOL event::willCommit(IJS_Context* cc,
                           CJS_PropValue& vp,
                           CFX_WideString& sError) {
   if (!vp.IsGetting())

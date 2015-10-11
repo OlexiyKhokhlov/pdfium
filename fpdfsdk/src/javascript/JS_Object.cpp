@@ -4,14 +4,16 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../include/javascript/JavaScript.h"
+#include "JS_Object.h"
+
+#include "../../include/fsdk_mgr.h"  // For CPDFDoc_Environment.
 #include "../../include/javascript/IJavaScript.h"
-#include "../../include/javascript/JS_Define.h"
-#include "../../include/javascript/JS_Object.h"
-#include "../../include/javascript/JS_Context.h"
+#include "JS_Context.h"
+#include "JS_Define.h"
+
+namespace {
 
 int FXJS_MsgBox(CPDFDoc_Environment* pApp,
-                CPDFSDK_PageView* pPageView,
                 const FX_WCHAR* swMsg,
                 const FX_WCHAR* swTitle,
                 FX_UINT nType,
@@ -25,13 +27,7 @@ int FXJS_MsgBox(CPDFDoc_Environment* pApp,
   return pApp->JS_appAlert(swMsg, swTitle, nType, nIcon);
 }
 
-CPDFSDK_PageView* FXJS_GetPageView(IFXJS_Context* cc) {
-  if (CJS_Context* pContext = (CJS_Context*)cc) {
-    if (pContext->GetReaderDocument())
-      return NULL;
-  }
-  return NULL;
-}
+}  // namespace
 
 CJS_EmbedObj::CJS_EmbedObj(CJS_Object* pJSObject) : m_pJSObject(pJSObject) {}
 
@@ -39,35 +35,16 @@ CJS_EmbedObj::~CJS_EmbedObj() {
   m_pJSObject = NULL;
 }
 
-CPDFSDK_PageView* CJS_EmbedObj::JSGetPageView(IFXJS_Context* cc) {
-  return FXJS_GetPageView(cc);
-}
-
 int CJS_EmbedObj::MsgBox(CPDFDoc_Environment* pApp,
-                         CPDFSDK_PageView* pPageView,
                          const FX_WCHAR* swMsg,
                          const FX_WCHAR* swTitle,
                          FX_UINT nType,
                          FX_UINT nIcon) {
-  return FXJS_MsgBox(pApp, pPageView, swMsg, swTitle, nType, nIcon);
+  return FXJS_MsgBox(pApp, swMsg, swTitle, nType, nIcon);
 }
 
 void CJS_EmbedObj::Alert(CJS_Context* pContext, const FX_WCHAR* swMsg) {
   CJS_Object::Alert(pContext, swMsg);
-}
-
-CJS_Timer* CJS_EmbedObj::BeginTimer(CPDFDoc_Environment* pApp,
-                                    FX_UINT nElapse) {
-  CJS_Timer* pTimer = new CJS_Timer(this, pApp);
-  pTimer->SetJSTimer(nElapse);
-
-  return pTimer;
-}
-
-void CJS_EmbedObj::EndTimer(CJS_Timer* pTimer) {
-  ASSERT(pTimer != NULL);
-  pTimer->KillJSTimer();
-  delete pTimer;
 }
 
 void FreeObject(const v8::WeakCallbackInfo<CJS_Object>& data) {
@@ -100,17 +77,12 @@ void CJS_Object::Dispose() {
   m_pV8Object.Reset();
 }
 
-CPDFSDK_PageView* CJS_Object::JSGetPageView(IFXJS_Context* cc) {
-  return FXJS_GetPageView(cc);
-}
-
 int CJS_Object::MsgBox(CPDFDoc_Environment* pApp,
-                       CPDFSDK_PageView* pPageView,
                        const FX_WCHAR* swMsg,
                        const FX_WCHAR* swTitle,
                        FX_UINT nType,
                        FX_UINT nIcon) {
-  return FXJS_MsgBox(pApp, pPageView, swMsg, swTitle, nType, nIcon);
+  return FXJS_MsgBox(pApp, swMsg, swTitle, nType, nIcon);
 }
 
 void CJS_Object::Alert(CJS_Context* pContext, const FX_WCHAR* swMsg) {
@@ -123,20 +95,40 @@ void CJS_Object::Alert(CJS_Context* pContext, const FX_WCHAR* swMsg) {
   }
 }
 
-FX_UINT CJS_Timer::SetJSTimer(FX_UINT nElapse) {
-  if (m_nTimerID)
-    KillJSTimer();
+CJS_Timer::CJS_Timer(CJS_EmbedObj* pObj,
+                     CPDFDoc_Environment* pApp,
+                     CJS_Runtime* pRuntime,
+                     int nType,
+                     const CFX_WideString& script,
+                     FX_DWORD dwElapse,
+                     FX_DWORD dwTimeOut)
+    : m_nTimerID(0),
+      m_pEmbedObj(pObj),
+      m_bProcessing(false),
+      m_bValid(true),
+      m_nType(nType),
+      m_dwTimeOut(dwTimeOut),
+      m_pRuntime(pRuntime),
+      m_pApp(pApp) {
   IFX_SystemHandler* pHandler = m_pApp->GetSysHandler();
-  m_nTimerID = pHandler->SetTimer(nElapse, TimerProc);
+  m_nTimerID = pHandler->SetTimer(dwElapse, TimerProc);
   (*GetGlobalTimerMap())[m_nTimerID] = this;
-  m_dwElapse = nElapse;
-  return m_nTimerID;
+  m_pRuntime->AddObserver(this);
+}
+
+CJS_Timer::~CJS_Timer() {
+  CJS_Runtime* pRuntime = GetRuntime();
+  if (pRuntime)
+    pRuntime->RemoveObserver(this);
+  KillJSTimer();
 }
 
 void CJS_Timer::KillJSTimer() {
   if (m_nTimerID) {
-    IFX_SystemHandler* pHandler = m_pApp->GetSysHandler();
-    pHandler->KillTimer(m_nTimerID);
+    if (m_bValid) {
+      IFX_SystemHandler* pHandler = m_pApp->GetSysHandler();
+      pHandler->KillTimer(m_nTimerID);
+    }
     GetGlobalTimerMap()->erase(m_nTimerID);
     m_nTimerID = 0;
   }
@@ -148,10 +140,10 @@ void CJS_Timer::TimerProc(int idEvent) {
   if (it != GetGlobalTimerMap()->end()) {
     CJS_Timer* pTimer = it->second;
     if (!pTimer->m_bProcessing) {
-      pTimer->m_bProcessing = TRUE;
+      CFX_AutoRestorer<bool> scoped_processing(&pTimer->m_bProcessing);
+      pTimer->m_bProcessing = true;
       if (pTimer->m_pEmbedObj)
         pTimer->m_pEmbedObj->TimerProc(pTimer);
-      pTimer->m_bProcessing = FALSE;
     }
   }
 }
@@ -161,4 +153,8 @@ CJS_Timer::TimerMap* CJS_Timer::GetGlobalTimerMap() {
   // Leak the timer array at shutdown.
   static auto* s_TimerMap = new TimerMap;
   return s_TimerMap;
+}
+
+void CJS_Timer::OnDestroyed() {
+  m_bValid = false;
 }

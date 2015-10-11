@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef FPDFSDK_INCLUDE_JAVASCRIPT_GLOBAL_H_
-#define FPDFSDK_INCLUDE_JAVASCRIPT_GLOBAL_H_
+#ifndef FPDFSDK_SRC_JAVASCRIPT_GLOBAL_H_
+#define FPDFSDK_SRC_JAVASCRIPT_GLOBAL_H_
 
 #include <map>
 
@@ -40,23 +40,23 @@ class JSGlobalAlternate : public CJS_EmbedObj {
   JSGlobalAlternate(CJS_Object* pJSObject);
   ~JSGlobalAlternate() override;
 
-  FX_BOOL setPersistent(IFXJS_Context* cc,
+  FX_BOOL setPersistent(IJS_Context* cc,
                         const CJS_Parameters& params,
                         CJS_Value& vRet,
                         CFX_WideString& sError);
   FX_BOOL QueryProperty(const FX_WCHAR* propname);
-  FX_BOOL DoProperty(IFXJS_Context* cc,
+  FX_BOOL DoProperty(IJS_Context* cc,
                      const FX_WCHAR* propname,
                      CJS_PropValue& vp,
                      CFX_WideString& sError);
-  FX_BOOL DelProperty(IFXJS_Context* cc,
+  FX_BOOL DelProperty(IJS_Context* cc,
                       const FX_WCHAR* propname,
                       CFX_WideString& sError);
   void Initial(CPDFDoc_Environment* pApp);
 
  private:
   void UpdateGlobalPersistentVariables();
-  void CommitGlobalPersisitentVariables();
+  void CommitGlobalPersisitentVariables(IJS_Context* cc);
   void DestroyGlobalPersisitentVariables();
   FX_BOOL SetGlobalVariables(const FX_CHAR* propname,
                              int nType,
@@ -65,12 +65,11 @@ class JSGlobalAlternate : public CJS_EmbedObj {
                              const CFX_ByteString& sData,
                              v8::Local<v8::Object> pData,
                              bool bDefaultPersistent);
-
-  void ObjectToArray(v8::Local<v8::Object> pObj,
+  void ObjectToArray(IJS_Context* cc,
+                     v8::Local<v8::Object> pObj,
                      CJS_GlobalVariableArray& array);
   void PutObjectProperty(v8::Local<v8::Object> obj, CJS_KeyValue* pData);
 
- private:
   std::map<CFX_ByteString, JSGlobalData*> m_mapGlobal;
   CFX_WideString m_sFilePath;
   CJS_GlobalData* m_pGlobalData;
@@ -83,11 +82,10 @@ class CJS_Global : public CJS_Object {
   ~CJS_Global() override {}
 
   // CJS_Object
-  FX_BOOL InitInstance(IFXJS_Context* cc) override;
+  void InitInstance(IJS_Runtime* pIRuntime) override;
 
-  DECLARE_SPECIAL_JS_CLASS(CJS_Global);
-
+  DECLARE_SPECIAL_JS_CLASS();
   JS_SPECIAL_STATIC_METHOD(setPersistent, JSGlobalAlternate, global);
 };
 
-#endif  // FPDFSDK_INCLUDE_JAVASCRIPT_GLOBAL_H_
+#endif  // FPDFSDK_SRC_JAVASCRIPT_GLOBAL_H_

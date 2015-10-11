@@ -17,9 +17,7 @@ CJBig2_Image* CJBig2_TRDProc::decode_Huffman(CJBig2_BitStream* pStream,
   int32_t STRIPT, FIRSTS;
   FX_DWORD NINSTANCES;
   int32_t DT, DFS, CURS;
-  uint8_t CURT;
   int32_t SI, TI;
-  FX_DWORD IDI;
   CJBig2_Image* IBI;
   FX_DWORD WI, HI;
   int32_t IDS;
@@ -66,9 +64,8 @@ CJBig2_Image* CJBig2_TRDProc::decode_Huffman(CJBig2_BitStream* pStream,
           CURS = CURS + IDS + SBDSOFFSET;
         }
       }
-      if (SBSTRIPS == 1) {
-        CURT = 0;
-      } else {
+      uint8_t CURT = 0;
+      if (SBSTRIPS != 1) {
         nTmp = 1;
         while ((FX_DWORD)(1 << nTmp) < SBSTRIPS) {
           nTmp++;
@@ -81,6 +78,7 @@ CJBig2_Image* CJBig2_TRDProc::decode_Huffman(CJBig2_BitStream* pStream,
       TI = STRIPT + CURT;
       nVal = 0;
       nBits = 0;
+      FX_DWORD IDI;
       for (;;) {
         if (pStream->read1Bit(&nTmp) != 0)
           return nullptr;
@@ -219,9 +217,7 @@ CJBig2_Image* CJBig2_TRDProc::decode_Arith(CJBig2_ArithDecoder* pArithDecoder,
   int32_t STRIPT, FIRSTS;
   FX_DWORD NINSTANCES;
   int32_t DT, DFS, CURS;
-  int32_t CURT;
   int32_t SI, TI;
-  FX_DWORD IDI;
   CJBig2_Image* IBI;
   FX_DWORD WI, HI;
   int32_t IDS;
@@ -230,7 +226,6 @@ CJBig2_Image* CJBig2_TRDProc::decode_Arith(CJBig2_ArithDecoder* pArithDecoder,
   CJBig2_Image* IBOI;
   FX_DWORD WOI, HOI;
   FX_BOOL bFirst;
-  int32_t nRet, nVal;
   int32_t bRetained;
   CJBig2_ArithIntDecoder* IADT, *IAFS, *IADS, *IAIT, *IARI, *IARDW, *IARDH,
       *IARDX, *IARDY;
@@ -262,76 +257,55 @@ CJBig2_Image* CJBig2_TRDProc::decode_Arith(CJBig2_ArithDecoder* pArithDecoder,
   }
   nonstd::unique_ptr<CJBig2_Image> SBREG(new CJBig2_Image(SBW, SBH));
   SBREG->fill(SBDEFPIXEL);
-  if (IADT->decode(pArithDecoder, &STRIPT) == -1) {
-    goto failed;
-  }
+  IADT->decode(pArithDecoder, &STRIPT);
   STRIPT *= SBSTRIPS;
   STRIPT = -STRIPT;
   FIRSTS = 0;
   NINSTANCES = 0;
   while (NINSTANCES < SBNUMINSTANCES) {
-    if (IADT->decode(pArithDecoder, &DT) == -1) {
-      goto failed;
-    }
+    IADT->decode(pArithDecoder, &DT);
     DT *= SBSTRIPS;
     STRIPT = STRIPT + DT;
     bFirst = TRUE;
     for (;;) {
       if (bFirst) {
-        if (IAFS->decode(pArithDecoder, &DFS) == -1) {
-          goto failed;
-        }
+        IAFS->decode(pArithDecoder, &DFS);
         FIRSTS = FIRSTS + DFS;
         CURS = FIRSTS;
         bFirst = FALSE;
       } else {
-        nRet = IADS->decode(pArithDecoder, &IDS);
-        if (nRet == JBIG2_OOB) {
+        if (!IADS->decode(pArithDecoder, &IDS))
           break;
-        } else if (nRet != 0) {
-          goto failed;
-        } else {
-          CURS = CURS + IDS + SBDSOFFSET;
-        }
+        CURS = CURS + IDS + SBDSOFFSET;
       }
       if (NINSTANCES >= SBNUMINSTANCES) {
         break;
       }
-      if (SBSTRIPS == 1) {
-        CURT = 0;
-      } else {
-        if (IAIT->decode(pArithDecoder, &nVal) == -1) {
-          goto failed;
-        }
-        CURT = nVal;
-      }
+      int CURT = 0;
+      if (SBSTRIPS != 1)
+        IAIT->decode(pArithDecoder, &CURT);
+
       TI = STRIPT + CURT;
-      if (IAID->decode(pArithDecoder, &nVal) == -1) {
+      FX_DWORD IDI;
+      IAID->decode(pArithDecoder, &IDI);
+      if (IDI >= SBNUMSYMS)
         goto failed;
-      }
-      IDI = nVal;
-      if (IDI >= SBNUMSYMS) {
-        goto failed;
-      }
-      if (SBREFINE == 0) {
+
+      if (SBREFINE == 0)
         RI = 0;
-      } else {
-        if (IARI->decode(pArithDecoder, &RI) == -1) {
-          goto failed;
-        }
-      }
-      if (!SBSYMS[IDI]) {
+      else
+        IARI->decode(pArithDecoder, &RI);
+
+      if (!SBSYMS[IDI])
         goto failed;
-      }
+
       if (RI == 0) {
         IBI = SBSYMS[IDI];
       } else {
-        if ((IARDW->decode(pArithDecoder, &RDWI) == -1) ||
-            (IARDH->decode(pArithDecoder, &RDHI) == -1) ||
-            (IARDX->decode(pArithDecoder, &RDXI) == -1) ||
-            (IARDY->decode(pArithDecoder, &RDYI) == -1)) {
-          goto failed;
-        }
+        IARDW->decode(pArithDecoder, &RDWI);
+        IARDH->decode(pArithDecoder, &RDHI);
+        IARDX->decode(pArithDecoder, &RDXI);
+        IARDY->decode(pArithDecoder, &RDYI);
         IBOI = SBSYMS[IDI];
         WOI = IBOI->m_nWidth;
         HOI = IBOI->m_nHeight;

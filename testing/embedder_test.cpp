@@ -17,8 +17,11 @@
 #include "../public/fpdf_text.h"
 #include "../public/fpdfview.h"
 #include "testing/gmock/include/gmock/gmock.h"
+
+#ifdef PDF_ENABLE_V8
 #include "v8/include/libplatform/libplatform.h"
 #include "v8/include/v8.h"
+#endif  // PDF_ENABLE_V8
 
 #ifdef _WIN32
 #define snprintf _snprintf
@@ -59,6 +62,7 @@ static char* GetFileContents(const char* filename, size_t* retlen) {
   return buffer;
 }
 
+#ifdef PDF_ENABLE_V8
 #ifdef V8_USE_EXTERNAL_STARTUP_DATA
 // Returns the full path for an external V8 data file based on either
 // the currect exectuable path or an explicit override.
@@ -91,7 +95,7 @@ static bool GetExternalData(const std::string& exe_path,
   return true;
 }
 #endif  // V8_USE_EXTERNAL_STARTUP_DATA
-
+#endif  // PDF_ENABLE_V8
 }  // namespace
 
 class TestLoader {
@@ -123,24 +127,25 @@ FPDF_BOOL Is_Data_Avail(FX_FILEAVAIL* pThis, size_t offset, size_t size) {
 void Add_Segment(FX_DOWNLOADHINTS* pThis, size_t offset, size_t size) {}
 
 EmbedderTest::EmbedderTest()
-    : document_(nullptr),
+    : default_delegate_(new EmbedderTest::Delegate()),
+      document_(nullptr),
       form_handle_(nullptr),
       avail_(nullptr),
+      external_isolate_(nullptr),
       loader_(nullptr),
       file_length_(0),
       file_contents_(nullptr) {
   memset(&hints_, 0, sizeof(hints_));
   memset(&file_access_, 0, sizeof(file_access_));
   memset(&file_avail_, 0, sizeof(file_avail_));
-  default_delegate_ = new EmbedderTest::Delegate();
-  delegate_ = default_delegate_;
+  delegate_ = default_delegate_.get();
 }
 
 EmbedderTest::~EmbedderTest() {
-  delete default_delegate_;
 }
 
 void EmbedderTest::SetUp() {
+#ifdef PDF_ENABLE_V8
   v8::V8::InitializeICU();
 
   platform_ = v8::platform::CreateDefaultPlatform();
@@ -158,8 +163,14 @@ void EmbedderTest::SetUp() {
   v8::V8::SetNativesDataBlob(&natives_);
   v8::V8::SetSnapshotDataBlob(&snapshot_);
 #endif  // V8_USE_EXTERNAL_STARTUP_DATA
+#endif  // FPDF_ENABLE_V8
 
-  FPDF_InitLibrary();
+  FPDF_LIBRARY_CONFIG config;
+  config.version = 2;
+  config.m_pUserFontPaths = nullptr;
+  config.m_v8EmbedderSlot = 0;
+  config.m_pIsolate = external_isolate_;
+  FPDF_InitLibraryWithConfig(&config);
 
   UNSUPPORT_INFO* info = static_cast<UNSUPPORT_INFO*>(this);
   memset(info, 0, sizeof(UNSUPPORT_INFO));
@@ -176,8 +187,12 @@ void EmbedderTest::TearDown() {
   }
   FPDFAvail_Destroy(avail_);
   FPDF_DestroyLibrary();
+
+#ifdef PDF_ENABLE_V8
   v8::V8::ShutdownPlatform();
   delete platform_;
+#endif  // PDF_ENABLE_V8
+
   delete loader_;
   free(file_contents_);
 }
@@ -337,7 +352,7 @@ FPDF_PAGE EmbedderTest::GetPageTrampoline(FPDF_FORMFILLINFO* info,
                                           FPDF_DOCUMENT document,
                                           int page_index) {
   EmbedderTest* test = static_cast<EmbedderTest*>(info);
-  return test->delegate_->GetPage(test->m_pFormfillinfo, document, page_index);
+  return test->delegate_->GetPage(test->form_handle(), document, page_index);
 }
 
 // Can't use gtest-provided main since we need to stash the path to the

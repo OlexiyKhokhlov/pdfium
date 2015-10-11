@@ -9,8 +9,7 @@
 #include "../include/fsdk_define.h"
 #include "../include/fsdk_mgr.h"
 #include "../include/formfiller/FFL_FormFiller.h"
-//#include "../include/javascript/IJavaScript.h"
-//#include "../include/javascript/JS_Runtime.h"
+#include "../include/javascript/IJavaScript.h"
 
 #if _FX_OS_ == _FX_ANDROID_
 #include "time.h"
@@ -370,9 +369,9 @@ void CPDFDoc_Environment::JS_docmailForm(void* mailData,
   }
 }
 
-IFXJS_Runtime* CPDFDoc_Environment::GetJSRuntime() {
-    return NULL;
-}
+// IFXJS_Runtime* CPDFDoc_Environment::GetJSRuntime() {
+//     return NULL;
+// }
 
 CPDFSDK_AnnotHandlerMgr* CPDFDoc_Environment::GetAnnotHandlerMgr() {
   if (!m_pAnnotHandlerMgr)
@@ -590,9 +589,10 @@ FX_BOOL CPDFSDK_Document::GetPermissions(int nFlag) {
   return dwPermissions & nFlag;
 }
 
-IFXJS_Runtime* CPDFSDK_Document::GetJsRuntime() {
+IJS_Runtime* CPDFSDK_Document::GetJsRuntime() {
   ASSERT(m_pEnv != NULL);
-  return m_pEnv->GetJSRuntime();
+//  return m_pEnv->GetJSRuntime();
+    return nullptr;
 }
 
 CFX_WideString CPDFSDK_Document::GetPath() {
