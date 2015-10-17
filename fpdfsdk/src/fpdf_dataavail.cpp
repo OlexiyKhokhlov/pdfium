@@ -5,6 +5,7 @@
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../public/fpdf_dataavail.h"
+#include "../../public/fpdf_formfill.h"
 #include "../include/fsdk_define.h"
 
 class CFPDF_FileAvailWrap : public IFX_FileAvail {
@@ -114,9 +115,9 @@ FPDFAvail_GetDocument(FPDF_AVAIL avail, FPDF_BYTESTRING password) {
 }
 
 DLLEXPORT int STDCALL FPDFAvail_GetFirstPageNum(FPDF_DOCUMENT doc) {
-  if (doc == NULL)
+  CPDF_Document* pDoc = CPDFDocumentFromFPDFDocument(doc);
+  if (!doc)
     return 0;
-  CPDF_Document* pDoc = (CPDF_Document*)doc;
   return ((CPDF_Parser*)pDoc->GetParser())->GetFirstPageNo();
 }
 

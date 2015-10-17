@@ -10,7 +10,6 @@
 #include "../../core/include/fpdfapi/fpdf_module.h"
 #include "../../core/include/fpdfapi/fpdf_pageobj.h"
 #include "../../core/include/fpdfapi/fpdf_parser.h"
-#include "../../core/include/fpdfapi/fpdf_parser.h"
 #include "../../core/include/fpdfapi/fpdf_render.h"
 #include "../../core/include/fpdfapi/fpdf_serial.h"
 #include "../../core/include/fpdfapi/fpdfapi.h"
@@ -48,15 +47,18 @@ class CPDF_CustomAccess final : public IFX_FileRead {
   CPDF_CustomAccess(FPDF_FILEACCESS* pFileAccess);
   ~CPDF_CustomAccess() override {}
 
+  // IFX_FileRead
   FX_FILESIZE GetSize() override { return m_FileAccess.m_FileLen; }
-
   void Release() override { delete this; }
-
   FX_BOOL ReadBlock(void* buffer, FX_FILESIZE offset, size_t size) override;
 
  private:
   FPDF_FILEACCESS m_FileAccess;
 };
+
+// Conversions from FPDF_ types.
+CPDF_Document* CPDFDocumentFromFPDFDocument(FPDF_DOCUMENT doc);
+CPDF_Page* CPDFPageFromFPDFPage(FPDF_PAGE page);
 
 void DropContext(void* data);
 void FSDK_SetSandBoxPolicy(FPDF_DWORD policy, FPDF_BOOL enable);
