@@ -538,7 +538,6 @@ set(FORMFILLER_HEDAERS
   fpdfsdk/include/formfiller/FFL_FormFiller.h
   fpdfsdk/include/formfiller/FFL_IFormFiller.h
   fpdfsdk/include/formfiller/FFL_ListBox.h
-  fpdfsdk/include/formfiller/FFL_Notify.h
   fpdfsdk/include/formfiller/FFL_PushButton.h
   fpdfsdk/include/formfiller/FFL_RadioButton.h
   fpdfsdk/include/formfiller/FFL_TextField.h
@@ -553,7 +552,6 @@ set(FORMFILLER_SOURCES
   fpdfsdk/src/formfiller/FFL_FormFiller.cpp
   fpdfsdk/src/formfiller/FFL_IFormFiller.cpp
   fpdfsdk/src/formfiller/FFL_ListBox.cpp
-  fpdfsdk/src/formfiller/FFL_Notify.cpp
   fpdfsdk/src/formfiller/FFL_PushButton.cpp
   fpdfsdk/src/formfiller/FFL_RadioButton.cpp
   fpdfsdk/src/formfiller/FFL_TextField.cpp
