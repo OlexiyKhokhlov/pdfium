@@ -64,7 +64,7 @@ void FSDK_SetSandBoxPolicy(FPDF_DWORD policy, FPDF_BOOL enable) {
 FPDF_BOOL FSDK_IsSandBoxPolicyEnabled(FPDF_DWORD policy) {
   switch (policy) {
     case FPDF_POLICY_MACHINETIME_ACCESS:
-      return (foxit_sandbox_policy & 0x01) ? TRUE : FALSE;
+      return !!(foxit_sandbox_policy & 0x01);
     default:
       return FALSE;
   }
@@ -174,9 +174,9 @@ class CMemFile final : public IFX_FileRead {
  public:
   CMemFile(uint8_t* pBuf, FX_FILESIZE size) : m_pBuf(pBuf), m_size(size) {}
 
-  virtual void Release() { delete this; }
-  virtual FX_FILESIZE GetSize() { return m_size; }
-  virtual FX_BOOL ReadBlock(void* buffer, FX_FILESIZE offset, size_t size) {
+  void Release() override { delete this; }
+  FX_FILESIZE GetSize() override { return m_size; }
+  FX_BOOL ReadBlock(void* buffer, FX_FILESIZE offset, size_t size) override {
     if (offset < 0) {
       return FALSE;
     }
@@ -193,9 +193,10 @@ class CMemFile final : public IFX_FileRead {
  private:
   ~CMemFile() override {}
 
-  uint8_t* m_pBuf;
-  FX_FILESIZE m_size;
+  uint8_t* const m_pBuf;
+  const FX_FILESIZE m_size;
 };
+
 DLLEXPORT FPDF_DOCUMENT STDCALL FPDF_LoadMemDocument(const void* data_buf,
                                                      int size,
                                                      FPDF_BYTESTRING password) {

@@ -5,7 +5,6 @@
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "../../include/formfiller/FFL_FormFiller.h"
-#include "../../include/formfiller/FFL_Notify.h"
 #include "../../include/formfiller/FFL_CBA_Fontmap.h"
 
 #define GetRed(rgb) ((uint8_t)(rgb))
@@ -597,8 +596,6 @@ void CFFL_FormFiller::TimerProc() {}
 IFX_SystemHandler* CFFL_FormFiller::GetSystemHandler() const {
   return m_pApp->GetSysHandler();
 }
-
-void CFFL_FormFiller::OnKeyStroke(FX_BOOL bKeyDown, FX_DWORD nFlag) {}
 
 void CFFL_FormFiller::EscapeFiller(CPDFSDK_PageView* pPageView,
                                    FX_BOOL bDestroyPDFWindow) {
