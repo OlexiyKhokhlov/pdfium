@@ -38,6 +38,15 @@ config("pdfium_config") {
       "/wd4146",
       "/wd4333",
       "/wd4345",
+      "/wd4267",
+      # TODO(thestig): Fix all instances, remove this, pdfium:29
+      "/wd4245",
+      "/wd4310",
+      "/wd4389",
+      "/wd4701",
+      "/wd4702",
+      "/wd4706",
+      "/wd4800",
     ]
   }
 
@@ -312,6 +321,7 @@ static_library("fpdfapi") {
     "core/src/fpdfapi/fpdf_parser/fpdf_parser_objects.cpp",
     "core/src/fpdfapi/fpdf_parser/fpdf_parser_parser.cpp",
     "core/src/fpdfapi/fpdf_parser/fpdf_parser_utility.cpp",
+    "core/src/fpdfapi/fpdf_parser/parser_int.h",
     "core/src/fpdfapi/fpdf_render/fpdf_render.cpp",
     "core/src/fpdfapi/fpdf_render/fpdf_render_cache.cpp",
     "core/src/fpdfapi/fpdf_render/fpdf_render_image.cpp",
@@ -349,7 +359,6 @@ static_library("fxcodec") {
     "core/include/fxcodec/fx_codec.h",
     "core/include/fxcodec/fx_codec_def.h",
     "core/include/fxcodec/fx_codec_flate.h",
-    "core/include/fxcodec/fx_codec_provider.h",
     "core/src/fxcodec/codec/codec_int.h",
     "core/src/fxcodec/codec/fx_codec.cpp",
     "core/src/fxcodec/codec/fx_codec_fax.cpp",

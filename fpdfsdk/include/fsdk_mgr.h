@@ -205,7 +205,7 @@ class CPDFDoc_Environment final {
   CPDFSDK_Document* GetSDKDocument() const { return m_pSDKDoc; }
   CPDF_Document* GetPDFDocument() const { return m_pPDFDoc; }
   CFX_ByteString GetAppName() const { return ""; }
-  IFX_SystemHandler* GetSysHandler() const { return m_pSysHandler; }
+  IFX_SystemHandler* GetSysHandler() const { return m_pSysHandler.get(); }
   FPDF_FORMFILLINFO* GetFormFillInfo() const { return m_pInfo; }
 
   CFFL_IFormFiller* GetIFormFiller();             // Creates if not present.
@@ -214,14 +214,14 @@ class CPDFDoc_Environment final {
   CPDFSDK_ActionHandler* GetActionHander();       // Creates if not present.
 
  private:
-  CPDFSDK_AnnotHandlerMgr* m_pAnnotHandlerMgr;
-  CPDFSDK_ActionHandler* m_pActionHandler;
+  nonstd::unique_ptr<CPDFSDK_AnnotHandlerMgr> m_pAnnotHandlerMgr;
+  nonstd::unique_ptr<CPDFSDK_ActionHandler> m_pActionHandler;
   nonstd::unique_ptr<IJS_Runtime> m_pJSRuntime;
   FPDF_FORMFILLINFO* const m_pInfo;
   CPDFSDK_Document* m_pSDKDoc;
   CPDF_Document* const m_pPDFDoc;
-  CFFL_IFormFiller* m_pIFormFiller;
-  IFX_SystemHandler* m_pSysHandler;
+  nonstd::unique_ptr<CFFL_IFormFiller> m_pIFormFiller;
+  nonstd::unique_ptr<IFX_SystemHandler> m_pSysHandler;
 };
 
 class CPDFSDK_Document {
@@ -278,11 +278,12 @@ class CPDFSDK_Document {
  private:
   std::map<CPDF_Page*, CPDFSDK_PageView*> m_pageMap;
   CPDF_Document* m_pDoc;
-  CPDFSDK_InterForm* m_pInterForm;
+  nonstd::unique_ptr<CPDFSDK_InterForm> m_pInterForm;
   CPDFSDK_Annot* m_pFocusAnnot;
   CPDFDoc_Environment* m_pEnv;
-  CPDF_OCContext* m_pOccontent;
+  nonstd::unique_ptr<CPDF_OCContext> m_pOccontent;
   FX_BOOL m_bChangeMask;
+  FX_BOOL m_bBeingDestroyed;
 };
 class CPDFSDK_PageView final {
  public:
@@ -291,9 +292,9 @@ class CPDFSDK_PageView final {
   void PageView_OnDraw(CFX_RenderDevice* pDevice,
                        CPDF_Matrix* pUser2Device,
                        CPDF_RenderOptions* pOptions);
-  CPDF_Annot* GetPDFAnnotAtPoint(FX_FLOAT pageX, FX_FLOAT pageY);
+  const CPDF_Annot* GetPDFAnnotAtPoint(FX_FLOAT pageX, FX_FLOAT pageY);
   CPDFSDK_Annot* GetFXAnnotAtPoint(FX_FLOAT pageX, FX_FLOAT pageY);
-  CPDF_Annot* GetPDFWidgetAtPoint(FX_FLOAT pageX, FX_FLOAT pageY);
+  const CPDF_Annot* GetPDFWidgetAtPoint(FX_FLOAT pageX, FX_FLOAT pageY);
   CPDFSDK_Annot* GetFXWidgetAtPoint(FX_FLOAT pageX, FX_FLOAT pageY);
   CPDFSDK_Annot* GetFocusAnnot();
   void SetFocusAnnot(CPDFSDK_Annot* pSDKAnnot, FX_UINT nFlag = 0) {
@@ -302,13 +303,14 @@ class CPDFSDK_PageView final {
   FX_BOOL KillFocusAnnot(FX_UINT nFlag = 0) {
     return m_pSDKDoc->KillFocusAnnot(nFlag);
   }
+  void KillFocusAnnotIfNeeded();
   FX_BOOL Annot_HasAppearance(CPDF_Annot* pAnnot);
 
   CPDFSDK_Annot* AddAnnot(CPDF_Dictionary* pDict);
   CPDFSDK_Annot* AddAnnot(const FX_CHAR* lpSubType, CPDF_Dictionary* pDict);
   CPDFSDK_Annot* AddAnnot(CPDF_Annot* pPDFAnnot);
   FX_BOOL DeleteAnnot(CPDFSDK_Annot* pAnnot);
-  int CountAnnots() const;
+  size_t CountAnnots() const;
   CPDFSDK_Annot* GetAnnot(size_t nIndex);
   CPDFSDK_Annot* GetAnnotByDict(CPDF_Dictionary* pDict);
   CPDF_Page* GetPDFPage() { return m_page; }
@@ -325,7 +327,7 @@ class CPDFSDK_PageView final {
                        double deltaY,
                        const CPDF_Point& point,
                        int nFlag);
-  FX_BOOL IsValidAnnot(CPDF_Annot* p) const;
+  bool IsValidAnnot(const CPDF_Annot* p) const;
   void GetCurrentMatrix(CPDF_Matrix& matrix) { matrix = m_curMatrix; }
   void UpdateRects(CFX_RectArray& rects);
   void UpdateView(CPDFSDK_Annot* pAnnot);
