@@ -330,7 +330,6 @@ set(FPDFTEXT_SOURCES
 set(FXCODEC_HEDAERS
   core/include/fxcodec/fx_codec.h
   core/include/fxcodec/fx_codec_def.h
-  core/include/fxcodec/fx_codec_provider.h
   core/src/fxcodec/codec/codec_int.h
 )
 
