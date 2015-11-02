@@ -738,7 +738,7 @@ FX_BOOL CPDF_RenderStatus::ProcessTransparency(
     return TRUE;
   }
   CPDF_Dictionary* pSMaskDict =
-      pGeneralState ? (CPDF_Dictionary*)pGeneralState->m_pSoftMask : NULL;
+      pGeneralState ? ToDictionary(pGeneralState->m_pSoftMask) : NULL;
   if (pSMaskDict) {
     if (pPageObj->m_Type == PDFPAGE_IMAGE &&
         ((CPDF_ImageObject*)pPageObj)
@@ -1073,7 +1073,8 @@ CPDF_ProgressiveRenderer::CPDF_ProgressiveRenderer(
       m_LayerIndex(0),
       m_ObjectIndex(0),
       m_ObjectPos(nullptr),
-      m_PrevLastPos(nullptr) {}
+      m_PrevLastPos(nullptr) {
+}
 
 CPDF_ProgressiveRenderer::~CPDF_ProgressiveRenderer() {
   if (m_pRenderStatus)
@@ -1224,9 +1225,8 @@ CPDF_TransferFunc* CPDF_DocRenderData::GetTransferFunc(CPDF_Object* pObj) {
   CPDF_Function* pFuncs[3] = {nullptr, nullptr, nullptr};
   FX_BOOL bUniTransfer = TRUE;
   FX_BOOL bIdentity = TRUE;
-  if (pObj->GetType() == PDFOBJ_ARRAY) {
+  if (CPDF_Array* pArray = pObj->AsArray()) {
     bUniTransfer = FALSE;
-    CPDF_Array* pArray = (CPDF_Array*)pObj;
     if (pArray->GetCount() < 3)
       return nullptr;
 
@@ -1437,7 +1437,8 @@ FX_BOOL IPDF_OCContext::CheckObjectVisible(const CPDF_PageObject* pObj) {
     CPDF_ContentMarkItem& item = pData->GetItem(i);
     if (item.GetName() == FX_BSTRC("OC") &&
         item.GetParamType() == CPDF_ContentMarkItem::PropertiesDict) {
-      CPDF_Dictionary* pOCG = (CPDF_Dictionary*)item.GetParam();
+      CPDF_Dictionary* pOCG =
+          ToDictionary(static_cast<CPDF_Object*>(item.GetParam()));
       if (!CheckOCGVisible(pOCG)) {
         return FALSE;
       }

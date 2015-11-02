@@ -61,10 +61,10 @@ void CPDF_FormControl::SetOnStateName(const CFX_ByteString& csOn) {
       continue;
     }
     CPDF_Object* pObjDirect1 = pObj1->GetDirect();
-    if (pObjDirect1->GetType() != PDFOBJ_DICTIONARY) {
+    CPDF_Dictionary* pSubDict = pObjDirect1->AsDictionary();
+    if (!pSubDict)
       continue;
-    }
-    CPDF_Dictionary* pSubDict = (CPDF_Dictionary*)pObjDirect1;
+
     FX_POSITION pos2 = pSubDict->GetStartPos();
     while (pos2) {
       CFX_ByteString csKey2;
@@ -85,15 +85,13 @@ CFX_ByteString CPDF_FormControl::GetCheckedAPState() {
   CFX_ByteString csOn = GetOnStateName();
   if (GetType() == CPDF_FormField::RadioButton ||
       GetType() == CPDF_FormField::CheckBox) {
-    CPDF_Object* pOpt = FPDF_GetFieldAttr(m_pField->m_pDict, "Opt");
-    if (pOpt != NULL && pOpt->GetType() == PDFOBJ_ARRAY) {
+    if (ToArray(FPDF_GetFieldAttr(m_pField->m_pDict, "Opt"))) {
       int iIndex = m_pField->GetControlIndex(this);
       csOn.Format("%d", iIndex);
     }
   }
-  if (csOn.IsEmpty()) {
+  if (csOn.IsEmpty())
     csOn = "Yes";
-  }
   return csOn;
 }
 CFX_WideString CPDF_FormControl::GetExportValue() {
@@ -102,10 +100,10 @@ CFX_WideString CPDF_FormControl::GetExportValue() {
   CFX_ByteString csOn = GetOnStateName();
   if (GetType() == CPDF_FormField::RadioButton ||
       GetType() == CPDF_FormField::CheckBox) {
-    CPDF_Object* pOpt = FPDF_GetFieldAttr(m_pField->m_pDict, "Opt");
-    if (pOpt != NULL && pOpt->GetType() == PDFOBJ_ARRAY) {
+    if (CPDF_Array* pArray =
+            ToArray(FPDF_GetFieldAttr(m_pField->m_pDict, "Opt"))) {
       int iIndex = m_pField->GetControlIndex(this);
-      csOn = ((CPDF_Array*)pOpt)->GetString(iIndex);
+      csOn = pArray->GetString(iIndex);
     }
   }
   if (csOn.IsEmpty()) {
@@ -287,8 +285,8 @@ CPDF_Font* CPDF_FormControl::GetDefaultControlFont() {
     return nullptr;
 
   CPDF_Object* pObj = FPDF_GetFieldAttr(m_pWidgetDict, "DR");
-  if (pObj && pObj->GetType() == PDFOBJ_DICTIONARY) {
-    CPDF_Dictionary* pFonts = ((CPDF_Dictionary*)pObj)->GetDict("Font");
+  if (CPDF_Dictionary* pDict = ToDictionary(pObj)) {
+    CPDF_Dictionary* pFonts = pDict->GetDict("Font");
     if (pFonts) {
       CPDF_Dictionary* pElement = pFonts->GetDict(csFontNameTag);
       if (pElement) {
@@ -304,8 +302,8 @@ CPDF_Font* CPDF_FormControl::GetDefaultControlFont() {
 
   CPDF_Dictionary* pPageDict = m_pWidgetDict->GetDict("P");
   pObj = FPDF_GetFieldAttr(pPageDict, "Resources");
-  if (pObj && pObj->GetType() == PDFOBJ_DICTIONARY) {
-    CPDF_Dictionary* pFonts = ((CPDF_Dictionary*)pObj)->GetDict("Font");
+  if (CPDF_Dictionary* pDict = ToDictionary(pObj)) {
+    CPDF_Dictionary* pFonts = pDict->GetDict("Font");
     if (pFonts) {
       CPDF_Dictionary* pElement = pFonts->GetDict(csFontNameTag);
       if (pElement) {

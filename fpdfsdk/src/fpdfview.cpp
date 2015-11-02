@@ -20,6 +20,10 @@ CPDF_Document* CPDFDocumentFromFPDFDocument(FPDF_DOCUMENT doc) {
   return static_cast<CPDF_Document*>(doc);
 }
 
+FPDF_DOCUMENT FPDFDocumentFromCPDFDocument(CPDF_Document* doc) {
+  return static_cast<FPDF_DOCUMENT>(doc);
+}
+
 CPDF_Page* CPDFPageFromFPDFPage(FPDF_PAGE page) {
   return static_cast<CPDF_Page*>(page);
 }
@@ -212,7 +216,7 @@ DLLEXPORT FPDF_DOCUMENT STDCALL FPDF_LoadMemDocument(const void* data_buf,
   CPDF_Document* pDoc = NULL;
   pDoc = pParser ? pParser->GetDocument() : NULL;
   CheckUnSupportError(pDoc, err_code);
-  return pParser->GetDocument();
+  return FPDFDocumentFromCPDFDocument(pParser->GetDocument());
 }
 
 DLLEXPORT FPDF_DOCUMENT STDCALL
@@ -230,7 +234,7 @@ FPDF_LoadCustomDocument(FPDF_FILEACCESS* pFileAccess,
   CPDF_Document* pDoc = NULL;
   pDoc = pParser ? pParser->GetDocument() : NULL;
   CheckUnSupportError(pDoc, err_code);
-  return pParser->GetDocument();
+  return FPDFDocumentFromCPDFDocument(pParser->GetDocument());
 }
 
 DLLEXPORT FPDF_BOOL STDCALL FPDF_GetFileVersion(FPDF_DOCUMENT doc,
@@ -889,14 +893,15 @@ DLLEXPORT FPDF_DEST STDCALL FPDF_GetNamedDest(FPDF_DOCUMENT document,
     pDestObj = nameTree.LookupValue(index, bsName);
   }
   if (!pDestObj)
-    return NULL;
-  if (pDestObj->GetType() == PDFOBJ_DICTIONARY) {
-    pDestObj = ((CPDF_Dictionary*)pDestObj)->GetArray(FX_BSTRC("D"));
+    return nullptr;
+  if (CPDF_Dictionary* pDict = pDestObj->AsDictionary()) {
+    pDestObj = pDict->GetArray(FX_BSTRC("D"));
     if (!pDestObj)
-      return NULL;
+      return nullptr;
   }
-  if (pDestObj->GetType() != PDFOBJ_ARRAY)
-    return NULL;
+  if (!pDestObj->IsArray())
+    return nullptr;
+
   CFX_WideString wsName = PDF_DecodeText(bsName);
   CFX_ByteString utf16Name = wsName.UTF16LE_Encode();
   unsigned int len = utf16Name.GetLength();

@@ -73,17 +73,16 @@ CPDF_Rect CPDF_Link::GetRect() {
 }
 CPDF_Dest CPDF_Link::GetDest(CPDF_Document* pDoc) {
   CPDF_Object* pDest = m_pDict->GetElementValue("Dest");
-  if (pDest == NULL) {
+  if (!pDest)
     return CPDF_Dest();
-  }
-  if (pDest->GetType() == PDFOBJ_STRING || pDest->GetType() == PDFOBJ_NAME) {
+
+  if (pDest->IsString() || pDest->IsName()) {
     CPDF_NameTree name_tree(pDoc, FX_BSTRC("Dests"));
     CFX_ByteStringC name = pDest->GetString();
     return CPDF_Dest(name_tree.LookupNamedDest(pDoc, name));
   }
-  if (pDest->GetType() == PDFOBJ_ARRAY) {
-    return CPDF_Dest((CPDF_Array*)pDest);
-  }
+  if (CPDF_Array* pArray = pDest->AsArray())
+    return CPDF_Dest(pArray);
   return CPDF_Dest();
 }
 CPDF_Action CPDF_Link::GetAction() {

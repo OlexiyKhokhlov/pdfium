@@ -9,6 +9,7 @@
 
 #include <map>
 
+#include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../fxcrt/fx_system.h"
 #include "fx_dib.h"
 
@@ -176,7 +177,7 @@ class CFX_FontMgr {
  public:
   CFX_FontMgr();
   ~CFX_FontMgr();
-  void InitFTLibrary();
+
   FXFT_Face GetCachedFace(const CFX_ByteString& face_name,
                           int weight,
                           FX_BOOL bItalic,
@@ -207,13 +208,16 @@ class CFX_FontMgr {
                           int italic_angle,
                           int CharsetCP,
                           CFX_SubstFont* pSubstFont);
-  void FreeCache();
   FX_BOOL GetStandardFont(const uint8_t*& pFontData, FX_DWORD& size, int index);
+  CFX_FontMapper* GetBuiltinMapper() const { return m_pBuiltinMapper.get(); }
+  FXFT_Library GetFTLibrary() const { return m_FTLibrary; }
 
-  CFX_FontMapper* m_pBuiltinMapper;
+ private:
+  void InitFTLibrary();
+
+  nonstd::unique_ptr<CFX_FontMapper> m_pBuiltinMapper;
   std::map<CFX_ByteString, CTTFontDesc*> m_FaceMap;
   FXFT_Library m_FTLibrary;
-  FoxitFonts m_ExternalFonts[16];
 };
 
 class IFX_FontEnumerator {
@@ -258,6 +262,9 @@ class CFX_FontMapper {
                           CFX_SubstFont* pSubstFont);
 
  private:
+  static const size_t MM_FACE_COUNT = 2;
+  static const size_t FOXIT_FACE_COUNT = 14;
+
   CFX_ByteString GetPSNameFromTT(void* hFont);
   CFX_ByteString MatchInstalledFonts(const CFX_ByteString& norm_name);
   FXFT_Face UseInternalSubst(CFX_SubstFont* pSubstFont,
@@ -267,12 +274,12 @@ class CFX_FontMapper {
                              int picthfamily);
 
   FX_BOOL m_bListLoaded;
-  FXFT_Face m_MMFaces[2];
+  FXFT_Face m_MMFaces[MM_FACE_COUNT];
   CFX_ByteString m_LastFamily;
   CFX_DWordArray m_CharsetArray;
   CFX_ByteStringArray m_FaceArray;
   IFX_SystemFontInfo* m_pFontInfo;
-  FXFT_Face m_FoxitFaces[14];
+  FXFT_Face m_FoxitFaces[FOXIT_FACE_COUNT];
   IFX_FontEnumerator* m_pFontEnumerator;
   CFX_FontMgr* const m_pFontMgr;
 };

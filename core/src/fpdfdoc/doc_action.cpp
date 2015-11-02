@@ -17,14 +17,13 @@ CPDF_Dest CPDF_Action::GetDest(CPDF_Document* pDoc) const {
   if (!pDest) {
     return CPDF_Dest();
   }
-  if (pDest->GetType() == PDFOBJ_STRING || pDest->GetType() == PDFOBJ_NAME) {
+  if (pDest->IsString() || pDest->IsName()) {
     CPDF_NameTree name_tree(pDoc, FX_BSTRC("Dests"));
     CFX_ByteStringC name = pDest->GetString();
     return CPDF_Dest(name_tree.LookupNamedDest(pDoc, name));
   }
-  if (pDest->GetType() == PDFOBJ_ARRAY) {
-    return CPDF_Dest((CPDF_Array*)pDest);
-  }
+  if (CPDF_Array* pArray = pDest->AsArray())
+    return CPDF_Dest(pArray);
   return CPDF_Dest();
 }
 const FX_CHAR* g_sATypes[] = {
@@ -102,19 +101,14 @@ FX_DWORD CPDF_ActionFields::GetFieldsCount() const {
   } else {
     pFields = pDict->GetArray("Fields");
   }
-  if (pFields == NULL) {
+  if (!pFields)
     return 0;
-  }
-  int iType = pFields->GetType();
-  if (iType == PDFOBJ_DICTIONARY) {
+  if (pFields->IsDictionary())
     return 1;
-  }
-  if (iType == PDFOBJ_STRING) {
+  if (pFields->IsString())
     return 1;
-  }
-  if (iType == PDFOBJ_ARRAY) {
-    return ((CPDF_Array*)pFields)->GetCount();
-  }
+  if (CPDF_Array* pArray = pFields->AsArray())
+    return pArray->GetCount();
   return 0;
 }
 void CPDF_ActionFields::GetAllFields(CFX_PtrArray& fieldObjects) const {
@@ -133,14 +127,12 @@ void CPDF_ActionFields::GetAllFields(CFX_PtrArray& fieldObjects) const {
   } else {
     pFields = pDict->GetArray("Fields");
   }
-  if (pFields == NULL) {
+  if (!pFields)
     return;
-  }
-  int iType = pFields->GetType();
-  if (iType == PDFOBJ_DICTIONARY || iType == PDFOBJ_STRING) {
+
+  if (pFields->IsDictionary() || pFields->IsString()) {
     fieldObjects.Add(pFields);
-  } else if (iType == PDFOBJ_ARRAY) {
-    CPDF_Array* pArray = (CPDF_Array*)pFields;
+  } else if (CPDF_Array* pArray = pFields->AsArray()) {
     FX_DWORD iCount = pArray->GetCount();
     for (FX_DWORD i = 0; i < iCount; i++) {
       CPDF_Object* pObj = pArray->GetElementValue(i);
@@ -169,13 +161,11 @@ CPDF_Object* CPDF_ActionFields::GetField(FX_DWORD iIndex) const {
     return NULL;
   }
   CPDF_Object* pFindObj = NULL;
-  int iType = pFields->GetType();
-  if (iType == PDFOBJ_DICTIONARY || iType == PDFOBJ_STRING) {
-    if (iIndex == 0) {
+  if (pFields->IsDictionary() || pFields->IsString()) {
+    if (iIndex == 0)
       pFindObj = pFields;
-    }
-  } else if (iType == PDFOBJ_ARRAY) {
-    pFindObj = ((CPDF_Array*)pFields)->GetElementValue(iIndex);
+  } else if (CPDF_Array* pArray = pFields->AsArray()) {
+    pFindObj = pArray->GetElementValue(iIndex);
   }
   return pFindObj;
 }
@@ -230,20 +220,16 @@ int32_t CPDF_Action::GetOperationType() const {
   return 0;
 }
 FX_DWORD CPDF_Action::GetSubActionsCount() const {
-  if (m_pDict == NULL || !m_pDict->KeyExist("Next")) {
+  if (!m_pDict || !m_pDict->KeyExist("Next"))
     return 0;
-  }
+
   CPDF_Object* pNext = m_pDict->GetElementValue("Next");
-  if (!pNext) {
+  if (!pNext)
     return 0;
-  }
-  int iObjType = pNext->GetType();
-  if (iObjType == PDFOBJ_DICTIONARY) {
+  if (pNext->IsDictionary())
     return 1;
-  }
-  if (iObjType == PDFOBJ_ARRAY) {
-    return ((CPDF_Array*)pNext)->GetCount();
-  }
+  if (CPDF_Array* pArray = pNext->AsArray())
+    return pArray->GetCount();
   return 0;
 }
 CPDF_Action CPDF_Action::GetSubAction(FX_DWORD iIndex) const {
@@ -251,14 +237,10 @@ CPDF_Action CPDF_Action::GetSubAction(FX_DWORD iIndex) const {
     return CPDF_Action();
   }
   CPDF_Object* pNext = m_pDict->GetElementValue("Next");
-  int iObjType = pNext->GetType();
-  if (iObjType == PDFOBJ_DICTIONARY) {
-    CPDF_Dictionary* pDict = static_cast<CPDF_Dictionary*>(pNext);
-    if (iIndex == 0) {
+  if (CPDF_Dictionary* pDict = ToDictionary(pNext)) {
+    if (iIndex == 0)
       return CPDF_Action(pDict);
-    }
-  } else if (iObjType == PDFOBJ_ARRAY) {
-    CPDF_Array* pArray = static_cast<CPDF_Array*>(pNext);
+  } else if (CPDF_Array* pArray = ToArray(pNext)) {
     return CPDF_Action(pArray->GetDict(iIndex));
   }
   return CPDF_Action();
@@ -295,9 +277,10 @@ CPDF_Action CPDF_AAction::GetNextAction(FX_POSITION& pos,
     return CPDF_Action();
   }
   CPDF_Object* pDirect = pObj->GetDirect();
-  if (!pDirect || pDirect->GetType() != PDFOBJ_DICTIONARY) {
+  CPDF_Dictionary* pDict = ToDictionary(pDirect);
+  if (!pDict)
     return CPDF_Action();
-  }
+
   int i = 0;
   while (g_sAATypes[i][0] != '\0') {
     if (csKey == g_sAATypes[i]) {
@@ -306,7 +289,7 @@ CPDF_Action CPDF_AAction::GetNextAction(FX_POSITION& pos,
     i++;
   }
   eType = (AActionType)i;
-  return CPDF_Action(static_cast<CPDF_Dictionary*>(pDirect));
+  return CPDF_Action(pDict);
 }
 CPDF_DocJSActions::CPDF_DocJSActions(CPDF_Document* pDoc) {
   m_pDocument = pDoc;
@@ -321,7 +304,7 @@ CPDF_Action CPDF_DocJSActions::GetJSAction(int index,
   ASSERT(m_pDocument != NULL);
   CPDF_NameTree name_tree(m_pDocument, FX_BSTRC("JavaScript"));
   CPDF_Object* pAction = name_tree.LookupValue(index, csName);
-  if (pAction == NULL || pAction->GetType() != PDFOBJ_DICTIONARY) {
+  if (!ToDictionary(pAction)) {
     return CPDF_Action();
   }
   return CPDF_Action(pAction->GetDict());
@@ -330,7 +313,7 @@ CPDF_Action CPDF_DocJSActions::GetJSAction(const CFX_ByteString& csName) const {
   ASSERT(m_pDocument != NULL);
   CPDF_NameTree name_tree(m_pDocument, FX_BSTRC("JavaScript"));
   CPDF_Object* pAction = name_tree.LookupValue(csName);
-  if (pAction == NULL || pAction->GetType() != PDFOBJ_DICTIONARY) {
+  if (!ToDictionary(pAction)) {
     return CPDF_Action();
   }
   return CPDF_Action(pAction->GetDict());

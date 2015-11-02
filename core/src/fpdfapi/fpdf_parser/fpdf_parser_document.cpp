@@ -7,7 +7,6 @@
 #include "../../../include/fpdfapi/fpdf_parser.h"
 #include "../../../include/fpdfapi/fpdf_module.h"
 
-
 CPDF_Document::CPDF_Document(CPDF_Parser* pParser)
     : CPDF_IndirectObjects(pParser) {
   ASSERT(pParser != NULL);
@@ -71,18 +70,17 @@ void CPDF_Document::LoadAsynDoc(CPDF_Dictionary* pLinearized) {
   }
   FX_DWORD dwPageCount = 0;
   CPDF_Object* pCount = pLinearized->GetElement(FX_BSTRC("N"));
-  if (pCount && pCount->GetType() == PDFOBJ_NUMBER) {
+  if (ToNumber(pCount))
     dwPageCount = pCount->GetInteger();
-  }
+
   m_PageList.SetSize(dwPageCount);
   CPDF_Object* pNo = pLinearized->GetElement(FX_BSTRC("P"));
-  if (pNo && pNo->GetType() == PDFOBJ_NUMBER) {
+  if (ToNumber(pNo))
     m_dwFirstPageNo = pNo->GetInteger();
-  }
+
   CPDF_Object* pObjNum = pLinearized->GetElement(FX_BSTRC("O"));
-  if (pObjNum && pObjNum->GetType() == PDFOBJ_NUMBER) {
+  if (ToNumber(pObjNum))
     m_dwFirstPageObjNum = pObjNum->GetInteger();
-  }
 }
 void CPDF_Document::LoadPages() {
   m_PageList.SetSize(_GetPageCount());
@@ -143,18 +141,15 @@ CPDF_Dictionary* CPDF_Document::GetPage(int iPage) {
     return nullptr;
 
   if (m_bLinearized && (iPage == (int)m_dwFirstPageNo)) {
-    CPDF_Object* pObj = GetIndirectObject(m_dwFirstPageObjNum);
-    if (pObj && pObj->GetType() == PDFOBJ_DICTIONARY) {
-      return static_cast<CPDF_Dictionary*>(pObj);
-    }
+    if (CPDF_Dictionary* pDict =
+            ToDictionary(GetIndirectObject(m_dwFirstPageObjNum)))
+      return pDict;
   }
 
   int objnum = m_PageList.GetAt(iPage);
   if (objnum) {
-    CPDF_Object* pObj = GetIndirectObject(objnum);
-    if (pObj && pObj->GetType() == PDFOBJ_DICTIONARY) {
-      return static_cast<CPDF_Dictionary*>(pObj);
-    }
+    if (CPDF_Dictionary* pDict = ToDictionary(GetIndirectObject(objnum)))
+      return pDict;
   }
 
   CPDF_Dictionary* pRoot = GetRoot();
@@ -194,9 +189,8 @@ int CPDF_Document::_FindPageIndex(CPDF_Dictionary* pNode,
     }
     if (count && count == pKidList->GetCount()) {
       for (FX_DWORD i = 0; i < count; i++) {
-        CPDF_Object* pKid = pKidList->GetElement(i);
-        if (pKid && pKid->GetType() == PDFOBJ_REFERENCE) {
-          if (((CPDF_Reference*)pKid)->GetRefObjNum() == objnum) {
+        if (CPDF_Reference* pKid = ToReference(pKidList->GetElement(i))) {
+          if (pKid->GetRefObjNum() == objnum) {
             m_PageList.SetAt(index + i, objnum);
             return index + i;
           }
@@ -310,15 +304,11 @@ FX_BOOL CPDF_Document::IsContentUsedElsewhere(FX_DWORD objnum,
       continue;
     }
     if (pContents->GetDirectType() == PDFOBJ_ARRAY) {
-      CPDF_Array* pArray = (CPDF_Array*)pContents->GetDirect();
+      CPDF_Array* pArray = pContents->GetDirect()->AsArray();
       for (FX_DWORD j = 0; j < pArray->GetCount(); j++) {
-        CPDF_Object* pRef = pArray->GetElement(j);
-        if (pRef == NULL || pRef->GetType() != PDFOBJ_REFERENCE) {
-          continue;
-        }
-        if (((CPDF_Reference*)pRef)->GetRefObjNum() == objnum) {
+        CPDF_Reference* pRef = ToReference(pArray->GetElement(j));
+        if (pRef && pRef->GetRefObjNum() == objnum)
           return TRUE;
-        }
       }
     } else if (pContents->GetObjNum() == objnum) {
       return TRUE;
@@ -342,8 +332,9 @@ FX_BOOL CPDF_Document::IsFormStream(FX_DWORD objnum, FX_BOOL& bForm) const {
   {
     CPDF_Object* pObj;
     if (m_IndirectObjs.Lookup((void*)(uintptr_t)objnum, (void*&)pObj)) {
-      bForm = pObj->GetType() == PDFOBJ_STREAM &&
-              ((CPDF_Stream*)pObj)->GetDict()->GetString(FX_BSTRC("Subtype")) ==
+      CPDF_Stream* pStream = pObj->AsStream();
+      bForm = pStream &&
+              pStream->GetDict()->GetString(FX_BSTRC("Subtype")) ==
                   FX_BSTRC("Form");
       return TRUE;
     }

@@ -541,7 +541,6 @@ set(FORMFILLER_HEDAERS
   fpdfsdk/include/formfiller/FFL_PushButton.h
   fpdfsdk/include/formfiller/FFL_RadioButton.h
   fpdfsdk/include/formfiller/FFL_TextField.h
-  fpdfsdk/include/formfiller/FFL_Utils.h
   fpdfsdk/include/formfiller/FormFiller.h
 )
 
@@ -555,12 +554,10 @@ set(FORMFILLER_SOURCES
   fpdfsdk/src/formfiller/FFL_PushButton.cpp
   fpdfsdk/src/formfiller/FFL_RadioButton.cpp
   fpdfsdk/src/formfiller/FFL_TextField.cpp
-  fpdfsdk/src/formfiller/FFL_Utils.cpp
 )
 
 ######################### FPDFSDK #############################################
 set(FPDFSDK_HEDAERS
-  fpdfsdk/src/resource.h  
   public/fpdf_dataavail.h  
   public/fpdf_doc.h  
   public/fpdf_edit.h  

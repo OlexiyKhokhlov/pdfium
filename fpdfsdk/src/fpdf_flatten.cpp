@@ -94,11 +94,10 @@ int ParserAnnots(CPDF_Document* pSourceDoc,
 
   FX_DWORD dwSize = pAnnots->GetCount();
   for (int i = 0; i < (int)dwSize; i++) {
-    CPDF_Object* pObj = pAnnots->GetElementValue(i);
-    if (!pObj || pObj->GetType() != PDFOBJ_DICTIONARY)
+    CPDF_Dictionary* pAnnotDic = ToDictionary(pAnnots->GetElementValue(i));
+    if (!pAnnotDic)
       continue;
 
-    CPDF_Dictionary* pAnnotDic = (CPDF_Dictionary*)pObj;
     CFX_ByteString sSubtype = pAnnotDic->GetString("Subtype");
     if (sSubtype == "Popup")
       continue;
@@ -212,7 +211,7 @@ void SetPageContents(CFX_ByteString key,
   switch (iType) {
     case PDFOBJ_STREAM: {
       pContentsArray = new CPDF_Array;
-      CPDF_Stream* pContents = (CPDF_Stream*)pContentsObj;
+      CPDF_Stream* pContents = pContentsObj->AsStream();
       FX_DWORD dwObjNum = pDocument->AddIndirectObject(pContents);
       CPDF_StreamAcc acc;
       acc.LoadAllData(pContents);
@@ -227,7 +226,7 @@ void SetPageContents(CFX_ByteString key,
     }
 
     case PDFOBJ_ARRAY: {
-      pContentsArray = (CPDF_Array*)pContentsObj;
+      pContentsArray = pContentsObj->AsArray();
       break;
     }
     default:
@@ -445,18 +444,15 @@ DLLEXPORT int STDCALL FPDFPage_Flatten(FPDF_PAGE page, int nFlag) {
           CFX_ByteString sKey;
           CPDF_Object* pFirstObj = pAPDic->GetNextElement(pos, sKey);
           if (pFirstObj) {
-            if (pFirstObj->GetType() == PDFOBJ_REFERENCE)
+            if (pFirstObj->IsReference())
               pFirstObj = pFirstObj->GetDirect();
-
-            if (pFirstObj->GetType() != PDFOBJ_STREAM)
+            if (!pFirstObj->IsStream())
               continue;
-
-            pAPStream = (CPDF_Stream*)pFirstObj;
+            pAPStream = pFirstObj->AsStream();
           }
         }
       }
     }
-
     if (!pAPStream)
       continue;
 

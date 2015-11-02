@@ -24,19 +24,15 @@
 #include <math.h>
 #endif
 
-#ifndef FX_ARGBTOCOLORREF
-/** @brief Convert a #FX_ARGB to a #FX_COLORREF. */
+// Convert a #FX_ARGB to a #FX_COLORREF.
 #define FX_ARGBTOCOLORREF(argb)                                            \
   ((((FX_DWORD)argb & 0x00FF0000) >> 16) | ((FX_DWORD)argb & 0x0000FF00) | \
    (((FX_DWORD)argb & 0x000000FF) << 16))
-#endif
 
-#ifndef FX_COLORREFTOARGB
-/** @brief Convert a #FX_COLORREF to a #FX_ARGB. */
+// Convert a #FX_COLORREF to a #FX_ARGB.
 #define FX_COLORREFTOARGB(rgb)                                   \
   ((FX_DWORD)0xFF000000 | (((FX_DWORD)rgb & 0x000000FF) << 16) | \
    ((FX_DWORD)rgb & 0x0000FF00) | (((FX_DWORD)rgb & 0x00FF0000) >> 16))
-#endif
 
 typedef unsigned int FX_UINT;
 class CRenderContext;
@@ -56,8 +52,10 @@ class CPDF_CustomAccess final : public IFX_FileRead {
   FPDF_FILEACCESS m_FileAccess;
 };
 
-// Conversions from FPDF_ types.
+// Conversions to/from FPDF_ types.
 CPDF_Document* CPDFDocumentFromFPDFDocument(FPDF_DOCUMENT doc);
+FPDF_DOCUMENT FPDFDocumentFromCPDFDocument(CPDF_Document* doc);
+
 CPDF_Page* CPDFPageFromFPDFPage(FPDF_PAGE page);
 
 void DropContext(void* data);

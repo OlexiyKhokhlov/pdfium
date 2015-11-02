@@ -119,7 +119,7 @@ CPDF_Font::~CPDF_Font() {
 
   if (m_pFontFile) {
     m_pDocument->GetPageData()->ReleaseFontFileStreamAcc(
-        (CPDF_Stream*)m_pFontFile->GetStream());
+        const_cast<CPDF_Stream*>(m_pFontFile->GetStream()->AsStream()));
   }
 }
 FX_BOOL CPDF_Font::IsVertWriting() const {
@@ -275,7 +275,7 @@ void CPDF_Font::LoadFontDescriptor(CPDF_Dictionary* pFontDesc) {
   FX_DWORD dwFontSize = m_pFontFile->GetSize();
   if (!m_Font.LoadEmbedded(pFontData, dwFontSize)) {
     m_pDocument->GetPageData()->ReleaseFontFileStreamAcc(
-        (CPDF_Stream*)m_pFontFile->GetStream());
+        const_cast<CPDF_Stream*>(m_pFontFile->GetStream()->AsStream()));
     m_pFontFile = nullptr;
   }
 }
@@ -728,7 +728,7 @@ void CPDF_Font::LoadPDFEncoding(CPDF_Object* pEncoding,
     }
     return;
   }
-  if (pEncoding->GetType() == PDFOBJ_NAME) {
+  if (pEncoding->IsName()) {
     if (iBaseEncoding == PDFFONT_ENCODING_ADOBE_SYMBOL ||
         iBaseEncoding == PDFFONT_ENCODING_ZAPFDINGBATS) {
       return;
@@ -746,10 +746,11 @@ void CPDF_Font::LoadPDFEncoding(CPDF_Object* pEncoding,
     GetPredefinedEncoding(iBaseEncoding, bsEncoding);
     return;
   }
-  if (pEncoding->GetType() != PDFOBJ_DICTIONARY) {
+
+  CPDF_Dictionary* pDict = pEncoding->AsDictionary();
+  if (!pDict)
     return;
-  }
-  CPDF_Dictionary* pDict = (CPDF_Dictionary*)pEncoding;
+
   if (iBaseEncoding != PDFFONT_ENCODING_ADOBE_SYMBOL &&
       iBaseEncoding != PDFFONT_ENCODING_ZAPFDINGBATS) {
     CFX_ByteString bsEncoding = pDict->GetString(FX_BSTRC("BaseEncoding"));
@@ -769,19 +770,19 @@ void CPDF_Font::LoadPDFEncoding(CPDF_Object* pEncoding,
   FX_DWORD cur_code = 0;
   for (FX_DWORD i = 0; i < pDiffs->GetCount(); i++) {
     CPDF_Object* pElement = pDiffs->GetElementValue(i);
-    if (pElement == NULL) {
+    if (!pElement)
       continue;
-    }
-    if (pElement->GetType() == PDFOBJ_NAME) {
-      if (cur_code < 256) {
-        pCharNames[cur_code] = ((CPDF_Name*)pElement)->GetString();
-      }
+
+    if (CPDF_Name* pName = pElement->AsName()) {
+      if (cur_code < 256)
+        pCharNames[cur_code] = pName->GetString();
       cur_code++;
     } else {
       cur_code = pElement->GetInteger();
     }
   }
 }
+
 FX_BOOL CPDF_Font::IsStandardFont() const {
   if (m_FontType != PDFFONT_TYPE1)
     return FALSE;
@@ -1708,10 +1709,10 @@ void CPDF_Type3Font::CheckType3FontMetrics() {
   CheckFontMetrics();
 }
 CPDF_Type3Char* CPDF_Type3Font::LoadChar(FX_DWORD charcode, int level) {
-  if (level >= _FPDF_MAX_TYPE3_FORM_LEVEL_) {
-    return NULL;
-  }
-  CPDF_Type3Char* pChar = NULL;
+  if (level >= _FPDF_MAX_TYPE3_FORM_LEVEL_)
+    return nullptr;
+
+  CPDF_Type3Char* pChar = nullptr;
   if (m_CacheMap.Lookup((void*)(uintptr_t)charcode, (void*&)pChar)) {
     if (pChar->m_bPageRequired && m_pPageResources) {
       delete pChar;
@@ -1722,19 +1723,19 @@ CPDF_Type3Char* CPDF_Type3Font::LoadChar(FX_DWORD charcode, int level) {
   }
   const FX_CHAR* name =
       GetAdobeCharName(m_BaseEncoding, m_pCharNames, charcode);
-  if (name == NULL) {
-    return NULL;
-  }
+  if (!name)
+    return nullptr;
+
   CPDF_Stream* pStream =
-      (CPDF_Stream*)(m_pCharProcs ? m_pCharProcs->GetElementValue(name) : NULL);
-  if (pStream == NULL || pStream->GetType() != PDFOBJ_STREAM) {
-    return NULL;
-  }
+      ToStream(m_pCharProcs ? m_pCharProcs->GetElementValue(name) : nullptr);
+  if (!pStream)
+    return nullptr;
+
   pChar = new CPDF_Type3Char;
   pChar->m_pForm = new CPDF_Form(
       m_pDocument, m_pFontResources ? m_pFontResources : m_pPageResources,
-      pStream, NULL);
-  pChar->m_pForm->ParseContent(NULL, NULL, pChar, NULL, level + 1);
+      pStream, nullptr);
+  pChar->m_pForm->ParseContent(nullptr, nullptr, pChar, nullptr, level + 1);
   FX_FLOAT scale = m_FontMatrix.GetXUnit();
   pChar->m_Width = (int32_t)(pChar->m_Width * scale + 0.5f);
   FX_RECT& rcBBox = pChar->m_BBox;
@@ -1752,7 +1753,7 @@ CPDF_Type3Char* CPDF_Type3Font::LoadChar(FX_DWORD charcode, int level) {
   m_CacheMap.SetAt((void*)(uintptr_t)charcode, pChar);
   if (pChar->m_pForm->CountObjects() == 0) {
     delete pChar->m_pForm;
-    pChar->m_pForm = NULL;
+    pChar->m_pForm = nullptr;
   }
   return pChar;
 }

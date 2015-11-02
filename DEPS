@@ -16,8 +16,11 @@ deps = {
   "testing/gtest":
      "https://chromium.googlesource.com/external/googletest.git@8245545b6dc9c4703e6496d1efd19e975ad2b038",
 
+  "tools/clang":
+    "https://chromium.googlesource.com/chromium/src/tools/clang",
+
   "v8":
-    "https://chromium.googlesource.com/v8/v8.git@d3f97a972ffe37989fed2794d07e33f7c25f651c",
+    "https://chromium.googlesource.com/v8/v8.git@2607e2b06b0be40a4c3f762c1a666a389dc28a99",
 
   "v8/third_party/icu":
     "https://chromium.googlesource.com/chromium/deps/icu46",
@@ -40,7 +43,7 @@ hooks = [
     # A change to a .gyp, .gypi, or to GYP itself should run the generator.
     'name': 'gyp',
     'pattern': '.',
-    'action': ['python', 'build/gyp_pdfium'],
+    'action': ['python', 'pdfium/build/gyp_pdfium'],
   },
   # Pull clang-format binaries using checked-in hashes.
   {
@@ -51,7 +54,7 @@ hooks = [
                 '--platform=win32',
                 '--no_auth',
                 '--bucket', 'chromium-clang-format',
-                '-s', 'buildtools/win/clang-format.exe.sha1',
+                '-s', 'pdfium/buildtools/win/clang-format.exe.sha1',
     ],
   },
   {
@@ -62,7 +65,7 @@ hooks = [
                 '--platform=darwin',
                 '--no_auth',
                 '--bucket', 'chromium-clang-format',
-                '-s', 'buildtools/mac/clang-format.sha1',
+                '-s', 'pdfium/buildtools/mac/clang-format.sha1',
     ],
   },
   {
@@ -73,7 +76,13 @@ hooks = [
                 '--platform=linux*',
                 '--no_auth',
                 '--bucket', 'chromium-clang-format',
-                '-s', 'buildtools/linux64/clang-format.sha1',
+                '-s', 'pdfium/buildtools/linux64/clang-format.sha1',
     ],
+  },
+  {
+    # Pull clang if needed or requested via GYP_DEFINES.
+    'name': 'clang',
+    'pattern': '.',
+    'action': ['python', 'pdfium/tools/clang/scripts/update.py', '--if-needed'],
   },
 ]

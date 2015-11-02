@@ -1206,20 +1206,17 @@ FX_BOOL CPDF_CIDFont::_Load() {
     return FALSE;
   }
   CFX_ByteString subtype = pCIDFontDict->GetString(FX_BSTRC("Subtype"));
-  m_bType1 = FALSE;
-  if (subtype == FX_BSTRC("CIDFontType0")) {
-    m_bType1 = TRUE;
-  }
-  if (pEncoding->GetType() == PDFOBJ_NAME) {
+  m_bType1 = (subtype == FX_BSTRC("CIDFontType0"));
+
+  if (pEncoding->IsName()) {
     CFX_ByteString cmap = pEncoding->GetString();
     m_pCMap =
         CPDF_ModuleMgr::Get()
             ->GetPageModule()
             ->GetFontGlobals()
             ->m_CMapManager.GetPredefinedCMap(cmap, m_pFontFile && m_bType1);
-  } else if (pEncoding->GetType() == PDFOBJ_STREAM) {
+  } else if (CPDF_Stream* pStream = pEncoding->AsStream()) {
     m_pAllocatedCMap = m_pCMap = new CPDF_CMap;
-    CPDF_Stream* pStream = (CPDF_Stream*)pEncoding;
     CPDF_StreamAcc acc;
     acc.LoadAllData(pStream, FALSE);
     m_pCMap->LoadEmbedded(acc.GetData(), acc.GetSize());
@@ -1267,9 +1264,9 @@ FX_BOOL CPDF_CIDFont::_Load() {
       CPDF_Object* pmap =
           pCIDFontDict->GetElementValue(FX_BSTRC("CIDToGIDMap"));
       if (pmap) {
-        if (pmap->GetType() == PDFOBJ_STREAM) {
+        if (CPDF_Stream* pStream = pmap->AsStream()) {
           m_pCIDToGIDMap = new CPDF_StreamAcc;
-          m_pCIDToGIDMap->LoadAllData((CPDF_Stream*)pmap, FALSE);
+          m_pCIDToGIDMap->LoadAllData(pStream, FALSE);
         } else if (pmap->GetString() == FX_BSTRC("Identity")) {
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_APPLE_
           if (m_pFontFile) {
@@ -1666,14 +1663,13 @@ void CPDF_CIDFont::LoadMetricsArray(CPDF_Array* pArray,
   FX_DWORD count = pArray->GetCount();
   for (FX_DWORD i = 0; i < count; i++) {
     CPDF_Object* pObj = pArray->GetElementValue(i);
-    if (pObj == NULL) {
+    if (!pObj)
       continue;
-    }
-    if (pObj->GetType() == PDFOBJ_ARRAY) {
-      if (width_status != 1) {
+
+    if (CPDF_Array* pArray = pObj->AsArray()) {
+      if (width_status != 1)
         return;
-      }
-      CPDF_Array* pArray = (CPDF_Array*)pObj;
+
       FX_DWORD count = pArray->GetCount();
       for (FX_DWORD j = 0; j < count; j += nElements) {
         result.Add(first_code);

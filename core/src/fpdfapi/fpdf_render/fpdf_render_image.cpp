@@ -406,14 +406,13 @@ FX_BOOL CPDF_ImageRenderer::StartRenderDIBSource() {
         m_pImageObject->m_pImage->GetStream()->GetDict()->GetElementValue(
             FX_BSTRC("Filter"));
     if (pFilters) {
-      if (pFilters->GetType() == PDFOBJ_NAME) {
+      if (pFilters->IsName()) {
         CFX_ByteStringC bsDecodeType = pFilters->GetConstString();
         if (bsDecodeType == FX_BSTRC("DCTDecode") ||
             bsDecodeType == FX_BSTRC("JPXDecode")) {
           m_Flags |= FXRENDER_IMAGE_LOSSY;
         }
-      } else if (pFilters->GetType() == PDFOBJ_ARRAY) {
-        CPDF_Array* pArray = (CPDF_Array*)pFilters;
+      } else if (CPDF_Array* pArray = pFilters->AsArray()) {
         for (FX_DWORD i = 0; i < pArray->GetCount(); i++) {
           CFX_ByteStringC bsDecodeType = pArray->GetConstString(i);
           if (bsDecodeType == FX_BSTRC("DCTDecode") ||
@@ -1056,10 +1055,9 @@ CFX_DIBitmap* CPDF_RenderStatus::LoadSMask(CPDF_Dictionary* pSMaskDict,
   }
   CPDF_Function* pFunc = NULL;
   CPDF_Object* pFuncObj = pSMaskDict->GetElementValue(FX_BSTRC("TR"));
-  if (pFuncObj && (pFuncObj->GetType() == PDFOBJ_DICTIONARY ||
-                   pFuncObj->GetType() == PDFOBJ_STREAM)) {
+  if (pFuncObj && (pFuncObj->IsDictionary() || pFuncObj->IsStream()))
     pFunc = CPDF_Function::Load(pFuncObj);
-  }
+
   CFX_AffineMatrix matrix = *pMatrix;
   matrix.TranslateI(-pClipRect->left, -pClipRect->top);
   CPDF_Form form(m_pContext->m_pDocument, m_pContext->m_pPageResources, pGroup);

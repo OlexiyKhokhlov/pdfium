@@ -476,14 +476,13 @@ FX_BOOL CPDF_DIBSource::LoadColorInfo(CPDF_Dictionary* pFormResources,
       CPDF_Object* pFilter = m_pDict->GetElementValue(FX_BSTRC("Filter"));
       if (pFilter) {
         CFX_ByteString filter;
-        if (pFilter->GetType() == PDFOBJ_NAME) {
+        if (pFilter->IsName()) {
           filter = pFilter->GetString();
           if (filter == FX_BSTRC("JPXDecode")) {
             m_bDoBpcCheck = FALSE;
             return TRUE;
           }
-        } else if (pFilter->GetType() == PDFOBJ_ARRAY) {
-          CPDF_Array* pArray = (CPDF_Array*)pFilter;
+        } else if (CPDF_Array* pArray = pFilter->AsArray()) {
           if (pArray->GetString(pArray->GetCount() - 1) ==
               FX_BSTRC("JPXDecode")) {
             m_bDoBpcCheck = FALSE;
@@ -514,7 +513,7 @@ FX_BOOL CPDF_DIBSource::LoadColorInfo(CPDF_Dictionary* pFormResources,
   }
   m_Family = m_pColorSpace->GetFamily();
   m_nComponents = m_pColorSpace->CountComponents();
-  if (m_Family == PDFCS_ICCBASED && pCSObj->GetType() == PDFOBJ_NAME) {
+  if (m_Family == PDFCS_ICCBASED && pCSObj->IsName()) {
     CFX_ByteString cs = pCSObj->GetString();
     if (cs == FX_BSTRC("DeviceGray")) {
       m_nComponents = 1;
@@ -570,8 +569,7 @@ DIB_COMP_DATA* CPDF_DIBSource::GetDecodeAndMaskArray(FX_BOOL& bDefaultDecode,
     if (pMask == NULL) {
       return pCompData;
     }
-    if (pMask->GetType() == PDFOBJ_ARRAY) {
-      CPDF_Array* pArray = (CPDF_Array*)pMask;
+    if (CPDF_Array* pArray = pMask->AsArray()) {
       if (pArray->GetCount() >= m_nComponents * 2) {
         for (FX_DWORD i = 0; i < m_nComponents; i++) {
           int min_num = pArray->GetInteger(i * 2);
@@ -767,7 +765,7 @@ CPDF_DIBSource* CPDF_DIBSource::LoadMask(FX_DWORD& MatteColor) {
   CPDF_Stream* pSoftMask = m_pDict->GetStream(FX_BSTRC("SMask"));
   if (pSoftMask) {
     CPDF_Array* pMatte = pSoftMask->GetDict()->GetArray(FX_BSTRC("Matte"));
-    if (pMatte != NULL && m_pColorSpace &&
+    if (pMatte && m_pColorSpace &&
         (FX_DWORD)m_pColorSpace->CountComponents() <= m_nComponents) {
       FX_FLOAT* pColor = FX_Alloc(FX_FLOAT, m_nComponents);
       for (FX_DWORD i = 0; i < m_nComponents; i++) {
@@ -781,14 +779,12 @@ CPDF_DIBSource* CPDF_DIBSource::LoadMask(FX_DWORD& MatteColor) {
     }
     return LoadMaskDIB(pSoftMask);
   }
-  CPDF_Object* pMask = m_pDict->GetElementValue(FX_BSTRC("Mask"));
-  if (pMask == NULL) {
-    return NULL;
-  }
-  if (pMask->GetType() == PDFOBJ_STREAM) {
-    return LoadMaskDIB((CPDF_Stream*)pMask);
-  }
-  return NULL;
+
+  if (CPDF_Stream* pStream =
+          ToStream(m_pDict->GetElementValue(FX_BSTRC("Mask"))))
+    return LoadMaskDIB(pStream);
+
+  return nullptr;
 }
 int CPDF_DIBSource::StratLoadMask() {
   m_MatteColor = 0XFFFFFFFF;
@@ -809,14 +805,9 @@ int CPDF_DIBSource::StratLoadMask() {
     }
     return StartLoadMaskDIB();
   }
-  m_pMaskStream = m_pDict->GetElementValue(FX_BSTRC("Mask"));
-  if (m_pMaskStream == NULL) {
-    return 1;
-  }
-  if (m_pMaskStream->GetType() == PDFOBJ_STREAM) {
-    return StartLoadMaskDIB();
-  }
-  return 1;
+
+  m_pMaskStream = ToStream(m_pDict->GetElementValue(FX_BSTRC("Mask")));
+  return m_pMaskStream ? StartLoadMaskDIB() : 1;
 }
 int CPDF_DIBSource::ContinueLoadMaskDIB(IFX_Pause* pPause) {
   if (m_pMask == NULL) {
@@ -851,17 +842,16 @@ CPDF_DIBSource* CPDF_DIBSource::LoadMaskDIB(CPDF_Stream* pMask) {
 }
 int CPDF_DIBSource::StartLoadMaskDIB() {
   m_pMask = new CPDF_DIBSource;
-  int ret = m_pMask->StartLoadDIBSource(
-      m_pDocument, (CPDF_Stream*)m_pMaskStream, FALSE, NULL, NULL, TRUE);
+  int ret = m_pMask->StartLoadDIBSource(m_pDocument, m_pMaskStream, FALSE,
+                                        nullptr, nullptr, TRUE);
   if (ret == 2) {
-    if (m_Status == 0) {
+    if (m_Status == 0)
       m_Status = 2;
-    }
     return 2;
   }
   if (!ret) {
     delete m_pMask;
-    m_pMask = NULL;
+    m_pMask = nullptr;
     return 1;
   }
   return 1;
@@ -939,7 +929,7 @@ void CPDF_DIBSource::ValidateDictParam() {
   m_bpc = m_bpc_orig;
   CPDF_Object* pFilter = m_pDict->GetElementValue(FX_BSTRC("Filter"));
   if (pFilter) {
-    if (pFilter->GetType() == PDFOBJ_NAME) {
+    if (pFilter->IsName()) {
       CFX_ByteString filter = pFilter->GetString();
       if (filter == FX_BSTRC("CCITTFaxDecode") ||
           filter == FX_BSTRC("JBIG2Decode")) {
@@ -953,8 +943,7 @@ void CPDF_DIBSource::ValidateDictParam() {
       } else if (filter == FX_BSTRC("DCTDecode")) {
         m_bpc = 8;
       }
-    } else if (pFilter->GetType() == PDFOBJ_ARRAY) {
-      CPDF_Array* pArray = (CPDF_Array*)pFilter;
+    } else if (CPDF_Array* pArray = pFilter->AsArray()) {
       if (pArray->GetString(pArray->GetCount() - 1) ==
               FX_BSTRC("CCITTFaxDecode") ||
           pArray->GetString(pArray->GetCount() - 1) ==

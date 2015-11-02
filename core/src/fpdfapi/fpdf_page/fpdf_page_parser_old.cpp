@@ -10,6 +10,18 @@
 #include "pageint.h"
 #include <limits.h>
 
+namespace {
+
+const char kPathOperatorSubpath = 'm';
+const char kPathOperatorLine = 'l';
+const char kPathOperatorCubicBezier1 = 'c';
+const char kPathOperatorCubicBezier2 = 'v';
+const char kPathOperatorCubicBezier3 = 'y';
+const char kPathOperatorClosePath = 'h';
+const char kPathOperatorRectangle[] = "re";
+
+}  // namespace
+
 class CPDF_StreamParserAutoClearer {
  public:
   CPDF_StreamParserAutoClearer(CPDF_StreamParser** scoped_variable,
@@ -77,25 +89,28 @@ void CPDF_StreamContentParser::Handle_BeginImage() {
     }
     CFX_ByteString key((const FX_CHAR*)m_pSyntax->GetWordBuf() + 1,
                        m_pSyntax->GetWordSize() - 1);
-    CPDF_Object* pObj = m_pSyntax->ReadNextObject();
+    nonstd::unique_ptr<CPDF_Object, ReleaseDeleter<CPDF_Object>> pObj(
+        m_pSyntax->ReadNextObject());
     if (!key.IsEmpty()) {
-      pDict->SetAt(key, pObj, m_pDocument);
-    } else if (pObj) {
-      pObj->Release();
+      FX_DWORD dwObjNum = pObj->GetObjNum();
+      if (dwObjNum)
+        pDict->SetAtReference(key, m_pDocument, dwObjNum);
+      else
+        pDict->SetAt(key, pObj.release());
     }
   }
   _PDF_ReplaceAbbr(pDict);
   CPDF_Object* pCSObj = NULL;
   if (pDict->KeyExist(FX_BSTRC("ColorSpace"))) {
     pCSObj = pDict->GetElementValue(FX_BSTRC("ColorSpace"));
-    if (pCSObj->GetType() == PDFOBJ_NAME) {
+    if (pCSObj->IsName()) {
       CFX_ByteString name = pCSObj->GetString();
       if (name != FX_BSTRC("DeviceRGB") && name != FX_BSTRC("DeviceGray") &&
           name != FX_BSTRC("DeviceCMYK")) {
         pCSObj = FindResourceObj(FX_BSTRC("ColorSpace"), name);
         if (pCSObj && !pCSObj->GetObjNum()) {
           pCSObj = pCSObj->Clone();
-          pDict->SetAt(FX_BSTRC("ColorSpace"), pCSObj, m_pDocument);
+          pDict->SetAt(FX_BSTRC("ColorSpace"), pCSObj);
         }
       }
     }
@@ -147,33 +162,33 @@ void CPDF_StreamContentParser::ParsePathObject() {
         int len = m_pSyntax->GetWordSize();
         if (len == 1) {
           switch (m_pSyntax->GetWordBuf()[0]) {
-            case 'm':
+            case kPathOperatorSubpath:
               AddPathPoint(params[0], params[1], FXPT_MOVETO);
               nParams = 0;
               break;
-            case 'l':
+            case kPathOperatorLine:
               AddPathPoint(params[0], params[1], FXPT_LINETO);
               nParams = 0;
               break;
-            case 'c':
+            case kPathOperatorCubicBezier1:
               AddPathPoint(params[0], params[1], FXPT_BEZIERTO);
               AddPathPoint(params[2], params[3], FXPT_BEZIERTO);
               AddPathPoint(params[4], params[5], FXPT_BEZIERTO);
               nParams = 0;
               break;
-            case 'v':
+            case kPathOperatorCubicBezier2:
               AddPathPoint(m_PathCurrentX, m_PathCurrentY, FXPT_BEZIERTO);
               AddPathPoint(params[0], params[1], FXPT_BEZIERTO);
               AddPathPoint(params[2], params[3], FXPT_BEZIERTO);
               nParams = 0;
               break;
-            case 'y':
+            case kPathOperatorCubicBezier3:
               AddPathPoint(params[0], params[1], FXPT_BEZIERTO);
               AddPathPoint(params[2], params[3], FXPT_BEZIERTO);
               AddPathPoint(params[2], params[3], FXPT_BEZIERTO);
               nParams = 0;
               break;
-            case 'h':
+            case kPathOperatorClosePath:
               Handle_ClosePath();
               nParams = 0;
               break;
@@ -182,8 +197,8 @@ void CPDF_StreamContentParser::ParsePathObject() {
               break;
           }
         } else if (len == 2) {
-          if (m_pSyntax->GetWordBuf()[0] == 'r' &&
-              m_pSyntax->GetWordBuf()[1] == 'e') {
+          if (m_pSyntax->GetWordBuf()[0] == kPathOperatorRectangle[0] &&
+              m_pSyntax->GetWordBuf()[1] == kPathOperatorRectangle[1]) {
             AddPathRect(params[0], params[1], params[2], params[3]);
             nParams = 0;
           } else {
@@ -323,25 +338,25 @@ CPDF_Stream* CPDF_StreamParser::ReadInlineStream(CPDF_Document* pDoc,
                                                  CPDF_Dictionary* pDict,
                                                  CPDF_Object* pCSObj,
                                                  FX_BOOL bDecode) {
-  if (m_Pos == m_Size) {
-    return NULL;
-  }
-  if (PDF_CharType[m_pBuf[m_Pos]] == 'W') {
+  if (m_Pos == m_Size)
+    return nullptr;
+
+  if (PDFCharIsWhitespace(m_pBuf[m_Pos]))
     m_Pos++;
-  }
+
   CFX_ByteString Decoder;
-  CPDF_Dictionary* pParam = NULL;
+  CPDF_Dictionary* pParam = nullptr;
   CPDF_Object* pFilter = pDict->GetElementValue(FX_BSTRC("Filter"));
-  if (pFilter == NULL) {
-  } else if (pFilter->GetType() == PDFOBJ_ARRAY) {
-    Decoder = ((CPDF_Array*)pFilter)->GetString(0);
-    CPDF_Array* pParams = pDict->GetArray(FX_BSTRC("DecodeParms"));
-    if (pParams) {
-      pParam = pParams->GetDict(0);
+  if (pFilter) {
+    if (CPDF_Array* pArray = pFilter->AsArray()) {
+      Decoder = pArray->GetString(0);
+      CPDF_Array* pParams = pDict->GetArray(FX_BSTRC("DecodeParms"));
+      if (pParams)
+        pParam = pParams->GetDict(0);
+    } else {
+      Decoder = pFilter->GetString();
+      pParam = pDict->GetDict(FX_BSTRC("DecodeParms"));
     }
-  } else {
-    Decoder = pFilter->GetString();
-    pParam = pDict->GetDict(FX_BSTRC("DecodeParms"));
   }
   FX_DWORD width = pDict->GetInteger(FX_BSTRC("Width"));
   FX_DWORD height = pDict->GetInteger(FX_BSTRC("Height"));
@@ -403,12 +418,11 @@ CPDF_Stream* CPDF_StreamParser::ReadInlineStream(CPDF_Document* pDoc,
     if (bDecode) {
       m_Pos += dwStreamSize;
       dwStreamSize = dwDestSize;
-      if (pFilter->GetType() == PDFOBJ_ARRAY) {
-        ((CPDF_Array*)pFilter)->RemoveAt(0);
+      if (CPDF_Array* pArray = pFilter->AsArray()) {
+        pArray->RemoveAt(0);
         CPDF_Array* pParams = pDict->GetArray(FX_BSTRC("DecodeParms"));
-        if (pParams) {
+        if (pParams)
           pParams->RemoveAt(0);
-        }
       } else {
         pDict->RemoveAt(FX_BSTRC("Filter"));
         pDict->RemoveAt(FX_BSTRC("DecodeParms"));
@@ -451,66 +465,66 @@ CPDF_Stream* CPDF_StreamParser::ReadInlineStream(CPDF_Document* pDoc,
 CPDF_StreamParser::SyntaxType CPDF_StreamParser::ParseNextElement() {
   if (m_pLastObj) {
     m_pLastObj->Release();
-    m_pLastObj = NULL;
+    m_pLastObj = nullptr;
   }
+
   m_WordSize = 0;
   FX_BOOL bIsNumber = TRUE;
-  if (m_Pos >= m_Size) {
+  if (!PositionIsInBounds())
     return EndOfData;
-  }
+
   int ch = m_pBuf[m_Pos++];
-  int type = PDF_CharType[ch];
   while (1) {
-    while (type == 'W') {
-      if (m_Size <= m_Pos) {
+    while (PDFCharIsWhitespace(ch)) {
+      if (!PositionIsInBounds())
         return EndOfData;
-      }
+
       ch = m_pBuf[m_Pos++];
-      type = PDF_CharType[ch];
     }
-    if (ch != '%') {
+
+    if (ch != '%')
       break;
-    }
+
     while (1) {
-      if (m_Size <= m_Pos) {
+      if (!PositionIsInBounds())
         return EndOfData;
-      }
+
       ch = m_pBuf[m_Pos++];
-      if (ch == '\r' || ch == '\n') {
+      if (PDFCharIsLineEnding(ch))
         break;
-      }
     }
-    type = PDF_CharType[ch];
   }
-  if (type == 'D' && ch != '/') {
+
+  if (PDFCharIsDelimiter(ch) && ch != '/') {
     m_Pos--;
     m_pLastObj = ReadNextObject();
     return Others;
   }
+
   while (1) {
-    if (m_WordSize < MAX_WORD_BUFFER) {
+    if (m_WordSize < MAX_WORD_BUFFER)
       m_WordBuffer[m_WordSize++] = ch;
-    }
-    if (type != 'N') {
+
+    if (!PDFCharIsNumeric(ch))
       bIsNumber = FALSE;
-    }
-    if (m_Size <= m_Pos) {
+
+    if (!PositionIsInBounds())
       break;
-    }
+
     ch = m_pBuf[m_Pos++];
-    type = PDF_CharType[ch];
-    if (type == 'D' || type == 'W') {
+
+    if (PDFCharIsDelimiter(ch) || PDFCharIsWhitespace(ch)) {
       m_Pos--;
       break;
     }
   }
+
   m_WordBuffer[m_WordSize] = 0;
-  if (bIsNumber) {
+  if (bIsNumber)
     return Number;
-  }
-  if (m_WordBuffer[0] == '/') {
+  if (m_WordBuffer[0] == '/')
     return Name;
-  }
+
   if (m_WordSize == 4) {
     if (*(FX_DWORD*)m_WordBuffer == FXDWORD_TRUE) {
       m_pLastObj = CPDF_Boolean::Create(TRUE);
@@ -528,59 +542,60 @@ CPDF_StreamParser::SyntaxType CPDF_StreamParser::ParseNextElement() {
   }
   return Keyword;
 }
+
 void CPDF_StreamParser::SkipPathObject() {
   FX_DWORD command_startpos = m_Pos;
-  if (m_Pos >= m_Size) {
+  if (!PositionIsInBounds())
     return;
-  }
+
   int ch = m_pBuf[m_Pos++];
-  int type = PDF_CharType[ch];
   while (1) {
-    while (type == 'W') {
-      if (m_Pos >= m_Size) {
+    while (PDFCharIsWhitespace(ch)) {
+      if (!PositionIsInBounds())
         return;
-      }
       ch = m_pBuf[m_Pos++];
-      type = PDF_CharType[ch];
     }
-    if (type != 'N') {
+
+    if (!PDFCharIsNumeric(ch)) {
       m_Pos = command_startpos;
       return;
     }
+
     while (1) {
-      while (type != 'W') {
-        if (m_Pos >= m_Size) {
+      while (!PDFCharIsWhitespace(ch)) {
+        if (!PositionIsInBounds())
           return;
-        }
         ch = m_pBuf[m_Pos++];
-        type = PDF_CharType[ch];
       }
-      while (type == 'W') {
-        if (m_Pos >= m_Size) {
+
+      while (PDFCharIsWhitespace(ch)) {
+        if (!PositionIsInBounds())
           return;
-        }
         ch = m_pBuf[m_Pos++];
-        type = PDF_CharType[ch];
       }
-      if (type == 'N') {
+
+      if (PDFCharIsNumeric(ch))
         continue;
-      }
+
       FX_DWORD op_startpos = m_Pos - 1;
-      while (type != 'W' && type != 'D') {
-        if (m_Pos >= m_Size) {
+      while (!PDFCharIsWhitespace(ch) && !PDFCharIsDelimiter(ch)) {
+        if (!PositionIsInBounds())
           return;
-        }
         ch = m_pBuf[m_Pos++];
-        type = PDF_CharType[ch];
       }
+
       if (m_Pos - op_startpos == 2) {
         int op = m_pBuf[op_startpos];
-        if (op == 'm' || op == 'l' || op == 'c' || op == 'v' || op == 'y') {
+        if (op == kPathOperatorSubpath || op == kPathOperatorLine ||
+            op == kPathOperatorCubicBezier1 ||
+            op == kPathOperatorCubicBezier2 ||
+            op == kPathOperatorCubicBezier3) {
           command_startpos = m_Pos;
           break;
         }
       } else if (m_Pos - op_startpos == 3) {
-        if (m_pBuf[op_startpos] == 'r' && m_pBuf[op_startpos + 1] == 'e') {
+        if (m_pBuf[op_startpos] == kPathOperatorRectangle[0] &&
+            m_pBuf[op_startpos + 1] == kPathOperatorRectangle[1]) {
           command_startpos = m_Pos;
           break;
         }
@@ -680,96 +695,86 @@ CPDF_Object* CPDF_StreamParser::ReadNextObject(FX_BOOL bAllowNestedArray,
 void CPDF_StreamParser::GetNextWord(FX_BOOL& bIsNumber) {
   m_WordSize = 0;
   bIsNumber = TRUE;
-  if (m_Size <= m_Pos) {
+  if (!PositionIsInBounds())
     return;
-  }
+
   int ch = m_pBuf[m_Pos++];
-  int type = PDF_CharType[ch];
   while (1) {
-    while (type == 'W') {
-      if (m_Size <= m_Pos) {
+    while (PDFCharIsWhitespace(ch)) {
+      if (!PositionIsInBounds()) {
         return;
       }
       ch = m_pBuf[m_Pos++];
-      type = PDF_CharType[ch];
     }
-    if (ch != '%') {
+
+    if (ch != '%')
       break;
-    }
+
     while (1) {
-      if (m_Size <= m_Pos) {
+      if (!PositionIsInBounds())
         return;
-      }
       ch = m_pBuf[m_Pos++];
-      if (ch == '\r' || ch == '\n') {
+      if (PDFCharIsLineEnding(ch))
         break;
-      }
     }
-    type = PDF_CharType[ch];
   }
-  if (type == 'D') {
+
+  if (PDFCharIsDelimiter(ch)) {
     bIsNumber = FALSE;
     m_WordBuffer[m_WordSize++] = ch;
     if (ch == '/') {
       while (1) {
-        if (m_Size <= m_Pos) {
+        if (!PositionIsInBounds())
           return;
-        }
         ch = m_pBuf[m_Pos++];
-        type = PDF_CharType[ch];
-        if (type != 'R' && type != 'N') {
+        if (!PDFCharIsOther(ch) && !PDFCharIsNumeric(ch)) {
           m_Pos--;
           return;
         }
-        if (m_WordSize < MAX_WORD_BUFFER) {
+
+        if (m_WordSize < MAX_WORD_BUFFER)
           m_WordBuffer[m_WordSize++] = ch;
-        }
       }
     } else if (ch == '<') {
-      if (m_Size <= m_Pos) {
+      if (!PositionIsInBounds())
         return;
-      }
       ch = m_pBuf[m_Pos++];
-      if (ch == '<') {
+      if (ch == '<')
         m_WordBuffer[m_WordSize++] = ch;
-      } else {
+      else
         m_Pos--;
-      }
     } else if (ch == '>') {
-      if (m_Size <= m_Pos) {
+      if (!PositionIsInBounds())
         return;
-      }
       ch = m_pBuf[m_Pos++];
-      if (ch == '>') {
+      if (ch == '>')
         m_WordBuffer[m_WordSize++] = ch;
-      } else {
+      else
         m_Pos--;
-      }
     }
     return;
   }
+
   while (1) {
-    if (m_WordSize < MAX_WORD_BUFFER) {
+    if (m_WordSize < MAX_WORD_BUFFER)
       m_WordBuffer[m_WordSize++] = ch;
-    }
-    if (type != 'N') {
+    if (!PDFCharIsNumeric(ch))
       bIsNumber = FALSE;
-    }
-    if (m_Size <= m_Pos) {
+
+    if (!PositionIsInBounds())
       return;
-    }
     ch = m_pBuf[m_Pos++];
-    type = PDF_CharType[ch];
-    if (type == 'D' || type == 'W') {
+    if (PDFCharIsDelimiter(ch) || PDFCharIsWhitespace(ch)) {
       m_Pos--;
       break;
     }
   }
 }
+
 CFX_ByteString CPDF_StreamParser::ReadString() {
-  if (m_Size <= m_Pos) {
+  if (!PositionIsInBounds())
     return CFX_ByteString();
-  }
+
   int ch = m_pBuf[m_Pos++];
   CFX_ByteTextBuf buf;
   int parlevel = 0;
@@ -848,23 +853,23 @@ CFX_ByteString CPDF_StreamParser::ReadString() {
         }
         break;
     }
-    if (m_Size <= m_Pos) {
+    if (!PositionIsInBounds())
       break;
-    }
+
     ch = m_pBuf[m_Pos++];
   }
-  if (m_Size > m_Pos) {
+  if (PositionIsInBounds())
     ch = m_pBuf[m_Pos++];
-  }
+
   if (buf.GetLength() > MAX_STRING_LENGTH) {
     return CFX_ByteString(buf.GetBuffer(), MAX_STRING_LENGTH);
   }
   return buf.GetByteString();
 }
 CFX_ByteString CPDF_StreamParser::ReadHexString() {
-  if (m_Size <= m_Pos) {
+  if (!PositionIsInBounds())
     return CFX_ByteString();
-  }
+
   int ch = m_pBuf[m_Pos++];
   CFX_ByteTextBuf buf;
   FX_BOOL bFirst = TRUE;
@@ -898,9 +903,9 @@ CFX_ByteString CPDF_StreamParser::ReadHexString() {
       }
       bFirst = !bFirst;
     }
-    if (m_Size <= m_Pos) {
+    if (!PositionIsInBounds())
       break;
-    }
+
     ch = m_pBuf[m_Pos++];
   }
   if (!bFirst) {
@@ -911,6 +916,11 @@ CFX_ByteString CPDF_StreamParser::ReadHexString() {
   }
   return buf.GetByteString();
 }
+
+bool CPDF_StreamParser::PositionIsInBounds() const {
+  return m_Pos < m_Size;
+}
+
 #define PAGEPARSE_STAGE_GETCONTENT 1
 #define PAGEPARSE_STAGE_PARSE 2
 #define PAGEPARSE_STAGE_CHECKCLIP 3
@@ -961,12 +971,11 @@ void CPDF_ContentParser::Start(CPDF_Page* pPage, CPDF_ParseOptions* pOptions) {
     m_Status = Done;
     return;
   }
-  if (pContent->GetType() == PDFOBJ_STREAM) {
+  if (CPDF_Stream* pStream = pContent->AsStream()) {
     m_nStreams = 0;
     m_pSingleStream = new CPDF_StreamAcc;
-    m_pSingleStream->LoadAllData((CPDF_Stream*)pContent, FALSE);
-  } else if (pContent->GetType() == PDFOBJ_ARRAY) {
-    CPDF_Array* pArray = (CPDF_Array*)pContent;
+    m_pSingleStream->LoadAllData(pStream, FALSE);
+  } else if (CPDF_Array* pArray = pContent->AsArray()) {
     m_nStreams = pArray->GetCount();
     if (m_nStreams == 0) {
       m_Status = Done;
@@ -1080,9 +1089,8 @@ void CPDF_ContentParser::Continue(IFX_Pause* pPause) {
         CPDF_Array* pContent =
             m_pObjects->m_pFormDict->GetArray(FX_BSTRC("Contents"));
         m_pStreamArray[m_CurrentOffset] = new CPDF_StreamAcc;
-        CPDF_Stream* pStreamObj =
-            (CPDF_Stream*)(pContent ? pContent->GetElementValue(m_CurrentOffset)
-                                    : NULL);
+        CPDF_Stream* pStreamObj = ToStream(
+            pContent ? pContent->GetElementValue(m_CurrentOffset) : nullptr);
         m_pStreamArray[m_CurrentOffset]->LoadAllData(pStreamObj, FALSE);
         m_CurrentOffset++;
       }

@@ -1401,20 +1401,21 @@ void CFX_Font::AdjustMMParams(int glyph_index, int dest_width, int weight) {
     int min_param = FXFT_Get_MM_Axis_Min(FXFT_Get_MM_Axis(pMasters, 1)) / 65536;
     int max_param = FXFT_Get_MM_Axis_Max(FXFT_Get_MM_Axis(pMasters, 1)) / 65536;
     coords[1] = min_param;
-    int error = FXFT_Set_MM_Design_Coordinates(m_Face, 2, coords);
-    error = FXFT_Load_Glyph(
+    (void)FXFT_Set_MM_Design_Coordinates(m_Face, 2, coords);
+    (void)FXFT_Load_Glyph(
         m_Face, glyph_index,
         FXFT_LOAD_NO_SCALE | FXFT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH);
     int min_width = FXFT_Get_Glyph_HoriAdvance(m_Face) * 1000 /
                     FXFT_Get_Face_UnitsPerEM(m_Face);
     coords[1] = max_param;
-    error = FXFT_Set_MM_Design_Coordinates(m_Face, 2, coords);
-    error = FXFT_Load_Glyph(
+    (void)FXFT_Set_MM_Design_Coordinates(m_Face, 2, coords);
+    (void)FXFT_Load_Glyph(
         m_Face, glyph_index,
         FXFT_LOAD_NO_SCALE | FXFT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH);
     int max_width = FXFT_Get_Glyph_HoriAdvance(m_Face) * 1000 /
                     FXFT_Get_Face_UnitsPerEM(m_Face);
     if (max_width == min_width) {
+      FXFT_Free(m_Face, pMasters);
       return;
     }
     int param = min_param +
@@ -1592,7 +1593,7 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph(CFX_Font* pFont,
     }
     FXFT_Outline_Embolden(FXFT_Get_Glyph_Outline(m_Face), level);
   }
-  FXFT_Library_SetLcdFilter(CFX_GEModule::Get()->GetFontMgr()->m_FTLibrary,
+  FXFT_Library_SetLcdFilter(CFX_GEModule::Get()->GetFontMgr()->GetFTLibrary(),
                             FT_LCD_FILTER_DEFAULT);
   error = FXFT_Render_Glyph(m_Face, anti_alias);
   if (error) {

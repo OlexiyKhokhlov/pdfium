@@ -1,5 +1,6 @@
 {
   'variables': {
+    'chromium_code': 1,
     'pdf_use_skia%': 0,
     'pdf_enable_v8%': 1,
     'conditions': [
@@ -42,6 +43,12 @@
     'msvs_disabled_warnings': [
       4005, 4018, 4146, 4333, 4345, 4267
     ],
+    'variables': {
+      'clang_warning_flags': [
+        # TODO(thestig): Fix all instances, remove this, pdfium:29
+        '-Wno-sign-compare',
+      ],
+    },
   },
   'targets': [
     {
@@ -62,7 +69,6 @@
         'javascript',
         'pdfwindow',
       ],
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'fpdfsdk/include/fsdk_actionhandler.h',
         'fpdfsdk/include/fsdk_annothandler.h',
@@ -89,8 +95,6 @@
         'fpdfsdk/src/fsdk_baseform.cpp',
         'fpdfsdk/src/fsdk_mgr.cpp',
         'fpdfsdk/src/fsdk_rendercontext.cpp',
-        'fpdfsdk/src/fpdfsdkdll.rc',
-        'fpdfsdk/src/resource.h',
         'public/fpdf_dataavail.h',
         'public/fpdf_doc.h',
         'public/fpdf_edit.h',
@@ -108,11 +112,6 @@
         'public/fpdfview.h',
       ],
       'conditions': [
-        ['OS!="win"', {
-          'sources!': [
-            'fpdfsdk/src/fpdfsdkdll.rc',
-          ],
-        }],
         ['bundle_freetype==1', {
           'dependencies': [
             'third_party/third_party.gyp:fx_freetype',
@@ -150,7 +149,6 @@
     {
       'target_name': 'fdrm',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'core/include/fdrm/fx_crypt.h',
         'core/src/fdrm/crypto/fx_crypt.cpp',
@@ -161,7 +159,6 @@
     {
       'target_name': 'fpdfdoc',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'core/include/fpdfdoc/fpdf_ap.h',
         'core/include/fpdfdoc/fpdf_doc.h',
@@ -191,7 +188,6 @@
     {
       'target_name': 'fpdfapi',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'core/include/fpdfapi/fpdfapi.h',
         'core/include/fpdfapi/fpdf_module.h',
@@ -308,7 +304,6 @@
     {
       'target_name': 'fpdftext',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'core/include/fpdftext/fpdf_text.h',
         'core/src/fpdftext/fpdf_text.cpp',
@@ -330,7 +325,6 @@
         'third_party/third_party.gyp:fx_libopenjpeg',
         'third_party/third_party.gyp:fx_zlib',
       ],
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'core/include/fxcodec/fx_codec.h',
         'core/include/fxcodec/fx_codec_def.h',
@@ -402,7 +396,6 @@
     {
       'target_name': 'fxcrt',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'core/include/fxcrt/fx_basic.h',
         'core/include/fxcrt/fx_bidi.h',
@@ -447,9 +440,6 @@
     {
       'target_name': 'fxge',
       'type': 'static_library',
-      'ldflags': [
-        '-L<(PRODUCT_DIR)',
-      ],
       'dependencies': [
         'third_party/third_party.gyp:fx_agg',
       ],
@@ -556,7 +546,6 @@
     {
       'target_name': 'fxedit',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'fpdfsdk/include/fxedit/fx_edit.h',
         'fpdfsdk/include/fxedit/fxet_edit.h',
@@ -572,7 +561,6 @@
     {
       'target_name': 'pdfwindow',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'fpdfsdk/include/pdfwindow/IPDFWindow.h',
         'fpdfsdk/include/pdfwindow/PDFWindow.h',
@@ -615,7 +603,6 @@
     {
       'target_name': 'javascript',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'fpdfsdk/include/javascript/IJavaScript.h',
         'fpdfsdk/src/javascript/JS_Runtime_Stub.cpp',
@@ -687,7 +674,6 @@
     {
       'target_name': 'formfiller',
       'type': 'static_library',
-      'ldflags': [ '-L<(PRODUCT_DIR)',],
       'sources': [
         'fpdfsdk/include/formfiller/FFL_CBA_Fontmap.h',
         'fpdfsdk/include/formfiller/FFL_CheckBox.h',
@@ -698,7 +684,6 @@
         'fpdfsdk/include/formfiller/FFL_PushButton.h',
         'fpdfsdk/include/formfiller/FFL_RadioButton.h',
         'fpdfsdk/include/formfiller/FFL_TextField.h',
-        'fpdfsdk/include/formfiller/FFL_Utils.h',
         'fpdfsdk/include/formfiller/FormFiller.h',
         'fpdfsdk/src/formfiller/FFL_CBA_Fontmap.cpp',
         'fpdfsdk/src/formfiller/FFL_CheckBox.cpp',
@@ -709,7 +694,6 @@
         'fpdfsdk/src/formfiller/FFL_PushButton.cpp',
         'fpdfsdk/src/formfiller/FFL_RadioButton.cpp',
         'fpdfsdk/src/formfiller/FFL_TextField.cpp',
-        'fpdfsdk/src/formfiller/FFL_Utils.cpp',
       ],
     },
     {
@@ -751,6 +735,7 @@
       'sources': [
         'core/src/fpdfapi/fpdf_parser/fpdf_parser_decode_embeddertest.cpp',
         'core/src/fpdfapi/fpdf_parser/fpdf_parser_parser_embeddertest.cpp',
+        'core/src/fpdfapi/fpdf_render/fpdf_render_pattern_embeddertest.cpp',
         'fpdfsdk/src/fpdf_dataavail_embeddertest.cpp',
         'fpdfsdk/src/fpdfdoc_embeddertest.cpp',
         'fpdfsdk/src/fpdfformfill_embeddertest.cpp',

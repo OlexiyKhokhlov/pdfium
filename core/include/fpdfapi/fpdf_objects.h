@@ -16,6 +16,7 @@ class CPDF_CryptoHandler;
 class CPDF_Dictionary;
 class CPDF_Document;
 class CPDF_IndirectObjects;
+class CPDF_Name;
 class CPDF_Null;
 class CPDF_Number;
 class CPDF_Parser;
@@ -78,6 +79,39 @@ class CPDF_Object {
 
   FX_BOOL IsModified() const { return FALSE; }
 
+  bool IsArray() const { return m_Type == PDFOBJ_ARRAY; }
+  bool IsBoolean() const { return m_Type == PDFOBJ_BOOLEAN; }
+  bool IsDictionary() const { return m_Type == PDFOBJ_DICTIONARY; }
+  bool IsName() const { return m_Type == PDFOBJ_NAME; }
+  bool IsNumber() const { return m_Type == PDFOBJ_NUMBER; }
+  bool IsReference() const { return m_Type == PDFOBJ_REFERENCE; }
+  bool IsStream() const { return m_Type == PDFOBJ_STREAM; }
+  bool IsString() const { return m_Type == PDFOBJ_STRING; }
+
+  CPDF_Array* AsArray();
+  const CPDF_Array* AsArray() const;
+
+  CPDF_Boolean* AsBoolean();
+  const CPDF_Boolean* AsBoolean() const;
+
+  CPDF_Dictionary* AsDictionary();
+  const CPDF_Dictionary* AsDictionary() const;
+
+  CPDF_Name* AsName();
+  const CPDF_Name* AsName() const;
+
+  CPDF_Number* AsNumber();
+  const CPDF_Number* AsNumber() const;
+
+  CPDF_Reference* AsReference();
+  const CPDF_Reference* AsReference() const;
+
+  CPDF_Stream* AsStream();
+  const CPDF_Stream* AsStream() const;
+
+  CPDF_String* AsString();
+  const CPDF_String* AsString() const;
+
  protected:
   CPDF_Object(FX_DWORD type) : m_Type(type), m_ObjNum(0), m_GenNum(0) {}
   ~CPDF_Object() {}
@@ -112,6 +146,13 @@ class CPDF_Boolean : public CPDF_Object {
   FX_BOOL m_bValue;
   friend class CPDF_Object;
 };
+inline CPDF_Boolean* ToBoolean(CPDF_Object* obj) {
+  return obj ? obj->AsBoolean() : nullptr;
+}
+inline const CPDF_Boolean* ToBoolean(const CPDF_Object* obj) {
+  return obj ? obj->AsBoolean() : nullptr;
+}
+
 class CPDF_Number : public CPDF_Object {
  public:
   static CPDF_Number* Create(int value) { return new CPDF_Number(value); }
@@ -122,13 +163,7 @@ class CPDF_Number : public CPDF_Object {
     return new CPDF_Number(str);
   }
 
-  static CPDF_Number* Create(FX_BOOL bInteger, void* pData) {
-    return new CPDF_Number(bInteger, pData);
-  }
-
-  CPDF_Number() : CPDF_Object(PDFOBJ_NUMBER), m_bInteger(false), m_Integer(0) {}
-
-  CPDF_Number(FX_BOOL bInteger, void* pData);
+  CPDF_Number() : CPDF_Object(PDFOBJ_NUMBER), m_bInteger(TRUE), m_Integer(0) {}
 
   CPDF_Number(int value);
 
@@ -168,6 +203,13 @@ class CPDF_Number : public CPDF_Object {
   };
   friend class CPDF_Object;
 };
+inline CPDF_Number* ToNumber(CPDF_Object* obj) {
+  return obj ? obj->AsNumber() : nullptr;
+}
+inline const CPDF_Number* ToNumber(const CPDF_Object* obj) {
+  return obj ? obj->AsNumber() : nullptr;
+}
+
 class CPDF_String : public CPDF_Object {
  public:
   static CPDF_String* Create(const CFX_ByteString& str, FX_BOOL bHex = FALSE) {
@@ -199,6 +241,13 @@ class CPDF_String : public CPDF_Object {
   FX_BOOL m_bHex;
   friend class CPDF_Object;
 };
+inline CPDF_String* ToString(CPDF_Object* obj) {
+  return obj ? obj->AsString() : nullptr;
+}
+inline const CPDF_String* ToString(const CPDF_Object* obj) {
+  return obj ? obj->AsString() : nullptr;
+}
+
 class CPDF_Name : public CPDF_Object {
  public:
   static CPDF_Name* Create(const CFX_ByteString& str) {
@@ -227,6 +276,13 @@ class CPDF_Name : public CPDF_Object {
   CFX_ByteString m_Name;
   friend class CPDF_Object;
 };
+inline CPDF_Name* ToName(CPDF_Object* obj) {
+  return obj ? obj->AsName() : nullptr;
+}
+inline const CPDF_Name* ToName(const CPDF_Object* obj) {
+  return obj ? obj->AsName() : nullptr;
+}
+
 class CPDF_Array : public CPDF_Object {
  public:
   static CPDF_Array* Create() { return new CPDF_Array(); }
@@ -297,6 +353,13 @@ class CPDF_Array : public CPDF_Object {
   CFX_PtrArray m_Objects;
   friend class CPDF_Object;
 };
+inline CPDF_Array* ToArray(CPDF_Object* obj) {
+  return obj ? obj->AsArray() : nullptr;
+}
+inline const CPDF_Array* ToArray(const CPDF_Object* obj) {
+  return obj ? obj->AsArray() : nullptr;
+}
+
 class CPDF_Dictionary : public CPDF_Object {
  public:
   static CPDF_Dictionary* Create() { return new CPDF_Dictionary(); }
@@ -347,9 +410,7 @@ class CPDF_Dictionary : public CPDF_Object {
 
   CPDF_Object* GetNextElement(FX_POSITION& pos, CFX_ByteString& key) const;
 
-  void SetAt(const CFX_ByteStringC& key,
-             CPDF_Object* pObj,
-             CPDF_IndirectObjects* pObjs = NULL);
+  void SetAt(const CFX_ByteStringC& key, CPDF_Object* pObj);
 
   void SetAtName(const CFX_ByteStringC& key, const CFX_ByteString& name);
 
@@ -372,12 +433,6 @@ class CPDF_Dictionary : public CPDF_Object {
   void AddReference(const CFX_ByteStringC& key,
                     CPDF_IndirectObjects* pDoc,
                     FX_DWORD objnum);
-
-  void AddReference(const CFX_ByteStringC& key,
-                    CPDF_IndirectObjects* pDoc,
-                    CPDF_Object* obj) {
-    AddReference(key, pDoc, obj->GetObjNum());
-  }
 
   void SetAtRect(const CFX_ByteStringC& key, const CFX_FloatRect& rect);
 
@@ -402,6 +457,13 @@ class CPDF_Dictionary : public CPDF_Object {
 
   friend class CPDF_Object;
 };
+inline CPDF_Dictionary* ToDictionary(CPDF_Object* obj) {
+  return obj ? obj->AsDictionary() : nullptr;
+}
+inline const CPDF_Dictionary* ToDictionary(const CPDF_Object* obj) {
+  return obj ? obj->AsDictionary() : nullptr;
+}
+
 class CPDF_Stream : public CPDF_Object {
  public:
   static CPDF_Stream* Create(uint8_t* pData,
@@ -457,6 +519,13 @@ class CPDF_Stream : public CPDF_Object {
   friend class CPDF_StreamAcc;
   friend class CPDF_AttachmentAcc;
 };
+inline CPDF_Stream* ToStream(CPDF_Object* obj) {
+  return obj ? obj->AsStream() : nullptr;
+}
+inline const CPDF_Stream* ToStream(const CPDF_Object* obj) {
+  return obj ? obj->AsStream() : nullptr;
+}
+
 class CPDF_StreamAcc {
  public:
   CPDF_StreamAcc();
@@ -527,6 +596,13 @@ class CPDF_Reference : public CPDF_Object {
   FX_DWORD m_RefObjNum;
   friend class CPDF_Object;
 };
+inline CPDF_Reference* ToReference(CPDF_Object* obj) {
+  return obj ? obj->AsReference() : nullptr;
+}
+inline const CPDF_Reference* ToReference(const CPDF_Object* obj) {
+  return obj ? obj->AsReference() : nullptr;
+}
+
 class CPDF_IndirectObjects {
  public:
   CPDF_IndirectObjects(CPDF_Parser* pParser);

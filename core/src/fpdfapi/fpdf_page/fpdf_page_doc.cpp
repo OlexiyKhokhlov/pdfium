@@ -308,27 +308,27 @@ void CPDF_DocPageData::ReleaseFont(CPDF_Dictionary* pFontDict) {
 
 CPDF_ColorSpace* CPDF_DocPageData::GetColorSpace(CPDF_Object* pCSObj,
                                                  CPDF_Dictionary* pResources) {
-  if (!pCSObj) {
-    return NULL;
-  }
-  if (pCSObj->GetType() == PDFOBJ_NAME) {
+  if (!pCSObj)
+    return nullptr;
+
+  if (pCSObj->IsName()) {
     CFX_ByteString name = pCSObj->GetConstString();
     CPDF_ColorSpace* pCS = _CSFromName(name);
     if (!pCS && pResources) {
       CPDF_Dictionary* pList = pResources->GetDict(FX_BSTRC("ColorSpace"));
       if (pList) {
         pCSObj = pList->GetElementValue(name);
-        return GetColorSpace(pCSObj, NULL);
+        return GetColorSpace(pCSObj, nullptr);
       }
     }
-    if (pCS == NULL || pResources == NULL) {
+    if (!pCS || !pResources)
       return pCS;
-    }
+
     CPDF_Dictionary* pColorSpaces = pResources->GetDict(FX_BSTRC("ColorSpace"));
-    if (pColorSpaces == NULL) {
+    if (!pColorSpaces)
       return pCS;
-    }
-    CPDF_Object* pDefaultCS = NULL;
+
+    CPDF_Object* pDefaultCS = nullptr;
     switch (pCS->GetFamily()) {
       case PDFCS_DEVICERGB:
         pDefaultCS = pColorSpaces->GetElementValue(FX_BSTRC("DefaultRGB"));
@@ -340,16 +340,11 @@ CPDF_ColorSpace* CPDF_DocPageData::GetColorSpace(CPDF_Object* pCSObj,
         pDefaultCS = pColorSpaces->GetElementValue(FX_BSTRC("DefaultCMYK"));
         break;
     }
-    if (pDefaultCS == NULL) {
-      return pCS;
-    }
-    return GetColorSpace(pDefaultCS, NULL);
+    return pDefaultCS ? GetColorSpace(pDefaultCS, nullptr) : pCS;
   }
 
-  if (pCSObj->GetType() != PDFOBJ_ARRAY)
-    return nullptr;
-  CPDF_Array* pArray = (CPDF_Array*)pCSObj;
-  if (pArray->GetCount() == 0)
+  CPDF_Array* pArray = pCSObj->AsArray();
+  if (!pArray || pArray->GetCount() == 0)
     return nullptr;
   if (pArray->GetCount() == 1)
     return GetColorSpace(pArray->GetElementValue(0), pResources);
@@ -475,7 +470,7 @@ CPDF_Image* CPDF_DocPageData::GetImage(CPDF_Object* pImageStream) {
   }
 
   CPDF_Image* pImage = new CPDF_Image(m_pPDFDoc);
-  pImage->LoadImageF((CPDF_Stream*)pImageStream, FALSE);
+  pImage->LoadImageF(pImageStream->AsStream(), FALSE);
 
   CPDF_CountedImage* imageData = new CPDF_CountedImage(pImage);
   m_ImageMap[dwImageObjNum] = imageData;

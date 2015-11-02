@@ -51,10 +51,10 @@ CFX_WideString CPDF_Bookmark::GetTitle() const {
   if (!m_pDict) {
     return CFX_WideString();
   }
-  CPDF_String* pString = (CPDF_String*)m_pDict->GetElementValue("Title");
-  if (!pString || pString->GetType() != PDFOBJ_STRING) {
+  CPDF_String* pString = ToString(m_pDict->GetElementValue("Title"));
+  if (!pString)
     return CFX_WideString();
-  }
+
   CFX_WideString title = pString->GetUnicodeText();
   int len = title.GetLength();
   if (!len) {
@@ -68,21 +68,19 @@ CFX_WideString CPDF_Bookmark::GetTitle() const {
   return CFX_WideString(buf.get(), len);
 }
 CPDF_Dest CPDF_Bookmark::GetDest(CPDF_Document* pDocument) const {
-  if (!m_pDict) {
+  if (!m_pDict)
     return CPDF_Dest();
-  }
+
   CPDF_Object* pDest = m_pDict->GetElementValue("Dest");
-  if (!pDest) {
+  if (!pDest)
     return CPDF_Dest();
-  }
-  if (pDest->GetType() == PDFOBJ_STRING || pDest->GetType() == PDFOBJ_NAME) {
+  if (pDest->IsString() || pDest->IsName()) {
     CPDF_NameTree name_tree(pDocument, FX_BSTRC("Dests"));
     CFX_ByteStringC name = pDest->GetString();
     return CPDF_Dest(name_tree.LookupNamedDest(pDocument, name));
   }
-  if (pDest->GetType() == PDFOBJ_ARRAY) {
-    return CPDF_Dest((CPDF_Array*)pDest);
-  }
+  if (CPDF_Array* pArray = pDest->AsArray())
+    return CPDF_Dest(pArray);
   return CPDF_Dest();
 }
 CPDF_Action CPDF_Bookmark::GetAction() const {

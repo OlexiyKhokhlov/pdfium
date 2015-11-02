@@ -62,11 +62,10 @@ FX_BOOL CPDFSDK_Widget::IsWidgetAppearanceValid(
     case FIELDTYPE_LISTBOX:
     case FIELDTYPE_TEXTFIELD:
     case FIELDTYPE_SIGNATURE:
-      return psub->GetType() == PDFOBJ_STREAM;
+      return psub->IsStream();
     case FIELDTYPE_CHECKBOX:
     case FIELDTYPE_RADIOBUTTON:
-      if (psub->GetType() == PDFOBJ_DICTIONARY) {
-        CPDF_Dictionary* pSubDict = (CPDF_Dictionary*)psub;
+      if (CPDF_Dictionary* pSubDict = psub->AsDictionary()) {
         return pSubDict->GetStream(GetAppState()) != NULL;
       }
       return FALSE;
@@ -2038,37 +2037,6 @@ FX_BOOL CPDFSDK_InterForm::SubmitFields(const CFX_WideString& csDestination,
   return TRUE;
 }
 
-void CPDFSDK_InterForm::DoFDFBuffer(CFX_ByteString sBuffer) {
-  ASSERT(m_pDocument != NULL);
-
-  if (CFDF_Document* pFDFDocument = CFDF_Document::ParseMemory(
-          (const unsigned char*)sBuffer.GetBuffer(sBuffer.GetLength()),
-          sBuffer.GetLength())) {
-    CPDF_Dictionary* pRootDic = pFDFDocument->GetRoot();
-    if (pRootDic) {
-      CPDF_Dictionary* pFDFDict = pRootDic->GetDict("FDF");
-      if (pFDFDict) {
-        CPDF_Dictionary* pJSDict = pFDFDict->GetDict("JavaScript");
-        if (pJSDict) {
-          CFX_WideString csJS;
-
-          CPDF_Object* pJS = pJSDict->GetElementValue("Before");
-          if (pJS != NULL) {
-            int iType = pJS->GetType();
-            if (iType == PDFOBJ_STRING)
-              csJS = pJSDict->GetUnicodeText("Before");
-            else if (iType == PDFOBJ_STREAM)
-              csJS = pJS->GetUnicodeText();
-          }
-        }
-      }
-    }
-    delete pFDFDocument;
-  }
-
-  sBuffer.ReleaseBuffer();
-}
-
 FX_BOOL CPDFSDK_InterForm::FDFToURLEncodedData(CFX_WideString csFDFFile,
                                                CFX_WideString csTxtFile) {
   return TRUE;
@@ -2223,17 +2191,16 @@ void CPDFSDK_InterForm::GetFieldFromObjects(const CFX_PtrArray& objects,
 
   int iCount = objects.GetSize();
   for (int i = 0; i < iCount; i++) {
-    CPDF_Object* pObject = (CPDF_Object*)objects[i];
-    if (pObject == NULL)
+    CPDF_Object* pObject = static_cast<CPDF_Object*>(objects[i]);
+    if (!pObject)
       continue;
 
-    int iType = pObject->GetType();
-    if (iType == PDFOBJ_STRING) {
+    if (pObject->IsString()) {
       CFX_WideString csName = pObject->GetUnicodeText();
       CPDF_FormField* pField = m_pInterForm->GetField(0, csName);
-      if (pField != NULL)
+      if (pField)
         fields.Add(pField);
-    } else if (iType == PDFOBJ_DICTIONARY) {
+    } else if (pObject->IsDictionary()) {
       if (m_pInterForm->IsValidFormField(pObject))
         fields.Add(pObject);
     }
@@ -2464,7 +2431,7 @@ void CBA_AnnotIterator::GenerateResults() {
 
   switch (m_nTabs) {
     case BAI_STRUCTURE: {
-      for (int i = 0, sz = m_pPageView->CountAnnots(); i < sz; i++) {
+      for (size_t i = 0; i < m_pPageView->CountAnnots(); ++i) {
         CPDFSDK_Annot* pAnnot = m_pPageView->GetAnnot(i);
         ASSERT(pAnnot != NULL);
 
@@ -2476,7 +2443,7 @@ void CBA_AnnotIterator::GenerateResults() {
       CPDFSDK_SortAnnots sa;
 
       {
-        for (int i = 0, sz = m_pPageView->CountAnnots(); i < sz; i++) {
+        for (size_t i = 0; i < m_pPageView->CountAnnots(); ++i) {
           CPDFSDK_Annot* pAnnot = m_pPageView->GetAnnot(i);
           ASSERT(pAnnot != NULL);
 
@@ -2555,7 +2522,7 @@ void CBA_AnnotIterator::GenerateResults() {
       CPDFSDK_SortAnnots sa;
 
       {
-        for (int i = 0, sz = m_pPageView->CountAnnots(); i < sz; i++) {
+        for (size_t i = 0; i < m_pPageView->CountAnnots(); ++i) {
           CPDFSDK_Annot* pAnnot = m_pPageView->GetAnnot(i);
           ASSERT(pAnnot != NULL);
 

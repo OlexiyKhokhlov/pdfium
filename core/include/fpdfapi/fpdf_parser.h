@@ -7,6 +7,7 @@
 #ifndef CORE_INCLUDE_FPDFAPI_FPDF_PARSER_H_
 #define CORE_INCLUDE_FPDFAPI_FPDF_PARSER_H_
 
+#include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../fxcrt/fx_system.h"
 #include "fpdf_objects.h"
 
@@ -44,12 +45,25 @@ class CFX_PrivateData;
 #define FPDFPERM_PRINT_HIGH 0x0800
 #define FPDF_PAGE_MAX_NUM 0xFFFFF
 
-// Indexed by 8-bit character code, contains either:
-//   'W' - for whitespace: NUL, TAB, CR, LF, FF, 0x80, 0xff
-//   'N' - for numeric: 0123456789+-.
-//   'D' - for delimiter: %()/<>[]{}
-//   'R' - otherwise.
+// Use the accessors below instead of directly accessing PDF_CharType.
 extern const char PDF_CharType[256];
+
+inline bool PDFCharIsWhitespace(uint8_t c) {
+  return PDF_CharType[c] == 'W';
+}
+inline bool PDFCharIsNumeric(uint8_t c) {
+  return PDF_CharType[c] == 'N';
+}
+inline bool PDFCharIsDelimiter(uint8_t c) {
+  return PDF_CharType[c] == 'D';
+}
+inline bool PDFCharIsOther(uint8_t c) {
+  return PDF_CharType[c] == 'R';
+}
+
+inline bool PDFCharIsLineEnding(uint8_t c) {
+  return c == '\r' || c == '\n';
+}
 
 // Indexed by 8-bit char code, contains unicode code points.
 extern const FX_WORD PDFDocEncoding[256];
@@ -270,7 +284,7 @@ class CPDF_SyntaxParser {
   FX_FILESIZE FindTag(const CFX_ByteStringC& tag, FX_FILESIZE limit);
 
   void SetEncrypt(CPDF_CryptoHandler* pCryptoHandler) {
-    m_pCryptoHandler = pCryptoHandler;
+    m_pCryptoHandler.reset(pCryptoHandler);
   }
 
   FX_BOOL IsEncrypted() { return m_pCryptoHandler != NULL; }
@@ -326,7 +340,7 @@ class CPDF_SyntaxParser {
 
   FX_FILESIZE m_BufOffset;
 
-  CPDF_CryptoHandler* m_pCryptoHandler;
+  nonstd::unique_ptr<CPDF_CryptoHandler> m_pCryptoHandler;
 
   uint8_t m_WordBuffer[257];
 
@@ -375,9 +389,13 @@ class CPDF_Parser {
 
   CFX_ByteString GetPassword() { return m_Password; }
 
-  CPDF_SecurityHandler* GetSecurityHandler() { return m_pSecurityHandler; }
+  CPDF_SecurityHandler* GetSecurityHandler() {
+    return m_pSecurityHandler.get();
+  }
 
-  CPDF_CryptoHandler* GetCryptoHandler() { return m_Syntax.m_pCryptoHandler; }
+  CPDF_CryptoHandler* GetCryptoHandler() {
+    return m_Syntax.m_pCryptoHandler.get();
+  }
 
   void SetSecurityHandler(CPDF_SecurityHandler* pSecurityHandler,
                           FX_BOOL bForced = FALSE);
@@ -495,7 +513,7 @@ class CPDF_Parser {
 
   FX_BOOL m_bXRefStream;
 
-  CPDF_SecurityHandler* m_pSecurityHandler;
+  nonstd::unique_ptr<CPDF_SecurityHandler> m_pSecurityHandler;
 
   FX_BOOL m_bForceUseSecurityHandler;
 

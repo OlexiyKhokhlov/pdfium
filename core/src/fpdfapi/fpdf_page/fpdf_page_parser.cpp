@@ -163,8 +163,10 @@ CPDF_Object* CPDF_StreamContentParser::GetObject(FX_DWORD index) {
   }
   _ContentParam& param = m_ParamBuf1[real_index];
   if (param.m_Type == PDFOBJ_NUMBER) {
-    CPDF_Number* pNumber = CPDF_Number::Create(param.m_Number.m_bInteger,
-                                               &param.m_Number.m_Integer);
+    CPDF_Number* pNumber = param.m_Number.m_bInteger
+                               ? CPDF_Number::Create(param.m_Number.m_Integer)
+                               : CPDF_Number::Create(param.m_Number.m_Float);
+
     param.m_Type = 0;
     param.m_pObject = pNumber;
     return pNumber;
@@ -411,18 +413,15 @@ void CPDF_StreamContentParser::Handle_BeginMarkedContent_Dictionary() {
     return;
   }
   FX_BOOL bDirect = TRUE;
-  if (pProperty->GetType() == PDFOBJ_NAME) {
+  if (pProperty->IsName()) {
     pProperty = FindResourceObj(FX_BSTRC("Properties"), pProperty->GetString());
-    if (pProperty == NULL) {
+    if (!pProperty)
       return;
-    }
     bDirect = FALSE;
   }
-  if (pProperty->GetType() != PDFOBJ_DICTIONARY) {
-    return;
+  if (CPDF_Dictionary* pDict = pProperty->AsDictionary()) {
+    m_CurContentMark.GetModify()->AddMark(tag, pDict, bDirect);
   }
-  m_CurContentMark.GetModify()->AddMark(tag, (CPDF_Dictionary*)pProperty,
-                                        bDirect);
 }
 void CPDF_StreamContentParser::Handle_BeginMarkedContent() {
   if (!m_Options.m_bMarkedContent) {
@@ -487,7 +486,7 @@ static CFX_ByteStringC _PDF_FindFullName(const _FX_BSTR* table,
 void _PDF_ReplaceAbbr(CPDF_Object* pObj) {
   switch (pObj->GetType()) {
     case PDFOBJ_DICTIONARY: {
-      CPDF_Dictionary* pDict = (CPDF_Dictionary*)pObj;
+      CPDF_Dictionary* pDict = pObj->AsDictionary();
       FX_POSITION pos = pDict->GetStartPos();
       while (pos) {
         CFX_ByteString key;
@@ -499,7 +498,8 @@ void _PDF_ReplaceAbbr(CPDF_Object* pObj) {
           pDict->ReplaceKey(key, fullname);
           key = fullname;
         }
-        if (value->GetType() == PDFOBJ_NAME) {
+
+        if (value->IsName()) {
           CFX_ByteString name = value->GetString();
           fullname = _PDF_FindFullName(
               _PDF_InlineValueAbbr,
@@ -514,10 +514,10 @@ void _PDF_ReplaceAbbr(CPDF_Object* pObj) {
       break;
     }
     case PDFOBJ_ARRAY: {
-      CPDF_Array* pArray = (CPDF_Array*)pObj;
+      CPDF_Array* pArray = pObj->AsArray();
       for (FX_DWORD i = 0; i < pArray->GetCount(); i++) {
         CPDF_Object* pElement = pArray->GetElement(i);
-        if (pElement->GetType() == PDFOBJ_NAME) {
+        if (pElement->IsName()) {
           CFX_ByteString name = pElement->GetString();
           CFX_ByteStringC fullname = _PDF_FindFullName(
               _PDF_InlineValueAbbr,
@@ -550,7 +550,7 @@ static CFX_ByteStringC _PDF_FindAbbrName(const _FX_BSTR* table,
 void _PDF_ReplaceFull(CPDF_Object* pObj) {
   switch (pObj->GetType()) {
     case PDFOBJ_DICTIONARY: {
-      CPDF_Dictionary* pDict = (CPDF_Dictionary*)pObj;
+      CPDF_Dictionary* pDict = pObj->AsDictionary();
       FX_POSITION pos = pDict->GetStartPos();
       while (pos) {
         CFX_ByteString key;
@@ -562,7 +562,7 @@ void _PDF_ReplaceFull(CPDF_Object* pObj) {
           pDict->ReplaceKey(key, abbrName);
           key = abbrName;
         }
-        if (value->GetType() == PDFOBJ_NAME) {
+        if (value->IsName()) {
           CFX_ByteString name = value->GetString();
           abbrName = _PDF_FindAbbrName(
               _PDF_InlineValueAbbr,
@@ -577,10 +577,10 @@ void _PDF_ReplaceFull(CPDF_Object* pObj) {
       break;
     }
     case PDFOBJ_ARRAY: {
-      CPDF_Array* pArray = (CPDF_Array*)pObj;
+      CPDF_Array* pArray = pObj->AsArray();
       for (FX_DWORD i = 0; i < pArray->GetCount(); i++) {
         CPDF_Object* pElement = pArray->GetElement(i);
-        if (pElement->GetType() == PDFOBJ_NAME) {
+        if (pElement->IsName()) {
           CFX_ByteString name = pElement->GetString();
           CFX_ByteStringC abbrName = _PDF_FindAbbrName(
               _PDF_InlineValueAbbr,
@@ -671,57 +671,34 @@ void CPDF_StreamContentParser::Handle_ExecuteXObject() {
   CFX_ByteString name = GetString(0);
   if (name == m_LastImageName && m_pLastImage && m_pLastImage->GetStream() &&
       m_pLastImage->GetStream()->GetObjNum()) {
-    AddImage(NULL, m_pLastImage, FALSE);
+    AddImage(nullptr, m_pLastImage, FALSE);
     return;
   }
+
   if (m_Options.m_bTextOnly) {
-    CPDF_Object* pRes = NULL;
-    if (m_pResources == NULL) {
+    if (!m_pResources)
       return;
-    }
-    if (m_pResources == m_pPageResources) {
-      CPDF_Dictionary* pList = m_pResources->GetDict(FX_BSTRC("XObject"));
-      if (pList == NULL) {
-        return;
-      }
-      pRes = pList->GetElement(name);
-      if (pRes == NULL || pRes->GetType() != PDFOBJ_REFERENCE) {
-        return;
-      }
-    } else {
-      CPDF_Dictionary* pList = m_pResources->GetDict(FX_BSTRC("XObject"));
-      if (pList == NULL) {
-        if (m_pPageResources == NULL) {
-          return;
-        }
-        CPDF_Dictionary* pList = m_pPageResources->GetDict(FX_BSTRC("XObject"));
-        if (pList == NULL) {
-          return;
-        }
-        pRes = pList->GetElement(name);
-        if (pRes == NULL || pRes->GetType() != PDFOBJ_REFERENCE) {
-          return;
-        }
-      } else {
-        pRes = pList->GetElement(name);
-        if (pRes == NULL || pRes->GetType() != PDFOBJ_REFERENCE) {
-          return;
-        }
-      }
-    }
+
+    CPDF_Dictionary* pList = m_pResources->GetDict(FX_BSTRC("XObject"));
+    if (!pList && m_pPageResources && m_pResources != m_pPageResources)
+      pList = m_pPageResources->GetDict(FX_BSTRC("XObject"));
+    if (!pList)
+      return;
+    CPDF_Reference* pRes = ToReference(pList->GetElement(name));
+    if (!pRes)
+      return;
+
     FX_BOOL bForm;
-    if (m_pDocument->IsFormStream(((CPDF_Reference*)pRes)->GetRefObjNum(),
-                                  bForm) &&
-        !bForm) {
+    if (m_pDocument->IsFormStream(pRes->GetRefObjNum(), bForm) && !bForm)
       return;
-    }
   }
-  CPDF_Stream* pXObject =
-      (CPDF_Stream*)FindResourceObj(FX_BSTRC("XObject"), name);
-  if (pXObject == NULL || pXObject->GetType() != PDFOBJ_STREAM) {
+
+  CPDF_Stream* pXObject = ToStream(FindResourceObj(FX_BSTRC("XObject"), name));
+  if (!pXObject) {
     m_bResourceMissing = TRUE;
     return;
   }
+
   CFX_ByteStringC type =
       pXObject->GetDict()
           ? pXObject->GetDict()->GetConstString(FX_BSTRC("Subtype"))
@@ -886,8 +863,8 @@ void CPDF_StreamContentParser::Handle_SetGray_Stroke() {
 void CPDF_StreamContentParser::Handle_SetExtendGraphState() {
   CFX_ByteString name = GetString(0);
   CPDF_Dictionary* pGS =
-      (CPDF_Dictionary*)FindResourceObj(FX_BSTRC("ExtGState"), name);
-  if (pGS == NULL || pGS->GetType() != PDFOBJ_DICTIONARY) {
+      ToDictionary(FindResourceObj(FX_BSTRC("ExtGState"), name));
+  if (!pGS) {
     m_bResourceMissing = TRUE;
     return;
   }
@@ -1065,7 +1042,7 @@ void CPDF_StreamContentParser::Handle_SetColorPS_Fill() {
   }
   int nargs = m_ParamCount;
   int nvalues = nargs;
-  if (pLastParam->GetType() == PDFOBJ_NAME) {
+  if (pLastParam->IsName()) {
     nvalues--;
   }
   FX_FLOAT* values = NULL;
@@ -1095,9 +1072,9 @@ void CPDF_StreamContentParser::Handle_SetColorPS_Stroke() {
   }
   int nargs = m_ParamCount;
   int nvalues = nargs;
-  if (pLastParam->GetType() == PDFOBJ_NAME) {
+  if (pLastParam->IsName())
     nvalues--;
-  }
+
   FX_FLOAT* values = NULL;
   if (nvalues) {
     values = FX_Alloc(FX_FLOAT, nvalues);
@@ -1115,12 +1092,13 @@ void CPDF_StreamContentParser::Handle_SetColorPS_Stroke() {
   }
   FX_Free(values);
 }
-CFX_FloatRect _GetShadingBBox(CPDF_Stream* pStream,
-                              int type,
-                              const CFX_AffineMatrix* pMatrix,
-                              CPDF_Function** pFuncs,
-                              int nFuncs,
-                              CPDF_ColorSpace* pCS);
+CFX_FloatRect GetShadingBBox(CPDF_Stream* pStream,
+                             ShadingType type,
+                             const CFX_AffineMatrix* pMatrix,
+                             CPDF_Function** pFuncs,
+                             int nFuncs,
+                             CPDF_ColorSpace* pCS);
+
 void CPDF_StreamContentParser::Handle_ShadeFill() {
   if (m_Options.m_bTextOnly) {
     return;
@@ -1150,11 +1128,11 @@ void CPDF_StreamContentParser::Handle_ShadeFill() {
   } else {
     bbox = m_BBox;
   }
-  if (pShading->m_ShadingType >= 4) {
-    bbox.Intersect(_GetShadingBBox((CPDF_Stream*)pShading->m_pShadingObj,
-                                   pShading->m_ShadingType, &pObj->m_Matrix,
-                                   pShading->m_pFunctions, pShading->m_nFuncs,
-                                   pShading->m_pCS));
+  if (pShading->IsMeshShading()) {
+    bbox.Intersect(GetShadingBBox(ToStream(pShading->m_pShadingObj),
+                                  pShading->m_ShadingType, &pObj->m_Matrix,
+                                  pShading->m_pFunctions, pShading->m_nFuncs,
+                                  pShading->m_pCS));
   }
   pObj->m_Left = bbox.left;
   pObj->m_Right = bbox.right;
@@ -1217,11 +1195,12 @@ CPDF_Object* CPDF_StreamContentParser::FindResourceObj(
 }
 CPDF_Font* CPDF_StreamContentParser::FindFont(const CFX_ByteString& name) {
   CPDF_Dictionary* pFontDict =
-      (CPDF_Dictionary*)FindResourceObj(FX_BSTRC("Font"), name);
-  if (pFontDict == NULL || pFontDict->GetType() != PDFOBJ_DICTIONARY) {
+      ToDictionary(FindResourceObj(FX_BSTRC("Font"), name));
+  if (!pFontDict) {
     m_bResourceMissing = TRUE;
     return CPDF_Font::GetStockFont(m_pDocument, FX_BSTRC("Helvetica"));
   }
+
   CPDF_Font* pFont = m_pDocument->LoadFont(pFontDict);
   if (pFont && pFont->GetType3Font()) {
     pFont->GetType3Font()->SetPageResources(m_pResources);
@@ -1261,8 +1240,7 @@ CPDF_Pattern* CPDF_StreamContentParser::FindPattern(const CFX_ByteString& name,
                                                     FX_BOOL bShading) {
   CPDF_Object* pPattern = FindResourceObj(
       bShading ? FX_BSTRC("Shading") : FX_BSTRC("Pattern"), name);
-  if (pPattern == NULL || (pPattern->GetType() != PDFOBJ_DICTIONARY &&
-                           pPattern->GetType() != PDFOBJ_STREAM)) {
+  if (!pPattern || (!pPattern->IsDictionary() && !pPattern->IsStream())) {
     m_bResourceMissing = TRUE;
     return NULL;
   }
@@ -1356,15 +1334,14 @@ void CPDF_StreamContentParser::Handle_ShowText_Positioning() {
   if (pArray == NULL) {
     return;
   }
-  int n = pArray->GetCount(), nsegs = 0, i;
-  for (i = 0; i < n; i++) {
-    CPDF_Object* pObj = pArray->GetElementValue(i);
-    if (pObj->GetType() == PDFOBJ_STRING) {
+  int n = pArray->GetCount();
+  int nsegs = 0;
+  for (int i = 0; i < n; i++) {
+    if (pArray->GetElementValue(i)->IsString())
       nsegs++;
-    }
   }
   if (nsegs == 0) {
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
       m_pCurStates->m_TextX -=
           FXSYS_Mul(pArray->GetNumber(i),
                     m_pCurStates->m_TextState.GetFontSize()) /
@@ -1376,9 +1353,9 @@ void CPDF_StreamContentParser::Handle_ShowText_Positioning() {
   FX_FLOAT* pKerning = FX_Alloc(FX_FLOAT, nsegs);
   int iSegment = 0;
   FX_FLOAT fInitKerning = 0;
-  for (i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     CPDF_Object* pObj = pArray->GetElementValue(i);
-    if (pObj->GetType() == PDFOBJ_STRING) {
+    if (pObj->IsString()) {
       CFX_ByteString str = pObj->GetString();
       if (str.IsEmpty()) {
         continue;

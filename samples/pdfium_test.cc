@@ -381,16 +381,42 @@ void RenderPdf(const std::string& name, const char* pBuf, size_t len,
 
   (void)FPDFAvail_IsDocAvail(pdf_avail, &hints);
 
-  if (FPDFAvail_IsLinearized(pdf_avail)) {
-    fprintf(stderr, "Linearized path...\n");
+  if (FPDFAvail_IsLinearized(pdf_avail))
     doc = FPDFAvail_GetDocument(pdf_avail, nullptr);
-  } else {
-    fprintf(stderr, "Non-linearized path...\n");
+  else
     doc = FPDF_LoadCustomDocument(&file_access, nullptr);
-  }
 
   if (!doc) {
-    fprintf(stderr, "Load pdf docs unsuccessful.\n");
+    unsigned long err = FPDF_GetLastError();
+    fprintf(stderr, "Load pdf docs unsuccessful: ");
+    switch (err) {
+      case FPDF_ERR_SUCCESS:
+        fprintf(stderr, "Success");
+        break;
+      case FPDF_ERR_UNKNOWN:
+        fprintf(stderr, "Unknown error");
+        break;
+      case FPDF_ERR_FILE:
+        fprintf(stderr, "File not found or could not be opened");
+        break;
+      case FPDF_ERR_FORMAT:
+        fprintf(stderr, "File not in PDF format or corrupted");
+        break;
+      case FPDF_ERR_PASSWORD:
+        fprintf(stderr, "Password required or incorrect password");
+        break;
+      case FPDF_ERR_SECURITY:
+        fprintf(stderr, "Unsupported security scheme");
+        break;
+      case FPDF_ERR_PAGE:
+        fprintf(stderr, "Page not found or content error");
+        break;
+      default:
+        fprintf(stderr, "Unknown error %ld", err);
+    }
+    fprintf(stderr, ".\n");
+
+    FPDFAvail_Destroy(pdf_avail);
     return;
   }
 

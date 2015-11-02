@@ -23,8 +23,8 @@ CPDF_AnnotList::CPDF_AnnotList(CPDF_Page* pPage) {
   CPDF_Dictionary* pAcroForm = pRoot->GetDict("AcroForm");
   FX_BOOL bRegenerateAP = pAcroForm && pAcroForm->GetBoolean("NeedAppearances");
   for (FX_DWORD i = 0; i < pAnnots->GetCount(); ++i) {
-    CPDF_Dictionary* pDict = (CPDF_Dictionary*)pAnnots->GetElementValue(i);
-    if (pDict == NULL || pDict->GetType() != PDFOBJ_DICTIONARY) {
+    CPDF_Dictionary* pDict = ToDictionary(pAnnots->GetElementValue(i));
+    if (!pDict) {
       continue;
     }
     FX_DWORD dwObjNum = pDict->GetObjNum();
@@ -187,22 +187,20 @@ CPDF_Stream* FPDFDOC_GetAnnotAP(CPDF_Dictionary* pAnnotDict,
     return NULL;
   }
   const FX_CHAR* ap_entry = "N";
-  if (mode == CPDF_Annot::Down) {
+  if (mode == CPDF_Annot::Down)
     ap_entry = "D";
-  } else if (mode == CPDF_Annot::Rollover) {
+  else if (mode == CPDF_Annot::Rollover)
     ap_entry = "R";
-  }
-  if (!pAP->KeyExist(ap_entry)) {
+  if (!pAP->KeyExist(ap_entry))
     ap_entry = "N";
-  }
+
   CPDF_Object* psub = pAP->GetElementValue(ap_entry);
-  if (psub == NULL) {
-    return NULL;
-  }
-  CPDF_Stream* pStream = NULL;
-  if (psub->GetType() == PDFOBJ_STREAM) {
-    pStream = (CPDF_Stream*)psub;
-  } else if (psub->GetType() == PDFOBJ_DICTIONARY) {
+  if (!psub)
+    return nullptr;
+  if (CPDF_Stream* pStream = psub->AsStream())
+    return pStream;
+
+  if (CPDF_Dictionary* pDict = psub->AsDictionary()) {
     CFX_ByteString as = pAnnotDict->GetString("AS");
     if (as.IsEmpty()) {
       CFX_ByteString value = pAnnotDict->GetString(FX_BSTRC("V"));
@@ -210,15 +208,14 @@ CPDF_Stream* FPDFDOC_GetAnnotAP(CPDF_Dictionary* pAnnotDict,
         CPDF_Dictionary* pDict = pAnnotDict->GetDict(FX_BSTRC("Parent"));
         value = pDict ? pDict->GetString(FX_BSTRC("V")) : CFX_ByteString();
       }
-      if (value.IsEmpty() || !((CPDF_Dictionary*)psub)->KeyExist(value)) {
+      if (value.IsEmpty() || !pDict->KeyExist(value))
         as = FX_BSTRC("Off");
-      } else {
+      else
         as = value;
-      }
     }
-    pStream = ((CPDF_Dictionary*)psub)->GetStream(as);
+    return pDict->GetStream(as);
   }
-  return pStream;
+  return nullptr;
 }
 CPDF_Form* CPDF_Annot::GetAPForm(const CPDF_Page* pPage, AppearanceMode mode) {
   CPDF_Stream* pStream = FPDFDOC_GetAnnotAP(m_pAnnotDict, mode);

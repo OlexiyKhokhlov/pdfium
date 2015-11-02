@@ -9,7 +9,7 @@ class FPDFParserEmbeddertest : public EmbedderTest {};
 
 TEST_F(FPDFParserEmbeddertest, LoadError_454695) {
   // Test trailer dictionary with $$ze instead of Size.
-  EXPECT_TRUE(OpenDocument("testing/resources/bug_454695.pdf"));
+  EXPECT_FALSE(OpenDocument("testing/resources/bug_454695.pdf"));
 }
 
 TEST_F(FPDFParserEmbeddertest, Bug_481363) {
@@ -18,4 +18,13 @@ TEST_F(FPDFParserEmbeddertest, Bug_481363) {
   FPDF_PAGE page = LoadPage(0);
   EXPECT_NE(nullptr, page);
   UnloadPage(page);
+}
+
+TEST_F(FPDFParserEmbeddertest, Bug_544880) {
+  // Test self referencing /Pages object.
+  EXPECT_TRUE(OpenDocument("testing/resources/bug_544880.pdf"));
+  // Shouldn't crash. We don't check the return value here because we get the
+  // the count from the "/Count 1" in the testcase (at the time of writing)
+  // rather than the actual count (0).
+  (void)GetPageCount();
 }
