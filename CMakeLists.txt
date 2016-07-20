@@ -20,6 +20,8 @@ endif(USE_BINUTILS_WORKAROUND)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wc++0x-compat -fno-exceptions -fvisibility=hidden")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 if(WIN32)
   add_definitions(-D_WIN32)
   set(WINDOWS_SOURCES
@@ -146,12 +148,12 @@ endif(USE_KOREA_MAPS)
 
 if(USE_SYSTEM_FREETYPE)
   find_package(Freetype REQUIRED)
-  include_directories(${FREETYPE_INCLUDE_DIRS})
+  include_directories(${FREETYPE_INCLUDE_DIRS} ${FREETYPE_INCLUDE_DIRS}/freetype)
   add_definitions(-DUSE_SYSTEM_FREETYPE)
   add_library(internal_freetype OBJECT empty.c)
 else(USE_SYSTEM_FREETYPE)
   add_subdirectory(third_party/freetype)
-  include_directories(third_party/freetype/include)
+  include_directories(third_party/freetype/include third_party/freetype/include/freetype)
 endif(USE_SYSTEM_FREETYPE)
 
 if(USE_SYSTEM_JPEG)

@@ -5,10 +5,10 @@ deps = {
     "https://chromium.googlesource.com/external/gyp",
 
   "buildtools":
-    "https://chromium.googlesource.com/chromium/buildtools.git@46ce8cb60364e9e0b21a81136c7debdddfd063a8",
+    "https://chromium.googlesource.com/chromium/buildtools.git@c2f259809d5ede3275df5ea0842f0431990c4f98",
 
   "testing/corpus":
-     "https://pdfium.googlesource.com/pdfium_tests@2ddcfbd23aa7ef0a7424ef24a3fac7acdfb39ee5",
+     "https://pdfium.googlesource.com/pdfium_tests@45f88c6914fcac26ad930bb0ebbfa468c21db0a5",
 
   "testing/gmock":
      "https://chromium.googlesource.com/external/googlemock.git@29763965ab52f24565299976b936d1265cb6a271",
@@ -20,7 +20,7 @@ deps = {
     "https://chromium.googlesource.com/chromium/src/tools/clang",
 
   "v8":
-    "https://chromium.googlesource.com/v8/v8.git@2607e2b06b0be40a4c3f762c1a666a389dc28a99",
+    "https://chromium.googlesource.com/v8/v8.git@88b764d7f74008fe5f30d59e3881e374d538b72e",
 
   "v8/third_party/icu":
     "https://chromium.googlesource.com/chromium/deps/icu46",
@@ -34,6 +34,8 @@ deps_os = {
 }
 
 include_rules = [
+  # Basic stuff that everyone can use.
+  # Note: public is not here because core cannot depend on public.
   '+testing',
   '+third_party/base',
 ]

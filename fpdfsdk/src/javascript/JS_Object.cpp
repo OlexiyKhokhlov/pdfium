@@ -61,7 +61,7 @@ void DisposeObject(const v8::WeakCallbackInfo<CJS_Object>& data) {
 }
 
 CJS_Object::CJS_Object(v8::Local<v8::Object> pObject) {
-  m_pIsolate = pObject->CreationContext()->GetIsolate();
+  m_pIsolate = pObject->GetIsolate();
   m_pV8Object.Reset(m_pIsolate, pObject);
 }
 
@@ -108,6 +108,7 @@ CJS_Timer::CJS_Timer(CJS_EmbedObj* pObj,
       m_bValid(true),
       m_nType(nType),
       m_dwTimeOut(dwTimeOut),
+      m_swJScript(script),
       m_pRuntime(pRuntime),
       m_pApp(pApp) {
   IFX_SystemHandler* pHandler = m_pApp->GetSysHandler();

@@ -57,7 +57,7 @@ CPDFSDK_Annot* CPDFSDK_AnnotHandlerMgr::NewAnnot(CPDF_Annot* pAnnot,
     return pAnnotHandler->NewAnnot(pAnnot, pPageView);
   }
 
-  return new CPDFSDK_Annot(pAnnot, pPageView);
+  return new CPDFSDK_BAAnnot(pAnnot, pPageView);
 }
 
 void CPDFSDK_AnnotHandlerMgr::ReleaseAnnot(CPDFSDK_Annot* pAnnot) {
@@ -100,9 +100,9 @@ IPDFSDK_AnnotHandler* CPDFSDK_AnnotHandlerMgr::GetAnnotHandler(
   ASSERT(pAnnot != NULL);
 
   CPDF_Annot* pPDFAnnot = pAnnot->GetPDFAnnot();
-  ASSERT(pPDFAnnot != NULL);
-
-  return GetAnnotHandler(pPDFAnnot->GetSubType());
+  if (pPDFAnnot)
+    return GetAnnotHandler(pPDFAnnot->GetSubType());
+  return nullptr;
 }
 
 IPDFSDK_AnnotHandler* CPDFSDK_AnnotHandlerMgr::GetAnnotHandler(
@@ -116,12 +116,13 @@ void CPDFSDK_AnnotHandlerMgr::Annot_OnDraw(CPDFSDK_PageView* pPageView,
                                            CFX_RenderDevice* pDevice,
                                            CPDF_Matrix* pUser2Device,
                                            FX_DWORD dwFlags) {
-  ASSERT(pAnnot != NULL);
+  ASSERT(pAnnot);
 
   if (IPDFSDK_AnnotHandler* pAnnotHandler = GetAnnotHandler(pAnnot)) {
     pAnnotHandler->OnDraw(pPageView, pAnnot, pDevice, pUser2Device, dwFlags);
   } else {
-    pAnnot->DrawAppearance(pDevice, pUser2Device, CPDF_Annot::Normal, NULL);
+    static_cast<CPDFSDK_BAAnnot*>(pAnnot)
+        ->DrawAppearance(pDevice, pUser2Device, CPDF_Annot::Normal, nullptr);
   }
 }
 
@@ -380,11 +381,11 @@ void CPDFSDK_BFAnnotHandler::OnDraw(CPDFSDK_PageView* pPageView,
                                     CFX_RenderDevice* pDevice,
                                     CPDF_Matrix* pUser2Device,
                                     FX_DWORD dwFlags) {
-  ASSERT(pAnnot != NULL);
   CFX_ByteString sSubType = pAnnot->GetSubType();
 
   if (sSubType == BFFT_SIGNATURE) {
-    pAnnot->DrawAppearance(pDevice, pUser2Device, CPDF_Annot::Normal, NULL);
+    static_cast<CPDFSDK_BAAnnot*>(pAnnot)
+        ->DrawAppearance(pDevice, pUser2Device, CPDF_Annot::Normal, nullptr);
   } else {
     if (m_pFormFiller) {
       m_pFormFiller->OnDraw(pPageView, pAnnot, pDevice, pUser2Device, dwFlags);

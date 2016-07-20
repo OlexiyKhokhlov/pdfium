@@ -13,6 +13,10 @@
 #define PATH_SEPARATOR '/'
 #endif
 
+#ifdef PDF_ENABLE_V8
+#include "v8/include/libplatform/libplatform.h"
+#endif
+
 namespace {
 
 #ifdef PDF_ENABLE_V8
@@ -96,6 +100,22 @@ char* GetFileContents(const char* filename, size_t* retlen) {
   }
   *retlen = bytes_read;
   return buffer;
+}
+
+std::wstring GetWideString(FPDF_WIDESTRING wstr) {
+  if (!wstr)
+    return nullptr;
+
+  size_t characters = 0;
+  while (wstr[characters])
+    ++characters;
+
+  std::wstring platform_string(characters, L'\0');
+  for (size_t i = 0; i < characters + 1; ++i) {
+    const unsigned char* ptr = reinterpret_cast<const unsigned char*>(&wstr[i]);
+    platform_string[i] = ptr[0] + 256 * ptr[1];
+  }
+  return platform_string;
 }
 
 #ifdef PDF_ENABLE_V8

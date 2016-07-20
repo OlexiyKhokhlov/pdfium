@@ -15,7 +15,8 @@
 #define FPDFSDK_INCLUDE_JSAPI_FXJS_V8_H_
 
 #include <v8.h>
-#include "../../../core/include/fxcrt/fx_basic.h"
+
+#include "core/include/fxcrt/fx_basic.h"
 
 // FXJS_V8 places no restrictions on these two classes; it merely passes them
 // on to caller-provided methods.
@@ -136,7 +137,6 @@ v8::Local<v8::Object> FXJS_NewFxDynamicObj(v8::Isolate* pIsolate,
                                            int nObjDefnID);
 v8::Local<v8::Object> FXJS_GetThisObj(v8::Isolate* pIsolate);
 int FXJS_GetObjDefnID(v8::Local<v8::Object> pObj);
-v8::Isolate* FXJS_GetRuntime(v8::Local<v8::Object> pObj);
 const wchar_t* FXJS_GetTypeof(v8::Local<v8::Value> pObj);
 
 void FXJS_SetPrivate(v8::Isolate* pIsolate,

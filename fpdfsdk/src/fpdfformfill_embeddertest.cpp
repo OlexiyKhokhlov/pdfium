@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "../../public/fpdf_formfill.h"
 #include "../../testing/embedder_test.h"
 #include "../../testing/embedder_test_mock_delegate.h"
 #include "../../testing/embedder_test_timer_handling_delegate.h"
+#include "public/fpdf_formfill.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -62,4 +62,24 @@ TEST_F(FPDFFormFillEmbeddertest, BUG_514690) {
   FORM_OnMouseMove(form_handle(), nullptr, 0, 10.0, 10.0);
 
   UnloadPage(page);
+}
+
+TEST_F(FPDFFormFillEmbeddertest, BUG_551248) {
+  EmbedderTestTimerHandlingDelegate delegate;
+  SetDelegate(&delegate);
+
+  EXPECT_TRUE(OpenDocument("testing/resources/bug_551248.pdf"));
+  FPDF_PAGE page = LoadPage(0);
+  EXPECT_NE(nullptr, page);
+  DoOpenActions();
+  delegate.AdvanceTime(5000);
+  UnloadPage(page);
+
+  const auto& alerts = delegate.GetAlerts();
+  ASSERT_EQ(1U, alerts.size());
+
+  EXPECT_STREQ(L"hello world", alerts[0].message.c_str());
+  EXPECT_STREQ(L"Alert", alerts[0].title.c_str());
+  EXPECT_EQ(0, alerts[0].type);
+  EXPECT_EQ(0, alerts[0].icon);
 }

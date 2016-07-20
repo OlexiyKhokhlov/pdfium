@@ -4,9 +4,9 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../public/fpdf_searchex.h"
+#include "public/fpdf_searchex.h"
 
-#include "../../core/include/fpdftext/fpdf_text.h"
+#include "core/include/fpdftext/fpdf_text.h"
 
 DLLEXPORT int STDCALL
 FPDFText_GetCharIndexFromTextIndex(FPDF_TEXTPAGE text_page, int nTextIndex) {

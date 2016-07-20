@@ -6,12 +6,13 @@
 
 #include <algorithm>
 
-#include "../../public/fpdf_ext.h"
-#include "../../third_party/base/nonstd_unique_ptr.h"
+#include "../include/fsdk_mgr.h"
+
 #include "../include/formfiller/FFL_FormFiller.h"
 #include "../include/fsdk_define.h"
-#include "../include/fsdk_mgr.h"
 #include "../include/javascript/IJavaScript.h"
+#include "public/fpdf_ext.h"
+#include "third_party/base/nonstd_unique_ptr.h"
 
 #if _FX_OS_ == _FX_ANDROID_
 #include "time.h"
@@ -383,7 +384,11 @@ CFFL_IFormFiller* CPDFDoc_Environment::GetIFormFiller() {
 
 CPDFSDK_Document::CPDFSDK_Document(CPDF_Document* pDoc,
                                    CPDFDoc_Environment* pEnv)
-    : m_pDoc(pDoc), m_pFocusAnnot(nullptr), m_pEnv(pEnv), m_bChangeMask(FALSE) {
+    : m_pDoc(pDoc),
+      m_pFocusAnnot(nullptr),
+      m_pEnv(pEnv),
+      m_bChangeMask(FALSE),
+      m_bBeingDestroyed(FALSE) {
 }
 
 CPDFSDK_Document::~CPDFSDK_Document() {

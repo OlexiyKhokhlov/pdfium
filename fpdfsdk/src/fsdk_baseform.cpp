@@ -4,13 +4,13 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../third_party/base/nonstd_unique_ptr.h"
-#include "../include/fsdk_define.h"
-#include "../include/fsdk_mgr.h"
-#include "../include/fsdk_baseannot.h"
-#include "../include/fsdk_baseform.h"
 #include "../include/formfiller/FFL_FormFiller.h"
 #include "../include/fsdk_actionhandler.h"
+#include "../include/fsdk_baseannot.h"
+#include "../include/fsdk_baseform.h"
+#include "../include/fsdk_define.h"
+#include "../include/fsdk_mgr.h"
+#include "third_party/base/nonstd_unique_ptr.h"
 
 #include "../include/javascript/IJavaScript.h"
 
@@ -26,7 +26,7 @@
 CPDFSDK_Widget::CPDFSDK_Widget(CPDF_Annot* pAnnot,
                                CPDFSDK_PageView* pPageView,
                                CPDFSDK_InterForm* pInterForm)
-    : CPDFSDK_Annot(pAnnot, pPageView),
+    : CPDFSDK_BAAnnot(pAnnot, pPageView),
       m_pInterForm(pInterForm),
       m_nAppAge(0),
       m_nValueAge(0) {
@@ -78,6 +78,12 @@ int CPDFSDK_Widget::GetFieldType() const {
   ASSERT(pField != NULL);
 
   return pField->GetFieldType();
+}
+
+FX_BOOL CPDFSDK_Widget::IsAppearanceValid() {
+  ASSERT(m_pPageView != NULL);
+
+  return CPDFSDK_BAAnnot::IsAppearanceValid();
 }
 
 int CPDFSDK_Widget::GetFieldFlags() const {
@@ -356,7 +362,7 @@ void CPDFSDK_Widget::DrawAppearance(CFX_RenderDevice* pDevice,
     pDevice->DrawPath(&pathData, pUser2Device, &gsd, 0, 0xFFAAAAAA,
                       FXFILL_ALTERNATE);
   } else {
-    CPDFSDK_Annot::DrawAppearance(pDevice, pUser2Device, mode, pOptions);
+    CPDFSDK_BAAnnot::DrawAppearance(pDevice, pUser2Device, mode, pOptions);
   }
 }
 
@@ -1462,7 +1468,7 @@ CPDF_Action CPDFSDK_Widget::GetAAction(CPDF_AAction::AActionType eAAT) {
     case CPDF_AAction::PageClose:
     case CPDF_AAction::PageVisible:
     case CPDF_AAction::PageInvisible:
-      return CPDFSDK_Annot::GetAAction(eAAT);
+      return CPDFSDK_BAAnnot::GetAAction(eAAT);
 
     case CPDF_AAction::KeyStroke:
     case CPDF_AAction::Format:
@@ -1471,8 +1477,7 @@ CPDF_Action CPDFSDK_Widget::GetAAction(CPDF_AAction::AActionType eAAT) {
       CPDF_FormField* pField = GetFormField();
       if (CPDF_AAction aa = pField->GetAdditionalAction())
         return aa.GetAction(eAAT);
-
-      return CPDFSDK_Annot::GetAAction(eAAT);
+      return CPDFSDK_BAAnnot::GetAAction(eAAT);
     }
     default:
       break;
@@ -1801,7 +1806,7 @@ CFX_WideString CPDFSDK_InterForm::OnFormat(CPDF_FormField* pFormField,
   bFormated = FALSE;
 
   CPDF_AAction aAction = pFormField->GetAdditionalAction();
-  if (aAction != NULL && aAction.ActionExist(CPDF_AAction::Format)) {
+  if (aAction && aAction.ActionExist(CPDF_AAction::Format)) {
     CPDF_Action action = aAction.GetAction(CPDF_AAction::Format);
     if (action) {
       CFX_WideString script = action.GetJavaScript();
@@ -1871,7 +1876,7 @@ void CPDFSDK_InterForm::OnKeyStrokeCommit(CPDF_FormField* pFormField,
   ASSERT(pFormField != NULL);
 
   CPDF_AAction aAction = pFormField->GetAdditionalAction();
-  if (aAction != NULL && aAction.ActionExist(CPDF_AAction::KeyStroke)) {
+  if (aAction && aAction.ActionExist(CPDF_AAction::KeyStroke)) {
     CPDF_Action action = aAction.GetAction(CPDF_AAction::KeyStroke);
     if (action) {
       ASSERT(m_pDocument != NULL);
@@ -1899,7 +1904,7 @@ void CPDFSDK_InterForm::OnValidate(CPDF_FormField* pFormField,
   ASSERT(pFormField != NULL);
 
   CPDF_AAction aAction = pFormField->GetAdditionalAction();
-  if (aAction != NULL && aAction.ActionExist(CPDF_AAction::Validate)) {
+  if (aAction && aAction.ActionExist(CPDF_AAction::Validate)) {
     CPDF_Action action = aAction.GetAction(CPDF_AAction::Validate);
     if (action) {
       ASSERT(m_pDocument != NULL);
@@ -2033,19 +2038,19 @@ FX_BOOL CPDFSDK_InterForm::FDFToURLEncodedData(uint8_t*& pBuf,
   CFDF_Document* pFDF = CFDF_Document::ParseMemory(pBuf, nBufSize);
   if (pFDF) {
     CPDF_Dictionary* pMainDict = pFDF->GetRoot()->GetDict("FDF");
-    if (pMainDict == NULL)
+    if (!pMainDict)
       return FALSE;
 
     // Get fields
     CPDF_Array* pFields = pMainDict->GetArray("Fields");
-    if (pFields == NULL)
+    if (!pFields)
       return FALSE;
 
     CFX_ByteTextBuf fdfEncodedData;
 
     for (FX_DWORD i = 0; i < pFields->GetCount(); i++) {
       CPDF_Dictionary* pField = pFields->GetDict(i);
-      if (pField == NULL)
+      if (!pField)
         continue;
       CFX_WideString name;
       name = pField->GetUnicodeText("T");
@@ -2101,14 +2106,14 @@ FX_BOOL CPDFSDK_InterForm::SubmitForm(const CFX_WideString& sDestination,
   CPDFDoc_Environment* pEnv = m_pDocument->GetEnv();
   ASSERT(pEnv != NULL);
 
-  if (NULL == m_pDocument)
+  if (!m_pDocument)
     return FALSE;
   CFX_WideString wsPDFFilePath = m_pDocument->GetPath();
 
-  if (NULL == m_pInterForm)
+  if (!m_pInterForm)
     return FALSE;
   CFDF_Document* pFDFDoc = m_pInterForm->ExportToFDF(wsPDFFilePath);
-  if (NULL == pFDFDoc)
+  if (!pFDFDoc)
     return FALSE;
 
   CFX_ByteTextBuf FdfBuffer;

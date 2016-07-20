@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "../../core/include/fxcrt/fx_string.h"
-#include "../../public/fpdf_doc.h"
-#include "../../public/fpdfview.h"
 #include "../../testing/embedder_test.h"
 #include "../../testing/fx_string_testhelpers.h"
+#include "core/include/fxcrt/fx_string.h"
+#include "public/fpdf_doc.h"
+#include "public/fpdfview.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
 class FPDFDocEmbeddertest : public EmbedderTest {};

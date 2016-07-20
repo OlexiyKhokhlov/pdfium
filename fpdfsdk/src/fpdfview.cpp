@@ -4,17 +4,18 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "../../core/include/fxcodec/fx_codec.h"
-#include "../../core/include/fxcrt/fx_safe_types.h"
-#include "../../public/fpdf_ext.h"
-#include "../../public/fpdf_progressive.h"
-#include "../../public/fpdfview.h"
-#include "../../third_party/base/nonstd_unique_ptr.h"
-#include "../../third_party/base/numerics/safe_conversions_impl.h"
+#include "public/fpdfview.h"
+
 #include "../include/fsdk_define.h"
 #include "../include/fsdk_mgr.h"
 #include "../include/fsdk_rendercontext.h"
 #include "../include/javascript/IJavaScript.h"
+#include "core/include/fxcodec/fx_codec.h"
+#include "core/include/fxcrt/fx_safe_types.h"
+#include "public/fpdf_ext.h"
+#include "public/fpdf_progressive.h"
+#include "third_party/base/nonstd_unique_ptr.h"
+#include "third_party/base/numerics/safe_conversions_impl.h"
 
 CPDF_Document* CPDFDocumentFromFPDFDocument(FPDF_DOCUMENT doc) {
   return static_cast<CPDF_Document*>(doc);

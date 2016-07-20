@@ -9,9 +9,9 @@
 
 #include <map>
 
-#include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../fxcrt/fx_system.h"
 #include "fx_dib.h"
+#include "third_party/base/nonstd_unique_ptr.h"
 
 typedef struct FT_FaceRec_* FXFT_Face;
 typedef void* FXFT_Library;
@@ -22,7 +22,6 @@ class CFX_FontMapper;
 class CFX_PathData;
 class CFX_SizeGlyphCache;
 class CFX_SubstFont;
-class CFontFileFaceInfo;
 class CTTFontDesc;
 class IFX_FontEncoding;
 class IFX_SystemFontInfo;
@@ -169,10 +168,7 @@ class CFX_SubstFont {
 #define FX_FONT_FLAG_SYMBOLIC_SYMBOL 0x10
 #define FX_FONT_FLAG_SYMBOLIC_DINGBATS 0x20
 #define FX_FONT_FLAG_MULTIPLEMASTER 0x40
-typedef struct {
-  const uint8_t* m_pFontData;
-  FX_DWORD m_dwSize;
-} FoxitFonts;
+
 class CFX_FontMgr {
  public:
   CFX_FontMgr();
@@ -208,7 +204,7 @@ class CFX_FontMgr {
                           int italic_angle,
                           int CharsetCP,
                           CFX_SubstFont* pSubstFont);
-  FX_BOOL GetStandardFont(const uint8_t*& pFontData, FX_DWORD& size, int index);
+  bool GetBuiltinFont(size_t index, const uint8_t** pFontData, FX_DWORD* size);
   CFX_FontMapper* GetBuiltinMapper() const { return m_pBuiltinMapper.get(); }
   FXFT_Library GetFTLibrary() const { return m_FTLibrary; }
 

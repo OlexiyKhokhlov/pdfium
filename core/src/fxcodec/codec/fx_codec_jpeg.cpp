@@ -13,10 +13,10 @@
 
 extern "C" {
 #undef FAR
-#ifdef USE_SYSTEM_JPEG
-  #include <jpeglib.h>
+#if defined(USE_SYSTEM_JPEG)
+    #include <jpeglib.h>
 #else
-  #include "../../../../third_party/libjpeg/jpeglib.h"
+    #include "third_party/libjpeg/jpeglib.h"
 #endif
 }
 

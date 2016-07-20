@@ -11,15 +11,15 @@
 #include <utility>
 #include <vector>
 
-#include "../public/fpdf_dataavail.h"
-#include "../public/fpdf_text.h"
-#include "../public/fpdfview.h"
+#include "public/fpdf_dataavail.h"
+#include "public/fpdf_text.h"
+#include "public/fpdfview.h"
 #include "test_support.h"
 #include "testing/gmock/include/gmock/gmock.h"
 
 #ifdef PDF_ENABLE_V8
-#include "v8/include/libplatform/libplatform.h"
 #include "v8/include/v8.h"
+#include "v8/include/v8-platform.h"
 #endif  // PDF_ENABLE_V8
 
 namespace {

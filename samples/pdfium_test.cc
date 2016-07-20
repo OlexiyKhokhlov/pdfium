@@ -13,18 +13,18 @@
 #include <utility>
 #include <vector>
 
-#include "../public/fpdf_dataavail.h"
-#include "../public/fpdf_ext.h"
-#include "../public/fpdf_formfill.h"
-#include "../public/fpdf_text.h"
-#include "../public/fpdfview.h"
 #include "../testing/test_support.h"
 #include "image_diff_png.h"
+#include "public/fpdf_dataavail.h"
+#include "public/fpdf_ext.h"
+#include "public/fpdf_formfill.h"
+#include "public/fpdf_text.h"
+#include "public/fpdfview.h"
 
 #ifdef PDF_ENABLE_V8
 #include "v8/include/libplatform/libplatform.h"
 #include "v8/include/v8.h"
-#endif
+#endif  // PDF_ENABLE_V8
 
 #ifdef _WIN32
 #define snprintf _snprintf
@@ -196,19 +196,8 @@ void WriteEmf(FPDF_PAGE page, const char* pdf_name, int num) {
 
 int ExampleAppAlert(IPDF_JSPLATFORM*, FPDF_WIDESTRING msg, FPDF_WIDESTRING,
                     int, int) {
-  // Deal with differences between UTF16LE and wchar_t on this platform.
-  size_t characters = 0;
-  while (msg[characters]) {
-    ++characters;
-  }
-  wchar_t* platform_string =
-      static_cast<wchar_t*>(malloc((characters + 1) * sizeof(wchar_t)));
-  for (size_t i = 0; i < characters + 1; ++i) {
-    unsigned char* ptr = (unsigned char*)&msg[i];
-    platform_string[i] = ptr[0] + 256 * ptr[1];
-  }
-  printf("Alert: %ls\n", platform_string);
-  free(platform_string);
+  std::wstring platform_string = GetWideString(msg);
+  printf("Alert: %ls\n", platform_string.c_str());
   return 0;
 }
 

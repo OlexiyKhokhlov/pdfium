@@ -9,7 +9,6 @@
 #else
   #include "../../../../third_party/lcms2-2.6/include/lcms2.h"
 #endif
-
 #include "../../../include/fxcodec/fx_codec.h"
 #include "codec_int.h"
 

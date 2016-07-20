@@ -7,10 +7,9 @@
 #ifndef CORE_INCLUDE_FPDFAPI_FPDF_PARSER_H_
 #define CORE_INCLUDE_FPDFAPI_FPDF_PARSER_H_
 
-#include "../../../public/fpdf_dataavail.h"
-#include "../../../third_party/base/nonstd_unique_ptr.h"
 #include "../fxcrt/fx_system.h"
 #include "fpdf_objects.h"
+#include "third_party/base/nonstd_unique_ptr.h"
 
 class CFDF_Document;
 class CFDF_Parser;
@@ -299,6 +298,10 @@ class CPDF_SyntaxParser {
   CFX_ByteString GetNextWord(FX_BOOL& bIsNumber);
 
  protected:
+  friend class CPDF_Parser;
+  friend class CPDF_DataAvail;
+  friend class fpdf_parser_parser_ReadHexString_Test;
+
   static const int kParserMaxRecursionDepth = 64;
   static int s_CurrentRecursionDepth;
 
@@ -352,8 +355,6 @@ class CPDF_SyntaxParser {
   FX_BOOL m_bIsNumber;
 
   FX_FILESIZE m_dwWordPos;
-  friend class CPDF_Parser;
-  friend class CPDF_DataAvail;
 };
 
 #define PDFPARSE_TYPEONLY 1
@@ -869,6 +870,34 @@ class IFX_DownloadHints {
 
 class IPDF_DataAvail {
  public:
+  // Must match PDF_DATA_* definitions in public/fpdf_dataavail.h, but cannot
+  // #include that header. fpdfsdk/src/fpdf_dataavail.cpp has static_asserts
+  // to make sure the two sets of values match.
+  enum DocAvailStatus {
+    DataError = -1,        // PDF_DATA_ERROR
+    DataNotAvailable = 0,  // PDF_DATA_NOTAVAIL
+    DataAvailable = 1,     // PDF_DATA_AVAIL
+  };
+
+  // Must match PDF_*LINEAR* definitions in public/fpdf_dataavail.h, but cannot
+  // #include that header. fpdfsdk/src/fpdf_dataavail.cpp has static_asserts
+  // to make sure the two sets of values match.
+  enum DocLinearizationStatus {
+    LinearizationUnknown = -1,  // PDF_LINEARIZATION_UNKNOWN
+    NotLinearized = 0,          // PDF_NOT_LINEARIZED
+    Linearized = 1,             // PDF_LINEARIZED
+  };
+
+  // Must match PDF_FORM_* definitions in public/fpdf_dataavail.h, but cannot
+  // #include that header. fpdfsdk/src/fpdf_dataavail.cpp has static_asserts
+  // to make sure the two sets of values match.
+  enum DocFormStatus {
+    FormError = -1,        // PDF_FORM_ERROR
+    FormNotAvailable = 0,  // PDF_FORM_NOTAVAIL
+    FormAvailable = 1,     // PDF_FORM_AVAIL
+    FormNotExist = 2,      // PDF_FORM_NOTEXIST
+  };
+
   static IPDF_DataAvail* Create(IFX_FileAvail* pFileAvail,
                                 IFX_FileRead* pFileRead);
   virtual ~IPDF_DataAvail() {}
@@ -876,12 +905,12 @@ class IPDF_DataAvail {
   IFX_FileAvail* GetFileAvail() const { return m_pFileAvail; }
   IFX_FileRead* GetFileRead() const { return m_pFileRead; }
 
-  virtual int IsDocAvail(IFX_DownloadHints* pHints) = 0;
+  virtual DocAvailStatus IsDocAvail(IFX_DownloadHints* pHints) = 0;
   virtual void SetDocument(CPDF_Document* pDoc) = 0;
   virtual int IsPageAvail(int iPage, IFX_DownloadHints* pHints) = 0;
   virtual FX_BOOL IsLinearized() = 0;
-  virtual int IsFormAvail(IFX_DownloadHints* pHints) = 0;
-  virtual int IsLinearizedPDF() = 0;
+  virtual DocFormStatus IsFormAvail(IFX_DownloadHints* pHints) = 0;
+  virtual DocLinearizationStatus IsLinearizedPDF() = 0;
   virtual void GetLinearizedMainXRefInfo(FX_FILESIZE* pPos,
                                          FX_DWORD* pSize) = 0;
 
@@ -944,6 +973,24 @@ enum PDF_DATAAVAIL_STATUS {
   PDF_DATAAVAIL_TRAILER_APPEND
 };
 
+// Public for testing.
+FX_DWORD A85Decode(const uint8_t* src_buf,
+                   FX_DWORD src_size,
+                   uint8_t*& dest_buf,
+                   FX_DWORD& dest_size);
+// Public for testing.
+FX_DWORD HexDecode(const uint8_t* src_buf,
+                   FX_DWORD src_size,
+                   uint8_t*& dest_buf,
+                   FX_DWORD& dest_size);
+// Public for testing.
+FX_DWORD FPDFAPI_FlateOrLZWDecode(FX_BOOL bLZW,
+                                  const uint8_t* src_buf,
+                                  FX_DWORD src_size,
+                                  CPDF_Dictionary* pParams,
+                                  FX_DWORD estimated_size,
+                                  uint8_t*& dest_buf,
+                                  FX_DWORD& dest_size);
 FX_BOOL PDF_DataDecode(const uint8_t* src_buf,
                        FX_DWORD src_size,
                        const CPDF_Dictionary* pDict,
