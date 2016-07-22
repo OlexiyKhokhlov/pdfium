@@ -4,8 +4,8 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#ifndef XFA_FXFA_PARSER_XFA_DOCUMENT_H_
-#define XFA_FXFA_PARSER_XFA_DOCUMENT_H_
+#ifndef XFA_FXFA_PARSER_CXFA_DOCUMENT_H_
+#define XFA_FXFA_PARSER_CXFA_DOCUMENT_H_
 
 #include "xfa/fxfa/include/fxfa.h"
 #include "xfa/fxfa/parser/xfa_localemgr.h"
@@ -105,8 +105,6 @@ class CXFA_Document {
   CXFA_NodeArray m_pPendingPageSet;
 
  protected:
-  friend class CXFA_SimpleParser;
-
   CXFA_DocumentParser* m_pParser;
   CXFA_ScriptContext* m_pScriptContext;
   CXFA_LayoutProcessor* m_pLayoutProcessor;
@@ -123,4 +121,4 @@ class CXFA_Document {
   uint32_t m_dwDocFlags;
 };
 
-#endif  // XFA_FXFA_PARSER_XFA_DOCUMENT_H_
+#endif  // XFA_FXFA_PARSER_CXFA_DOCUMENT_H_

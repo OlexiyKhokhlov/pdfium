@@ -14,7 +14,8 @@
 #include "xfa/fxfa/include/xfa_ffdoc.h"
 #include "xfa/fxfa/include/xfa_ffdocview.h"
 #include "xfa/fxfa/include/xfa_ffwidget.h"
-#include "xfa/fxfa/parser/xfa_document_layout_imp.h"
+#include "xfa/fxfa/parser/cxfa_layoutprocessor.h"
+#include "xfa/fxfa/parser/cxfa_measurement.h"
 
 CXFA_FFWidgetHandler::CXFA_FFWidgetHandler(CXFA_FFDocView* pDocView)
     : m_pDocView(pDocView) {}

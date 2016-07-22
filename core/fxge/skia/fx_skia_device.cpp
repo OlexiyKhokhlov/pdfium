@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "core/fxcodec/include/fx_codec.h"
+#include "core/fxcrt/include/fx_memory.h"
 
 #include "core/fpdfapi/fpdf_page/cpdf_shadingpattern.h"
 #include "core/fpdfapi/fpdf_page/pageint.h"
@@ -1462,7 +1463,7 @@ CFX_FxgeDevice::CFX_FxgeDevice() {
 
 SkPictureRecorder* CFX_FxgeDevice::CreateRecorder(int size_x, int size_y) {
   CFX_SkiaDeviceDriver* skDriver = new CFX_SkiaDeviceDriver(size_x, size_y);
-  SetDeviceDriver(skDriver);
+  SetDeviceDriver(WrapUnique(skDriver));
   return skDriver->GetRecorder();
 }
 
@@ -1473,15 +1474,15 @@ bool CFX_FxgeDevice::Attach(CFX_DIBitmap* pBitmap,
   if (!pBitmap)
     return false;
   SetBitmap(pBitmap);
-  SetDeviceDriver(new CFX_SkiaDeviceDriver(pBitmap, bRgbByteOrder, pOriDevice,
-                                           bGroupKnockout));
+  SetDeviceDriver(WrapUnique(new CFX_SkiaDeviceDriver(
+      pBitmap, bRgbByteOrder, pOriDevice, bGroupKnockout)));
   return true;
 }
 
 bool CFX_FxgeDevice::AttachRecorder(SkPictureRecorder* recorder) {
   if (!recorder)
     return false;
-  SetDeviceDriver(new CFX_SkiaDeviceDriver(recorder));
+  SetDeviceDriver(WrapUnique(new CFX_SkiaDeviceDriver(recorder)));
   return true;
 }
 
@@ -1496,9 +1497,8 @@ bool CFX_FxgeDevice::Create(int width,
     return false;
   }
   SetBitmap(pBitmap);
-  CFX_SkiaDeviceDriver* pDriver =
-      new CFX_SkiaDeviceDriver(pBitmap, FALSE, pOriDevice, FALSE);
-  SetDeviceDriver(pDriver);
+  SetDeviceDriver(
+      WrapUnique(new CFX_SkiaDeviceDriver(pBitmap, FALSE, pOriDevice, FALSE)));
   return true;
 }
 

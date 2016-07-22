@@ -214,9 +214,11 @@ class CFX_RenderDevice {
   CFX_RenderDevice();
   virtual ~CFX_RenderDevice();
 
-  void Flush();
-  void SetDeviceDriver(IFX_RenderDeviceDriver* pDriver);
-  IFX_RenderDeviceDriver* GetDeviceDriver() const { return m_pDeviceDriver; }
+  // Take ownership of |pDriver|.
+  void SetDeviceDriver(std::unique_ptr<IFX_RenderDeviceDriver> pDriver);
+  IFX_RenderDeviceDriver* GetDeviceDriver() const {
+    return m_pDeviceDriver.get();
+  }
 
   FX_BOOL StartRendering();
   void EndRendering();
@@ -380,6 +382,7 @@ class CFX_RenderDevice {
 
 #ifdef _SKIA_SUPPORT_
   virtual void DebugVerifyBitmapIsPreMultiplied() const;
+  void Flush();
 #endif
 
  private:
@@ -400,7 +403,7 @@ class CFX_RenderDevice {
   int m_RenderCaps;
   int m_DeviceClass;
   FX_RECT m_ClipBox;
-  IFX_RenderDeviceDriver* m_pDeviceDriver;
+  std::unique_ptr<IFX_RenderDeviceDriver> m_pDeviceDriver;
 };
 
 class CFX_FxgeDevice : public CFX_RenderDevice {

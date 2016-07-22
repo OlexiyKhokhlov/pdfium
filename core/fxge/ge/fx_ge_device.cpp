@@ -17,21 +17,19 @@ CFX_RenderDevice::CFX_RenderDevice()
       m_Height(0),
       m_bpp(0),
       m_RenderCaps(0),
-      m_DeviceClass(0),
-      m_pDeviceDriver(nullptr) {}
+      m_DeviceClass(0) {}
 
-CFX_RenderDevice::~CFX_RenderDevice() {
-  delete m_pDeviceDriver;
-}
+CFX_RenderDevice::~CFX_RenderDevice() {}
 
+#ifdef _SKIA_SUPPORT_
 void CFX_RenderDevice::Flush() {
-  delete m_pDeviceDriver;
-  m_pDeviceDriver = nullptr;
+  m_pDeviceDriver.reset();
 }
+#endif
 
-void CFX_RenderDevice::SetDeviceDriver(IFX_RenderDeviceDriver* pDriver) {
-  delete m_pDeviceDriver;
-  m_pDeviceDriver = pDriver;
+void CFX_RenderDevice::SetDeviceDriver(
+    std::unique_ptr<IFX_RenderDeviceDriver> pDriver) {
+  m_pDeviceDriver = std::move(pDriver);
   InitDeviceInfo();
 }
 
