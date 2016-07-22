@@ -1,4 +1,3 @@
-#if !defined(_FX_JPEG_TURBO_)
 /*
  * jmemnobs.c
  *
@@ -26,16 +25,8 @@ extern void * malloc JPP((size_t size));
 extern void free JPP((void *ptr));
 #endif
 
-#if defined(_FX_MANAGED_CODE_) && defined(__cplusplus)
-extern "C" {
-#endif
-
 void*	FXMEM_DefaultAlloc(int byte_size, int);
 void	FXMEM_DefaultFree(void* pointer, int);
-
-#if defined(_FX_MANAGED_CODE_) && defined(__cplusplus)
-}
-#endif
 
 /*
  * Memory allocation and freeing are controlled by the regular library
@@ -122,5 +113,3 @@ jpeg_mem_term (j_common_ptr cinfo)
 {
   /* no work */
 }
-
-#endif //_FX_JPEG_TURBO_

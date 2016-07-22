@@ -1,4 +1,3 @@
-#if !defined(_FX_JPEG_TURBO_)
 /*
  * jdmerge.c
  *
@@ -38,10 +37,6 @@
 #include "jpeglib.h"
 
 #ifdef UPSAMPLE_MERGING_SUPPORTED
-
-#ifdef _FX_MANAGED_CODE_
-#define my_upsampler	my_upsampler_m
-#endif
 
 /* Private subobject */
 
@@ -402,5 +397,3 @@ jinit_merged_upsampler (j_decompress_ptr cinfo)
 }
 
 #endif /* UPSAMPLE_MERGING_SUPPORTED */
-
-#endif //_FX_JPEG_TURBO_

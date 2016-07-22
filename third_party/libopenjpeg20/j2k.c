@@ -5341,6 +5341,7 @@ static OPJ_BOOL opj_j2k_read_mcc (     opj_j2k_t *p_j2k,
         OPJ_UINT32 l_nb_collections;
         OPJ_UINT32 l_nb_comps;
         OPJ_UINT32 l_nb_bytes_by_comp;
+        OPJ_BOOL new_mcc = OPJ_FALSE;
 
         /* preconditions */
         assert(p_header_data != 00);
@@ -5402,6 +5403,7 @@ static OPJ_BOOL opj_j2k_read_mcc (     opj_j2k_t *p_j2k,
                         memset(l_mcc_record,0,(l_tcp->m_nb_max_mcc_records-l_tcp->m_nb_mcc_records) * sizeof(opj_simple_mcc_decorrelation_data_t));
                 }
                 l_mcc_record = l_tcp->m_mcc_records + l_tcp->m_nb_mcc_records;
+                new_mcc = OPJ_TRUE;
         }
         l_mcc_record->m_index = l_indix;
 
@@ -5537,7 +5539,9 @@ static OPJ_BOOL opj_j2k_read_mcc (     opj_j2k_t *p_j2k,
                 return OPJ_FALSE;
         }
 
-        ++l_tcp->m_nb_mcc_records;
+        if (new_mcc) {
+                ++l_tcp->m_nb_mcc_records;
+        }
 
         return OPJ_TRUE;
 }
@@ -8207,6 +8211,12 @@ static OPJ_BOOL opj_j2k_update_image_data (opj_tcd_t * p_tcd, OPJ_BYTE * p_data,
                  * */
                 assert( l_res->x0 >= 0);
                 assert( l_res->x1 >= 0);
+
+                /* Prevent bad casting to unsigned values in the subsequent lines. */
+                if ( l_res->x0 < 0 || l_res->x1 < 0 || l_res->y0 < 0 || l_res->y1 < 0 ) {
+                        return OPJ_FALSE;
+                }
+
                 if ( l_x0_dest < (OPJ_UINT32)l_res->x0 ) {
                         l_start_x_dest = (OPJ_UINT32)l_res->x0 - l_x0_dest;
                         l_offset_x0_src = 0;
@@ -8734,7 +8744,9 @@ static OPJ_BOOL opj_j2k_read_SPCod_SPCoc(  opj_j2k_t *p_j2k,
                                 p_j2k->m_specific_param.m_decoder.m_default_tcp;
 
         /* precondition again */
-        assert(compno < p_j2k->m_private_image->numcomps);
+        if (compno >= p_j2k->m_private_image->numcomps) {
+                return OPJ_FALSE;
+        }
 
         l_tccp = &l_tcp->tccps[compno];
         l_current_ptr = p_header_data;
@@ -8998,7 +9010,9 @@ static OPJ_BOOL opj_j2k_read_SQcd_SQcc(opj_j2k_t *p_j2k,
                                 p_j2k->m_specific_param.m_decoder.m_default_tcp;
 
         /* precondition again*/
-        assert(p_comp_no <  p_j2k->m_private_image->numcomps);
+        if (p_comp_no >=  p_j2k->m_private_image->numcomps) {
+            return OPJ_FALSE;
+        }
 
         l_tccp = &l_tcp->tccps[p_comp_no];
         l_current_ptr = p_header_data;

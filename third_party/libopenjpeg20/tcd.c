@@ -727,7 +727,10 @@ static INLINE OPJ_BOOL opj_tcd_init_tile(opj_tcd_t *p_tcd, OPJ_UINT32 p_tile_no,
 		l_tilec->x1 = opj_int_ceildiv(l_tile->x1, (OPJ_INT32)l_image_comp->dx);
 		l_tilec->y1 = opj_int_ceildiv(l_tile->y1, (OPJ_INT32)l_image_comp->dy);
 		/*fprintf(stderr, "\tTile compo border = %d,%d,%d,%d\n", l_tilec->x0, l_tilec->y0,l_tilec->x1,l_tilec->y1);*/
-		
+		if (l_tilec->x0 >= l_tilec->x1 || l_tilec->y0 >= l_tilec->y1) {
+			opj_event_msg(manager, EVT_ERROR, "Invalid tile data\n");
+			return OPJ_FALSE;
+		}
 		/* compute l_data_size with overflow check */
 		l_data_size = (OPJ_UINT32)(l_tilec->x1 - l_tilec->x0);
 		if ((((OPJ_UINT32)-1) / l_data_size) < (OPJ_UINT32)(l_tilec->y1 - l_tilec->y0)) {
@@ -819,7 +822,14 @@ static INLINE OPJ_BOOL opj_tcd_init_tile(opj_tcd_t *p_tcd, OPJ_UINT32 p_tile_no,
 			l_res->ph = (l_res->y0 == l_res->y1) ? 0 : (OPJ_UINT32)((l_br_prc_y_end - l_tl_prc_y_start) >> l_pdy);
 			/*fprintf(stderr, "\t\t\tres_pw=%d, res_ph=%d\n", l_res->pw, l_res->ph );*/
 			
+			if (l_res->pw && ((OPJ_UINT32)-1) / l_res->pw < l_res->ph) {
+				return OPJ_FALSE;
+			}
 			l_nb_precincts = l_res->pw * l_res->ph;
+
+			if (((OPJ_UINT32)-1) / (OPJ_UINT32)sizeof(opj_tcd_precinct_t) < l_nb_precincts) {
+				return OPJ_FALSE;
+			}
 			l_nb_precinct_size = l_nb_precincts * (OPJ_UINT32)sizeof(opj_tcd_precinct_t);
 			if (resno == 0) {
 				tlcbgxstart = l_tl_prc_x_start;

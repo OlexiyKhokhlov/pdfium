@@ -35,8 +35,8 @@
 #include "agg_clip_liang_barsky.h"
 #include "agg_math.h"
 #include "agg_render_scanlines.h"
-#include "core/include/fxcrt/fx_coordinates.h"
-#include "core/include/fxcrt/fx_memory.h"
+#include "core/fxcrt/include/fx_coordinates.h"
+#include "core/fxcrt/include/fx_memory.h"
 
 namespace agg
 {
@@ -383,7 +383,7 @@ public:
         }
     }
     template<class VertexSource>
-    void add_path_transformed(VertexSource& vs, const CFX_AffineMatrix* pMatrix, unsigned path_id = 0)
+    void add_path_transformed(VertexSource& vs, const CFX_Matrix* pMatrix, unsigned path_id = 0)
     {
         FX_FLOAT x;
         FX_FLOAT y;

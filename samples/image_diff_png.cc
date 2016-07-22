@@ -9,15 +9,15 @@
 // This is a duplicate of ui/gfx/codec/png_codec.cc, after removing code related
 // to Skia, that we can use when running layout tests with minimal dependencies.
 
-#include "image_diff_png.h"
+#include "samples/image_diff_png.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 #include <string>
 
-#include "fx_lpng/include/fx_png.h"
 #include "third_party/base/logging.h"
+#include "third_party/libpng16/png.h"
 #include "third_party/zlib_v128/zlib.h"
 
 namespace image_diff_png {
@@ -69,7 +69,7 @@ void ConvertRGBAtoRGB(const unsigned char* rgba, int pixel_width,
 
 }  // namespace
 
-// Decoder --------------------------------------------------------------------
+// Decoder
 //
 // This code is based on WebKit libpng interface (PNGImageDecoder), which is
 // in turn based on the Mozilla png decoder.
@@ -355,7 +355,7 @@ bool Decode(const unsigned char* input, size_t input_size,
   return true;
 }
 
-// Encoder --------------------------------------------------------------------
+// Encoder
 //
 // This section of the code is based on nsPNGEncoder.cpp in Mozilla
 // (Copyright 2005 Google Inc.)
@@ -641,4 +641,4 @@ bool EncodeBGRAPNG(const unsigned char* input,
       std::vector<Comment>(), output);
 }
 
-}  // image_diff_png
+}  // namespace image_diff_png

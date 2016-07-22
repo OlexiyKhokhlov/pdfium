@@ -561,6 +561,7 @@ static OPJ_BOOL opj_jp2_read_ihdr( opj_jp2_t *jp2,
 	p_image_header_data += 2;
 
 	/* allocate memory for components */
+	opj_free(jp2->comps);
 	jp2->comps = (opj_jp2_comps_t*) opj_calloc(jp2->numcomps, sizeof(opj_jp2_comps_t));
 	if (jp2->comps == 0) {
 		opj_event_msg(p_manager, EVT_ERROR, "Not enough memory to handle image header (ihdr)\n");
@@ -896,13 +897,17 @@ static OPJ_BOOL opj_jp2_check_color(opj_image_t *image, opj_jp2_color_t *color, 
 		}
 		/* verify that no component is targeted more than once */
 		for (i = 0; i < nr_channels; i++) {
-      OPJ_UINT16 pcol = cmap[i].pcol;
-      assert(cmap[i].mtyp == 0 || cmap[i].mtyp == 1);
+			if (cmap[i].mtyp != 0 && cmap[i].mtyp != 1) {
+				opj_event_msg(p_manager, EVT_ERROR, "Unexpected MTYP value.\n");
+				opj_free(pcol_usage);
+				return OPJ_FALSE;
+			}
+			OPJ_UINT16 pcol = cmap[i].pcol;
 			if (pcol >= nr_channels) {
 				opj_event_msg(p_manager, EVT_ERROR, "Invalid component/palette index for direct mapping %d.\n", pcol);
 				is_sane = OPJ_FALSE;
 			}
-			else if (pcol_usage[pcol] && cmap[i].mtyp == 1) {
+			else if (pcol_usage[pcol] && cmap[i].mtyp != 0) {
 				opj_event_msg(p_manager, EVT_ERROR, "Component %d is mapped twice.\n", pcol);
 				is_sane = OPJ_FALSE;
 			}
@@ -982,8 +987,8 @@ static void opj_jp2_apply_pclr(opj_image_t *image, opj_jp2_color_t *color)
       assert( pcol == 0 );
       new_comps[i] = old_comps[cmp];
     } else {
-      assert( i == pcol );
-      new_comps[pcol] = old_comps[cmp];
+      assert( i == pcol ); // probably wrong?
+      new_comps[i] = old_comps[cmp];
     }
 
 		/* Palette mapping: */
@@ -1007,11 +1012,11 @@ static void opj_jp2_apply_pclr(opj_image_t *image, opj_jp2_color_t *color)
 		cmp = cmap[i].cmp; pcol = cmap[i].pcol;
 		src = old_comps[cmp].data;
     assert( src );
-		max = new_comps[pcol].w * new_comps[pcol].h;
+		max = new_comps[i].w * new_comps[i].h;
 
 		/* Direct use: */
     if(cmap[i].mtyp == 0) {
-      assert( cmp == 0 );
+      assert( cmp == 0 ); // probably wrong.
       dst = new_comps[i].data;
       assert( dst );
       for(j = 0; j < max; ++j) {
@@ -1019,8 +1024,8 @@ static void opj_jp2_apply_pclr(opj_image_t *image, opj_jp2_color_t *color)
       }
     }
     else {
-      assert( i == pcol );
-      dst = new_comps[pcol].data;
+      assert( i == pcol ); // probably wrong?
+      dst = new_comps[i].data;
       assert( dst );
       for(j = 0; j < max; ++j) {
         /* The index */
@@ -1194,7 +1199,7 @@ static OPJ_BOOL opj_jp2_read_cmap(	opj_jp2_t * jp2,
 
 
 	for(i = 0; i < nr_channels; ++i) {
-		opj_read_bytes(p_cmap_header_data, &l_value, 2);			/* CMP^i */
+		opj_read_bytes_BE(p_cmap_header_data, &l_value, 2);			/* CMP^i */
 		p_cmap_header_data +=2;
 		cmap[i].cmp = (OPJ_UINT16) l_value;
 
@@ -1754,6 +1759,7 @@ void opj_jp2_setup_decoder(opj_jp2_t *jp2, opj_dparameters_t *parameters)
 
 	/* further JP2 initializations go here */
 	jp2->color.jp2_has_colr = 0;
+	jp2->comps = NULL;
     jp2->ignore_pclr_cmap_cdef = parameters->flags & OPJ_DPARAMETERS_IGNORE_PCLR_CMAP_CDEF_FLAG;
 }
 
@@ -1811,7 +1817,6 @@ OPJ_BOOL opj_jp2_setup_encoder(	opj_jp2_t *jp2,
 	jp2->numcomps = image->numcomps;	/* NC */
 	jp2->comps = (opj_jp2_comps_t*) opj_malloc(jp2->numcomps * sizeof(opj_jp2_comps_t));
 	if (!jp2->comps) {
-		jp2->comps = NULL;
 		opj_event_msg(p_manager, EVT_ERROR, "Not enough memory when setup the JP2 encoder\n");
 		/* Memory of jp2->cl will be freed by opj_jp2_destroy */
 		return OPJ_FALSE;

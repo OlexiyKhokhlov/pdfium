@@ -3,10 +3,12 @@ CMAKE_MINIMUM_REQUIRED (VERSION 2.8.0)
 if(WIN32)
   add_definitions(-D_WIN32 -DWIN32_LEAN_AND_MEAN)
 else(WIN32)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread -Wno-main -Wno-missing-braces -Wno-unused")
 endif(WIN32)
 
 set(lcms2_HEADERS
+    include/lcms2.h
+    include/lcms2_plugin.h
 )
 
 set(lcms2_SOURCES

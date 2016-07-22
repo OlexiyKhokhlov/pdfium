@@ -1,4 +1,3 @@
-#if !defined(_FX_JPEG_TURBO_)
 /*
  * jdhuff.c
  *
@@ -19,10 +18,6 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jdhuff.h"		/* Declarations shared with jdphuff.c */
-
-#ifdef _FX_MANAGED_CODE_
-#define savable_state	savable_state_d
-#endif
 
 /*
  * Expanded entropy decoder object for Huffman decoding.
@@ -653,5 +648,3 @@ jinit_huff_decoder (j_decompress_ptr cinfo)
     entropy->dc_derived_tbls[i] = entropy->ac_derived_tbls[i] = NULL;
   }
 }
-
-#endif //_FX_JPEG_TURBO_

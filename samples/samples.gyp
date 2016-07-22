@@ -5,11 +5,12 @@
 {
   'variables': {
     'pdf_enable_v8%': 1,
+    'pdf_enable_xfa%': 0,  # Set to 1 in standalone builds by standalone.gypi.
+    'pdf_use_skia%': 0,
   },
   'target_defaults': {
     'defines' : [
       'PNG_PREFIX',
-      'PNGPREFIX_H',
       'PNG_USE_READ_MACROS',
     ],
     'include_dirs': [
@@ -27,6 +28,11 @@
           '<(DEPTH)/v8/include',
         ],
       }],
+      ['pdf_enable_xfa==1', {
+        'defines': [
+          'PDF_ENABLE_XFA',
+        ],
+      }],
     ],
   },
   'targets': [
@@ -34,7 +40,6 @@
       'target_name': 'pdfium_test',
       'type': 'executable',
       'dependencies': [
-        'fx_lpng',
         '../pdfium.gyp:pdfium',
         '../pdfium.gyp:test_support',
         # Regardless of whether the library ships against system freetype,
@@ -52,9 +57,20 @@
         ],
       },
       'conditions': [
+        ['pdf_enable_xfa==0', {
+          'dependencies': [
+            '../third_party/third_party.gyp:fx_lpng',
+          ],
+        }],
         ['pdf_enable_v8==1', {
           'dependencies': [
-            '<(DEPTH)/v8/tools/gyp/v8.gyp:v8_libplatform',
+            '<(DEPTH)/v8/src/v8.gyp:v8_libplatform',
+          ],
+        }],
+        ['pdf_use_skia==1', {
+          'defines': ['PDF_ENABLE_SKIA'],
+          'dependencies': [
+            '<(DEPTH)/skia/skia.gyp:skia',
           ],
         }],
       ],
@@ -64,7 +80,6 @@
       'type': 'executable',
       'variables': { 'enable_wexit_time_destructors': 1, },
       'dependencies': [
-        'fx_lpng',
         '../pdfium.gyp:pdfium',
         '../third_party/third_party.gyp:pdfium_base',
       ],
@@ -73,33 +88,12 @@
         'image_diff_png.h',
         'image_diff_png.cc',
       ],
-    },
-    {
-      'target_name': 'fx_lpng',
-      'type': 'static_library',
-      'dependencies': [
-        '../pdfium.gyp:fxcodec',
-      ],
-      'include_dirs': [
-        '../core/src/fxcodec/fx_zlib/include/',
-      ],
-      'sources': [
-        'fx_lpng/include/fx_png.h',
-        'fx_lpng/src/fx_png.c',
-        'fx_lpng/src/fx_pngerror.c',
-        'fx_lpng/src/fx_pngget.c',
-        'fx_lpng/src/fx_pngmem.c',
-        'fx_lpng/src/fx_pngpread.c',
-        'fx_lpng/src/fx_pngread.c',
-        'fx_lpng/src/fx_pngrio.c',
-        'fx_lpng/src/fx_pngrtran.c',
-        'fx_lpng/src/fx_pngrutil.c',
-        'fx_lpng/src/fx_pngset.c',
-        'fx_lpng/src/fx_pngtrans.c',
-        'fx_lpng/src/fx_pngwio.c',
-        'fx_lpng/src/fx_pngwrite.c',
-        'fx_lpng/src/fx_pngwtran.c',
-        'fx_lpng/src/fx_pngwutil.c',
+      'conditions': [
+        ['pdf_enable_xfa==0', {
+          'dependencies': [
+            '../third_party/third_party.gyp:fx_lpng',
+          ],
+        }],
       ],
     },
   ],

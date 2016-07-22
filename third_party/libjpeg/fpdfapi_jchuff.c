@@ -1,4 +1,3 @@
-#if !defined(_FX_JPEG_TURBO_)
 /*
  * jchuff.c
  *
@@ -19,10 +18,6 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jchuff.h"		/* Declarations shared with jcphuff.c */
-
-#ifdef _FX_MANAGED_CODE_
-#define savable_state	savable_state_c
-#endif
 
 /* Expanded entropy encoder object for Huffman encoding.
  *
@@ -911,5 +906,3 @@ jinit_huff_encoder (j_compress_ptr cinfo)
 #endif
   }
 }
-
-#endif //_FX_JPEG_TURBO_

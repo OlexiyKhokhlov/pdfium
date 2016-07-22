@@ -5,22 +5,50 @@
 #ifndef PDFIUM_THIRD_PARTY_BASE_STL_UTIL_H_
 #define PDFIUM_THIRD_PARTY_BASE_STL_UTIL_H_
 
-#include <vector>
+#include <algorithm>
+#include <set>
+
+#include "third_party/base/numerics/safe_conversions.h"
 
 namespace pdfium {
 
-// To treat a possibly-empty vector as an array, use these functions.
-// If you know the array will never be empty, you can use &*v.begin()
-// directly, but that is undefined behaviour if |v| is empty.
-template <typename T>
-inline T* vector_as_array(std::vector<T>* v) {
-  return v->empty() ? nullptr : &*v->begin();
+// Test to see if a set, map, hash_set or hash_map contains a particular key.
+// Returns true if the key is in the collection.
+template <typename Collection, typename Key>
+bool ContainsKey(const Collection& collection, const Key& key) {
+  return collection.find(key) != collection.end();
 }
 
-template <typename T>
-inline const T* vector_as_array(const std::vector<T>* v) {
-  return v->empty() ? nullptr : &*v->begin();
+// Test to see if a collection like a vector contains a particular value.
+// Returns true if the value is in the collection.
+template <typename Collection, typename Value>
+bool ContainsValue(const Collection& collection, const Value& value) {
+  return std::find(collection.begin(), collection.end(), value) !=
+         collection.end();
 }
+
+// Convenience routine for "int-fected" code, so that the stl collection
+// size_t size() method return values will be checked.
+template <typename ResultType, typename Collection>
+ResultType CollectionSize(const Collection& collection) {
+  return pdfium::base::checked_cast<ResultType, size_t>(collection.size());
+}
+
+// Track the addition of an object to a set, removing it automatically when
+// the ScopedSetInsertion goes out of scope.
+template <typename T>
+class ScopedSetInsertion {
+ public:
+  ScopedSetInsertion(std::set<T>* org_set, T elem)
+      : m_Set(org_set), m_Entry(elem) {
+    m_Set->insert(m_Entry);
+  }
+  ~ScopedSetInsertion() { m_Set->erase(m_Entry); }
+
+ private:
+  std::set<T>* const m_Set;
+  const T m_Entry;
+};
 
 }  // namespace pdfium
 
