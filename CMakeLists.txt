@@ -192,11 +192,6 @@ endif(USE_SYSTEM_OPENJPEG)
 #Use own jbig2 in anytime
 add_subdirectory(core/fxcodec/jbig2)
 
-add_definitions(
-#  -D_FPDFSDK_LIB
-  -D_NO_GDIPLUS_ # workaround text rendering issues on Windows
-  )
-
 if(TARGET_ARCH STREQUAL "x86_64")
     add_definitions(
 	-D_FX_CPU_=_FX_X64_

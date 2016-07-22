@@ -18,7 +18,7 @@
 #ifndef __in_opt
   #define __in_opt
 #endif
-=======
+
 #include "core/fxge/include/fx_ge_win32.h"
 #include "core/fxge/win32/dwrite_int.h"
 

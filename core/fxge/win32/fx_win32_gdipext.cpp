@@ -15,6 +15,7 @@ using std::min;
 using std::max;
 }  // namespace Gdiplus
 
+#include <wtypes.h>
 #include <gdiplus.h>
 
 #include "core/fxge/include/fx_ge_win32.h"
@@ -691,7 +692,7 @@ void CGdiplusExt::Load() {
     return;
   }
   for (size_t i = 0; i < sizeof g_GdipFuncNames / sizeof(LPCSTR); i++) {
-    m_Functions[i] = GetProcAddress(m_hModule, g_GdipFuncNames[i]);
+    m_Functions[i] = (void*)GetProcAddress(m_hModule, g_GdipFuncNames[i]);
     if (!m_Functions[i]) {
       m_hModule = nullptr;
       return;
