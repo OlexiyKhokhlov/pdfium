@@ -6,18 +6,21 @@
 
 #include "public/fpdf_text.h"
 
-#include "core/fpdfapi/fpdf_page/include/cpdf_page.h"
-#include "core/fpdfdoc/include/fpdf_doc.h"
-#include "core/fpdftext/include/cpdf_linkextract.h"
-#include "core/fpdftext/include/cpdf_textpage.h"
-#include "core/fpdftext/include/cpdf_textpagefind.h"
-#include "fpdfsdk/include/fsdk_define.h"
+#include <algorithm>
+#include <vector>
+
+#include "core/fpdfapi/page/cpdf_page.h"
+#include "core/fpdfdoc/cpdf_viewerpreferences.h"
+#include "core/fpdftext/cpdf_linkextract.h"
+#include "core/fpdftext/cpdf_textpage.h"
+#include "core/fpdftext/cpdf_textpagefind.h"
+#include "fpdfsdk/fsdk_define.h"
 #include "third_party/base/numerics/safe_conversions.h"
 #include "third_party/base/stl_util.h"
 
 #ifdef PDF_ENABLE_XFA
-#include "fpdfsdk/fpdfxfa/include/fpdfxfa_doc.h"
-#include "fpdfsdk/fpdfxfa/include/fpdfxfa_page.h"
+#include "fpdfsdk/fpdfxfa/cpdfxfa_context.h"
+#include "fpdfsdk/fpdfxfa/cpdfxfa_page.h"
 #endif  // PDF_ENABLE_XFA
 
 #ifdef _WIN32
@@ -47,8 +50,8 @@ DLLEXPORT FPDF_TEXTPAGE STDCALL FPDFText_LoadPage(FPDF_PAGE page) {
 
 #ifdef PDF_ENABLE_XFA
   CPDFXFA_Page* pPage = (CPDFXFA_Page*)page;
-  CPDFXFA_Document* pDoc = pPage->GetDocument();
-  CPDF_ViewerPreferences viewRef(pDoc->GetPDFDoc());
+  CPDFXFA_Context* pContext = pPage->GetContext();
+  CPDF_ViewerPreferences viewRef(pContext->GetPDFDoc());
 #else  // PDF_ENABLE_XFA
   CPDF_ViewerPreferences viewRef(pPDFPage->m_pDocument);
 #endif  // PDF_ENABLE_XFA
@@ -130,8 +133,10 @@ DLLEXPORT int STDCALL FPDFText_GetCharIndexAtPos(FPDF_TEXTPAGE text_page,
     return -3;
 
   CPDF_TextPage* textpage = CPDFTextPageFromFPDFTextPage(text_page);
-  return textpage->GetIndexAtPos((FX_FLOAT)x, (FX_FLOAT)y, (FX_FLOAT)xTolerance,
-                                 (FX_FLOAT)yTolerance);
+  return textpage->GetIndexAtPos(
+      CFX_PointF(static_cast<FX_FLOAT>(x), static_cast<FX_FLOAT>(y)),
+      CFX_SizeF(static_cast<FX_FLOAT>(xTolerance),
+                static_cast<FX_FLOAT>(yTolerance)));
 }
 
 DLLEXPORT int STDCALL FPDFText_GetText(FPDF_TEXTPAGE text_page,
@@ -232,7 +237,7 @@ DLLEXPORT FPDF_SCHHANDLE STDCALL FPDFText_FindStart(FPDF_TEXTPAGE text_page,
 
 DLLEXPORT FPDF_BOOL STDCALL FPDFText_FindNext(FPDF_SCHHANDLE handle) {
   if (!handle)
-    return FALSE;
+    return false;
 
   CPDF_TextPageFind* textpageFind = CPDFTextPageFindFromFPDFSchHandle(handle);
   return textpageFind->FindNext();
@@ -240,7 +245,7 @@ DLLEXPORT FPDF_BOOL STDCALL FPDFText_FindNext(FPDF_SCHHANDLE handle) {
 
 DLLEXPORT FPDF_BOOL STDCALL FPDFText_FindPrev(FPDF_SCHHANDLE handle) {
   if (!handle)
-    return FALSE;
+    return false;
 
   CPDF_TextPageFind* textpageFind = CPDFTextPageFindFromFPDFSchHandle(handle);
   return textpageFind->FindPrev();

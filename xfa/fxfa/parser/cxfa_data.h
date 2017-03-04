@@ -7,9 +7,9 @@
 #ifndef XFA_FXFA_PARSER_CXFA_DATA_H_
 #define XFA_FXFA_PARSER_CXFA_DATA_H_
 
-#include "core/fxcrt/include/fx_system.h"
-#include "core/fxge/include/fx_dib.h"
-#include "xfa/fxfa/include/fxfa_basic.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/fx_dib.h"
+#include "xfa/fxfa/fxfa_basic.h"
 
 class CXFA_Node;
 
@@ -24,10 +24,10 @@ class CXFA_Data {
   XFA_Element GetElementType() const;
 
  protected:
-  FX_BOOL TryMeasure(XFA_ATTRIBUTE eAttr,
-                     FX_FLOAT& fValue,
-                     FX_BOOL bUseDefault = FALSE) const;
-  FX_BOOL SetMeasure(XFA_ATTRIBUTE eAttr, FX_FLOAT fValue);
+  bool TryMeasure(XFA_ATTRIBUTE eAttr,
+                  FX_FLOAT& fValue,
+                  bool bUseDefault = false) const;
+  bool SetMeasure(XFA_ATTRIBUTE eAttr, FX_FLOAT fValue);
 
   CXFA_Node* m_pNode;
 };

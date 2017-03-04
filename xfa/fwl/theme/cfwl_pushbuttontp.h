@@ -7,6 +7,8 @@
 #ifndef XFA_FWL_THEME_CFWL_PUSHBUTTONTP_H_
 #define XFA_FWL_THEME_CFWL_PUSHBUTTONTP_H_
 
+#include <memory>
+
 #include "xfa/fwl/theme/cfwl_widgettp.h"
 
 class CFWL_PushButtonTP : public CFWL_WidgetTP {
@@ -15,15 +17,7 @@ class CFWL_PushButtonTP : public CFWL_WidgetTP {
   ~CFWL_PushButtonTP() override;
 
   // CFWL_WidgetTP
-  bool IsValidWidget(IFWL_Widget* pWidget) override;
-  uint32_t SetThemeID(IFWL_Widget* pWidget,
-                      uint32_t dwThemeID,
-                      FX_BOOL bChildren = TRUE) override;
-  FX_BOOL DrawBackground(CFWL_ThemeBackground* pParams) override;
-  void* GetCapacity(CFWL_ThemePart* pThemePart,
-                    CFWL_WidgetCapacity dwCapacity) override;
-  FWL_Error Initialize() override;
-  FWL_Error Finalize() override;
+  void DrawBackground(CFWL_ThemeBackground* pParams) override;
 
  protected:
   struct PBThemeData {
@@ -33,7 +27,6 @@ class CFWL_PushButtonTP : public CFWL_WidgetTP {
     FX_ARGB clrFill[5];
   };
 
-  void SetThemeData(uint32_t dwID);
   void SetTopLineColor(uint32_t* pData);
   void SetLeftLineColor(uint32_t* pData);
   void SetRightLineColor(uint32_t* pData);
@@ -41,9 +34,13 @@ class CFWL_PushButtonTP : public CFWL_WidgetTP {
   void SetBackgroudColor(uint32_t* pData);
   void SetCaptionColor(uint32_t* pData);
   void SetCornerColor(uint32_t* pData);
-  int32_t GetColorID(uint32_t dwStates);
 
-  struct PBThemeData* m_pThemeData;
+  int32_t GetColorID(uint32_t dwStates) const;
+
+  std::unique_ptr<PBThemeData> m_pThemeData;
+
+ private:
+  void SetThemeData();
 };
 
 #endif  // XFA_FWL_THEME_CFWL_PUSHBUTTONTP_H_

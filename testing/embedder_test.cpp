@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "core/fdrm/crypto/fx_crypt.h"
 #include "public/fpdf_dataavail.h"
 #include "public/fpdf_edit.h"
 #include "public/fpdf_text.h"
@@ -35,13 +36,25 @@ v8::StartupData* g_v8_snapshot = nullptr;
 #endif  // V8_USE_EXTERNAL_STARTUP_DATA
 #endif  // PDF_ENABLE_V8
 
-}  // namespace
-
 FPDF_BOOL Is_Data_Avail(FX_FILEAVAIL* pThis, size_t offset, size_t size) {
   return true;
 }
 
 void Add_Segment(FX_DOWNLOADHINTS* pThis, size_t offset, size_t size) {}
+
+std::string CRYPT_ToBase16(const uint8_t* digest) {
+  static char const zEncode[] = "0123456789abcdef";
+  std::string ret;
+  ret.resize(32);
+  for (int i = 0, j = 0; i < 16; i++, j += 2) {
+    uint8_t a = digest[i];
+    ret[j] = zEncode[(a >> 4) & 0xf];
+    ret[j + 1] = zEncode[a & 0xf];
+  }
+  return ret;
+}
+
+}  // namespace
 
 EmbedderTest::EmbedderTest()
     : default_delegate_(new EmbedderTest::Delegate()),
@@ -99,16 +112,8 @@ void EmbedderTest::SetUp() {
 void EmbedderTest::TearDown() {
   if (document_) {
     FORM_DoDocumentAAction(form_handle_, FPDFDOC_AACTION_WC);
-#ifdef PDF_ENABLE_XFA
-    // Note: The shut down order here is the reverse of the non-XFA branch
-    // order. Need to work out if this is required, and if it is, the lifetimes
-    // of objects owned by |doc| that |form| reference.
-    FPDF_CloseDocument(document_);
-    FPDFDOC_ExitFormFillEnvironment(form_handle_);
-#else   // PDF_ENABLE_XFA
     FPDFDOC_ExitFormFillEnvironment(form_handle_);
     FPDF_CloseDocument(document_);
-#endif  // PDF_ENABLE_XFA
   }
 
   FPDFAvail_Destroy(avail_);
@@ -180,7 +185,7 @@ bool EmbedderTest::OpenDocument(const std::string& filename,
     if (must_linearize) {
       return false;
     }
-    document_ = FPDF_LoadCustomDocument(&file_access_, nullptr);
+    document_ = FPDF_LoadCustomDocument(&file_access_, password);
     if (!document_) {
       return false;
     }
@@ -242,21 +247,20 @@ int EmbedderTest::GetPageCount() {
 }
 
 FPDF_PAGE EmbedderTest::LoadPage(int page_number) {
+  // First check whether it is loaded already.
+  auto it = page_map_.find(page_number);
+  if (it != page_map_.end())
+    return it->second;
+
   FPDF_PAGE page = FPDF_LoadPage(document_, page_number);
   if (!page) {
     return nullptr;
   }
   FORM_OnAfterLoadPage(page, form_handle_);
   FORM_DoPageAAction(page, form_handle_, FPDFPAGE_AACTION_OPEN);
-  return page;
-}
-
-FPDF_PAGE EmbedderTest::LoadAndCachePage(int page_number) {
-  FPDF_PAGE page = delegate_->GetPage(form_handle_, document_, page_number);
-  if (!page) {
-    return nullptr;
-  }
-  FORM_DoPageAAction(page, form_handle_, FPDFPAGE_AACTION_OPEN);
+  // Cache the page.
+  page_map_[page_number] = page;
+  page_reverse_map_[page] = page_number;
   return page;
 }
 
@@ -276,22 +280,21 @@ void EmbedderTest::UnloadPage(FPDF_PAGE page) {
   FORM_DoPageAAction(page, form_handle_, FPDFPAGE_AACTION_CLOSE);
   FORM_OnBeforeClosePage(page, form_handle_);
   FPDF_ClosePage(page);
+
+  auto it = page_reverse_map_.find(page);
+  if (it == page_reverse_map_.end())
+    return;
+
+  page_map_.erase(it->second);
+  page_reverse_map_.erase(it);
 }
 
-FPDF_PAGE EmbedderTest::Delegate::GetPage(FPDF_FORMHANDLE form_handle,
+FPDF_PAGE EmbedderTest::Delegate::GetPage(FPDF_FORMFILLINFO* info,
                                           FPDF_DOCUMENT document,
                                           int page_index) {
-  auto it = m_pageMap.find(page_index);
-  if (it != m_pageMap.end()) {
-    return it->second;
-  }
-  FPDF_PAGE page = FPDF_LoadPage(document, page_index);
-  if (!page) {
-    return nullptr;
-  }
-  m_pageMap[page_index] = page;
-  FORM_OnAfterLoadPage(page, form_handle);
-  return page;
+  EmbedderTest* test = static_cast<EmbedderTest*>(info);
+  auto it = test->page_map_.find(page_index);
+  return it != test->page_map_.end() ? it->second : nullptr;
 }
 
 // static
@@ -329,8 +332,27 @@ void EmbedderTest::KillTimerTrampoline(FPDF_FORMFILLINFO* info, int id) {
 FPDF_PAGE EmbedderTest::GetPageTrampoline(FPDF_FORMFILLINFO* info,
                                           FPDF_DOCUMENT document,
                                           int page_index) {
-  EmbedderTest* test = static_cast<EmbedderTest*>(info);
-  return test->delegate_->GetPage(test->form_handle(), document, page_index);
+  return static_cast<EmbedderTest*>(info)->delegate_->GetPage(info, document,
+                                                              page_index);
+}
+
+// static
+void EmbedderTest::CompareBitmap(FPDF_BITMAP bitmap,
+                                 int expected_width,
+                                 int expected_height,
+                                 const char* expected_md5sum) {
+  ASSERT_EQ(expected_width, FPDFBitmap_GetWidth(bitmap));
+  ASSERT_EQ(expected_height, FPDFBitmap_GetHeight(bitmap));
+  const int expected_stride = expected_width * 4;
+  ASSERT_EQ(expected_stride, FPDFBitmap_GetStride(bitmap));
+
+  if (!expected_md5sum)
+    return;
+
+  uint8_t digest[16];
+  CRYPT_MD5Generate(static_cast<uint8_t*>(FPDFBitmap_GetBuffer(bitmap)),
+                    expected_stride * expected_height, digest);
+  EXPECT_EQ(expected_md5sum, CRYPT_ToBase16(digest));
 }
 
 // Can't use gtest-provided main since we need to stash the path to the

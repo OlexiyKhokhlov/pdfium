@@ -7,12 +7,12 @@
 #ifndef XFA_FXFA_APP_XFA_FFDRAW_H_
 #define XFA_FXFA_APP_XFA_FFDRAW_H_
 
-#include "xfa/fxfa/include/xfa_ffpageview.h"
-#include "xfa/fxfa/include/xfa_ffwidget.h"
+#include "xfa/fxfa/xfa_ffpageview.h"
+#include "xfa/fxfa/xfa_ffwidget.h"
 
 class CXFA_FFDraw : public CXFA_FFWidget {
  public:
-  CXFA_FFDraw(CXFA_FFPageView* pPageView, CXFA_WidgetAcc* pDataAcc);
+  explicit CXFA_FFDraw(CXFA_WidgetAcc* pDataAcc);
   ~CXFA_FFDraw() override;
 };
 

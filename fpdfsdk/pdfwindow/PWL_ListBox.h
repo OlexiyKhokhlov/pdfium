@@ -7,7 +7,9 @@
 #ifndef FPDFSDK_PDFWINDOW_PWL_LISTBOX_H_
 #define FPDFSDK_PDFWINDOW_PWL_LISTBOX_H_
 
-#include "fpdfsdk/fxedit/include/fx_edit.h"
+#include <memory>
+
+#include "fpdfsdk/fxedit/fx_edit.h"
 #include "fpdfsdk/pdfwindow/PWL_Wnd.h"
 
 class CFX_ListCtrl;
@@ -20,7 +22,7 @@ struct CPVT_WordProps;
 
 class CPWL_List_Notify {
  public:
-  CPWL_List_Notify(CPWL_ListBox* pList);
+  explicit CPWL_List_Notify(CPWL_ListBox* pList);
   ~CPWL_List_Notify();
 
   void IOnSetScrollInfoY(FX_FLOAT fPlateMin,
@@ -32,9 +34,9 @@ class CPWL_List_Notify {
   void IOnSetScrollPosY(FX_FLOAT fy);
   void IOnInvalidateRect(CFX_FloatRect* pRect);
 
-  void IOnSetCaret(FX_BOOL bVisible,
-                   const CFX_FloatPoint& ptHead,
-                   const CFX_FloatPoint& ptFoot,
+  void IOnSetCaret(bool bVisible,
+                   const CFX_PointF& ptHead,
+                   const CFX_PointF& ptFoot,
                    const CPVT_WordPlace& place);
 
  private:
@@ -53,14 +55,14 @@ class CPWL_ListBox : public CPWL_Wnd {
   void GetThisAppearanceStream(CFX_ByteTextBuf& sAppStream) override;
   void DrawThisAppearance(CFX_RenderDevice* pDevice,
                           CFX_Matrix* pUser2Device) override;
-  FX_BOOL OnKeyDown(uint16_t nChar, uint32_t nFlag) override;
-  FX_BOOL OnChar(uint16_t nChar, uint32_t nFlag) override;
-  FX_BOOL OnLButtonDown(const CFX_FloatPoint& point, uint32_t nFlag) override;
-  FX_BOOL OnLButtonUp(const CFX_FloatPoint& point, uint32_t nFlag) override;
-  FX_BOOL OnMouseMove(const CFX_FloatPoint& point, uint32_t nFlag) override;
-  FX_BOOL OnMouseWheel(short zDelta,
-                       const CFX_FloatPoint& point,
-                       uint32_t nFlag) override;
+  bool OnKeyDown(uint16_t nChar, uint32_t nFlag) override;
+  bool OnChar(uint16_t nChar, uint32_t nFlag) override;
+  bool OnLButtonDown(const CFX_PointF& point, uint32_t nFlag) override;
+  bool OnLButtonUp(const CFX_PointF& point, uint32_t nFlag) override;
+  bool OnMouseMove(const CFX_PointF& point, uint32_t nFlag) override;
+  bool OnMouseWheel(short zDelta,
+                    const CFX_PointF& point,
+                    uint32_t nFlag) override;
   void KillFocus() override;
   void OnNotify(CPWL_Wnd* pWnd,
                 uint32_t msg,
@@ -73,22 +75,22 @@ class CPWL_ListBox : public CPWL_Wnd {
 
   virtual CFX_WideString GetText() const;
 
-  void OnNotifySelChanged(FX_BOOL bKeyDown, FX_BOOL& bExit, uint32_t nFlag);
+  void OnNotifySelChanged(bool bKeyDown, bool& bExit, uint32_t nFlag);
 
-  void AddString(const FX_WCHAR* str);
+  void AddString(const CFX_WideString& str);
   void SetTopVisibleIndex(int32_t nItemIndex);
   void ScrollToListItem(int32_t nItemIndex);
   void ResetContent();
   void Reset();
   void Select(int32_t nItemIndex);
   void SetCaret(int32_t nItemIndex);
-  void SetHoverSel(FX_BOOL bHoverSel);
+  void SetHoverSel(bool bHoverSel);
 
   int32_t GetCount() const;
-  FX_BOOL IsMultipleSel() const;
+  bool IsMultipleSel() const;
   int32_t GetCaretIndex() const;
   int32_t GetCurSel() const;
-  FX_BOOL IsItemSelected(int32_t nItemIndex) const;
+  bool IsItemSelected(int32_t nItemIndex) const;
   int32_t GetTopVisibleIndex() const;
   int32_t FindNext(int32_t nIndex, FX_WCHAR nChar) const;
   CFX_FloatRect GetContentRect() const;
@@ -99,18 +101,17 @@ class CPWL_ListBox : public CPWL_Wnd {
     m_pFillerNotify = pNotify;
   }
 
+  void AttachFFLData(CFFL_FormFiller* pData) { m_pFormFiller = pData; }
+
  protected:
   std::unique_ptr<CFX_ListCtrl> m_pList;
   std::unique_ptr<CPWL_List_Notify> m_pListNotify;
-  FX_BOOL m_bMouseDown;
-  FX_BOOL m_bHoverSel;
+  bool m_bMouseDown;
+  bool m_bHoverSel;
   IPWL_Filler_Notify* m_pFillerNotify;
 
- public:
-  void AttachFFLData(void* pData) { m_pFormFiller = pData; }
-
  private:
-  void* m_pFormFiller;
+  CFFL_FormFiller* m_pFormFiller;  // Not owned.
 };
 
 #endif  // FPDFSDK_PDFWINDOW_PWL_LISTBOX_H_

@@ -7,14 +7,14 @@
 #ifndef XFA_FXFA_APP_XFA_FFNOTIFY_H_
 #define XFA_FXFA_APP_XFA_FFNOTIFY_H_
 
-#include "xfa/fxfa/include/cxfa_eventparam.h"
+#include "xfa/fxfa/cxfa_eventparam.h"
 #include "xfa/fxfa/parser/cxfa_document.h"
 
 class CXFA_FFWidgetHandler;
 
 class CXFA_FFNotify {
  public:
-  CXFA_FFNotify(CXFA_FFDoc* pDoc);
+  explicit CXFA_FFNotify(CXFA_FFDoc* pDoc);
   ~CXFA_FFNotify();
 
   void OnPageEvent(CXFA_ContainerLayoutItem* pSender, uint32_t dwEvent);
@@ -46,18 +46,18 @@ class CXFA_FFNotify {
   void StartFieldDrawLayout(CXFA_Node* pItem,
                             FX_FLOAT& fCalcWidth,
                             FX_FLOAT& fCalcHeight);
-  FX_BOOL FindSplitPos(CXFA_Node* pItem,
-                       int32_t iBlockIndex,
-                       FX_FLOAT& fCalcHeightPos);
-  FX_BOOL RunScript(CXFA_Node* pScript, CXFA_Node* pFormItem);
+  bool FindSplitPos(CXFA_Node* pItem,
+                    int32_t iBlockIndex,
+                    FX_FLOAT& fCalcHeightPos);
+  bool RunScript(CXFA_Node* pScript, CXFA_Node* pFormItem);
   int32_t ExecEventByDeepFirst(CXFA_Node* pFormNode,
                                XFA_EVENTTYPE eEventType,
-                               FX_BOOL bIsFormReady = FALSE,
-                               FX_BOOL bRecursive = TRUE,
+                               bool bIsFormReady = false,
+                               bool bRecursive = true,
                                CXFA_WidgetAcc* pExclude = nullptr);
   void AddCalcValidate(CXFA_Node* pNode);
   CXFA_FFDoc* GetHDOC();
-  IXFA_DocProvider* GetDocProvider();
+  IXFA_DocEnvironment* GetDocEnvironment() const;
   IXFA_AppProvider* GetAppProvider();
   CXFA_FFWidgetHandler* GetWidgetHandler();
   CXFA_FFWidget* GetHWidget(CXFA_LayoutItem* pLayoutItem);
@@ -70,7 +70,7 @@ class CXFA_FFNotify {
   CXFA_Node* GetFocusWidgetNode();
   void SetFocusWidgetNode(CXFA_Node* pNode);
 
- protected:
+ private:
   CXFA_FFDoc* const m_pDoc;
 };
 

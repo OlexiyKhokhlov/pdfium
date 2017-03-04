@@ -4,24 +4,29 @@ vars = {
   'chromium_git': 'https://chromium.googlesource.com',
   'pdfium_git': 'https://pdfium.googlesource.com',
 
-  'android_ndk_revision': '5022f40f12953c02b2614c5f7beb981ec5d0e833',
-  'build_revision': '76d9f8b4fcae07fb82f28295468cf92bade935bd',
-  'buildtools_revision': 'db6179b29f90d28026b0cb23ef71d56ec31b8bd6',
-  'catapult_revision': '327256cb1c387e62a2c7e6960e2398867665fb51',
-  'clang_revision': '775e2f874b9f53f0e82c4e7c61dc29f3cdcb3379',
+  'android_ndk_revision': '26d93ec07f3ce2ec2cdfeae1b21ee6f12ff868d8',
+  'build_revision': 'dd795a26b9e43ff3a0d761bfd509c2fa67a3a7a1',
+  'buildtools_revision': 'cf493f8b1ae59611b19b000d7af922559b6ae92a',
+  'catapult_revision': '86352b966b0245d6883e5f7df27687856978b6d7',
+  'clang_revision': '37d701b87a10a2bdee1a5c3523f754ebf64a7e66',
   'cygwin_revision': 'c89e446b273697fadf3a10ff1007a97c0b7de6df',
   'gen_library_loader_revision': '916d4acd8b2cde67a390737dfba90b3c37de23a1',
   'gmock_revision': '29763965ab52f24565299976b936d1265cb6a271',
   'gtest_revision': '8245545b6dc9c4703e6496d1efd19e975ad2b038',
-  'icu_revision': 'a5f86adbb0a58d04c035a5d1228747b1823cd485',
-  'pdfium_tests_revision': 'd307839b3d4c8e521208172155718c945af696e0',
-  'skia_revision': '7d46f4af7dc759002537a172af121f2bfe200981',
+  'icu_revision': '73e24736676b4b438270fda44e5b2c83b49fdd80',
+  'instrumented_lib_revision': '45f5814b1543e41ea0be54c771e3840ea52cca4a',
+  'pdfium_tests_revision': 'd25a422ab03d6c3109370bc454c629575e969329',
+  'skia_revision': '90e3cd78991ef337dbd0023efb30ece864694308',
   'tools_memory_revision': '427f10475e1a8d72424c29d00bf689122b738e5d',
-  'trace_event_revision': '54b8455be9505c2cb0cf5c26bb86739c236471aa',
-  'v8_revision': '75f10f91b1b0b392d2a29a7a480bf079db6f43fa',
+  'trace_event_revision': '06294c8a4a6f744ef284cd63cfe54dbf61eea290',
+  'v8_revision': '7a634798302b4ab1f1525a9a881629519c0c2a99',
 }
 
 deps = {
+  "base/trace_event/common":
+    Var('chromium_git') + "/chromium/src/base/trace_event/common.git@" +
+        Var('trace_event_revision'),
+
   "build":
     Var('chromium_git') + "/chromium/src/build.git@" + Var('build_revision'),
 
@@ -40,6 +45,9 @@ deps = {
   "third_party/icu":
     Var('chromium_git') + "/chromium/deps/icu.git@" + Var('icu_revision'),
 
+  "third_party/instrumented_libraries":
+    Var('chromium_git') + "/chromium/src/third_party/instrumented_libraries.git@" + Var('instrumented_lib_revision'),
+
   "third_party/skia":
     Var('chromium_git') + '/skia.git' + '@' +  Var('skia_revision'),
 
@@ -50,6 +58,7 @@ deps = {
     Var('chromium_git') + "/chromium/src/tools/generate_library_loader@" +
         Var('gen_library_loader_revision'),
 
+  # TODO(GYP): Remove this when no tools rely on GYP anymore.
   "tools/gyp":
     Var('chromium_git') + '/external/gyp.git' + '@' + 'c61b0b35c8396bfd59efc6cfc11401d912b0f510',
 
@@ -59,10 +68,6 @@ deps = {
 
   "v8":
     Var('chromium_git') + "/v8/v8.git@" + Var('v8_revision'),
-
-  "v8/base/trace_event/common":
-    Var('chromium_git') + "/chromium/src/base/trace_event/common.git@" +
-        Var('trace_event_revision'),
 }
 
 deps_os = {
@@ -77,6 +82,11 @@ deps_os = {
       Var('chromium_git') + "/chromium/deps/cygwin@" + Var('cygwin_revision'),
   },
 }
+
+recursedeps = [
+  # buildtools provides clang_format, libc++, and libc++abi
+  'buildtools',
+]
 
 include_rules = [
   # Basic stuff that everyone can use.
@@ -126,24 +136,6 @@ hooks = [
                 '-s', 'pdfium/buildtools/linux64/gn.sha1',
     ],
   },
-  {
-    # Downloads the current stable linux sysroot to build/linux/ if needed.
-    # This sysroot updates at about the same rate that the chrome build deps
-    # change. This script is a no-op except for linux users who are doing
-    # official chrome builds or cross compiling.
-    'name': 'sysroot',
-    'pattern': '.',
-    'action': ['python',
-               'pdfium/build/linux/sysroot_scripts/install-sysroot.py',
-               '--running-as-hook'
-    ],
-  },
-  {
-    # A change to a .gyp, .gypi, or to GYP itself should run the generator.
-    'name': 'gyp',
-    'pattern': '.',
-    'action': ['python', 'pdfium/build_gyp/gyp_pdfium'],
-  },
   # Pull clang-format binaries using checked-in hashes.
   {
     'name': 'clang_format_win',
@@ -179,12 +171,11 @@ hooks = [
     ],
   },
   {
-    # Pull clang if needed or requested via GYP_DEFINES.
+    # Pull clang
     'name': 'clang',
     'pattern': '.',
     'action': ['python',
-               'pdfium/tools/clang/scripts/update.py',
-               '--if-needed'
+               'pdfium/tools/clang/scripts/update.py'
     ],
   },
   {
@@ -193,4 +184,18 @@ hooks = [
     'pattern': '.',
     'action': ['python', 'pdfium/build/vs_toolchain.py', 'update'],
   },
+  {
+    # Update the Mac toolchain if necessary.
+    'name': 'mac_toolchain',
+    'pattern': '.',
+    'action': ['python', 'pdfium/build/mac_toolchain.py'],
+  },
+  {
+    # Pull sanitizer-instrumented third-party libraries if requested via
+    # GYP_DEFINES.
+    'name': 'instrumented_libraries',
+    'pattern': '\\.sha1',
+    'action': ['python', 'pdfium/third_party/instrumented_libraries/scripts/download_binaries.py'],
+  },
+
 ]

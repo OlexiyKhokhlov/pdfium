@@ -7,8 +7,11 @@
 #ifndef XFA_FXBARCODE_QRCODE_BC_QRCODERENCODER_H_
 #define XFA_FXBARCODE_QRCODE_BC_QRCODERENCODER_H_
 
-#include "core/fxcrt/include/fx_basic.h"
-#include "core/fxcrt/include/fx_string.h"
+#include <utility>
+#include <vector>
+
+#include "core/fxcrt/fx_basic.h"
+#include "core/fxcrt/fx_string.h"
 
 class CBC_QRCoder;
 class CBC_QRCoderErrorCorrectionLevel;
@@ -16,12 +19,8 @@ class CBC_QRCoderMode;
 class CBC_QRCoderBitVector;
 class CBC_CommonByteArray;
 class CBC_CommonByteMatrix;
-class Make_Pair;
 
 class CBC_QRCoderEncoder {
- private:
-  static const int32_t m_alphaNumbericTable[96];
-
  public:
   CBC_QRCoderEncoder();
   virtual ~CBC_QRCoderEncoder();
@@ -63,7 +62,7 @@ class CBC_QRCoderEncoder {
                               CBC_QRCoderBitVector* bits,
                               CFX_ByteString encoding,
                               int32_t& e);
-  static void Append8BitBytes(CFX_ByteArray& bytes,
+  static void Append8BitBytes(CFX_ArrayTemplate<uint8_t>& bytes,
                               CBC_QRCoderBitVector* bits,
                               int32_t& e);
   static void AppendKanjiBytes(const CFX_ByteString& content,
@@ -121,13 +120,16 @@ class CBC_QRCoderEncoder {
                                   CBC_QRCoderMode* modeSecond,
                                   int32_t versionNum,
                                   int32_t& e);
-  static void MergeString(CFX_ArrayTemplate<Make_Pair*>* result,
-                          int32_t versionNum,
-                          int32_t& e);
-  static void SplitString(const CFX_ByteString& content,
-                          CFX_ArrayTemplate<Make_Pair*>* result);
+  static void MergeString(
+      std::vector<std::pair<CBC_QRCoderMode*, CFX_ByteString>>* result,
+      int32_t versionNum,
+      int32_t& e);
+  static void SplitString(
+      const CFX_ByteString& content,
+      std::vector<std::pair<CBC_QRCoderMode*, CFX_ByteString>>* result);
   static void AppendDataModeLenghInfo(
-      const CFX_ArrayTemplate<Make_Pair*>& splitResult,
+      const std::vector<std::pair<CBC_QRCoderMode*, CFX_ByteString>>&
+          splitResult,
       CBC_QRCoderBitVector& headerAndDataBits,
       CBC_QRCoderMode* tempMode,
       CBC_QRCoder* qrCode,

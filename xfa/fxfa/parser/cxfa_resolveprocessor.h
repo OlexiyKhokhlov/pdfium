@@ -7,6 +7,8 @@
 #ifndef XFA_FXFA_PARSER_CXFA_RESOLVEPROCESSOR_H_
 #define XFA_FXFA_PARSER_CXFA_RESOLVEPROCESSOR_H_
 
+#include <memory>
+
 #include "xfa/fxfa/parser/xfa_object.h"
 #include "xfa/fxfa/parser/xfa_resolvenode_rs.h"
 
@@ -15,7 +17,7 @@ class CXFA_ScriptContext;
 
 class CXFA_ResolveNodesData {
  public:
-  CXFA_ResolveNodesData(CXFA_ScriptContext* pSC = nullptr);
+  explicit CXFA_ResolveNodesData(CXFA_ScriptContext* pSC = nullptr);
   ~CXFA_ResolveNodesData();
 
   CXFA_ScriptContext* m_pSC;
@@ -46,7 +48,7 @@ class CXFA_ResolveProcessor {
                         int32_t iCount);
   void SetCurStart(int32_t start) { m_iCurStart = start; }
 
-  CXFA_NodeHelper* GetNodeHelper() { return m_pNodeHelper; }
+  CXFA_NodeHelper* GetNodeHelper() const { return m_pNodeHelper.get(); }
 
  private:
   int32_t ResolveForAttributeRs(CXFA_Object* curNode,
@@ -58,7 +60,7 @@ class CXFA_ResolveProcessor {
   int32_t ResolveNumberSign(CXFA_ResolveNodesData& rnd);
   int32_t ResolveAsterisk(CXFA_ResolveNodesData& rnd);
   int32_t ResolveNormal(CXFA_ResolveNodesData& rnd);
-  int32_t ResolvePopStack(CFX_Int32Array& stack);
+  int32_t ResolvePopStack(CFX_ArrayTemplate<int32_t>& stack);
   void SetStylesForChild(uint32_t dwParentStyles, CXFA_ResolveNodesData& rnd);
 
   void ConditionArray(int32_t iCurIndex,
@@ -72,7 +74,7 @@ class CXFA_ResolveProcessor {
   void FilterCondition(CXFA_ResolveNodesData& rnd, CFX_WideString wsCondition);
 
   int32_t m_iCurStart;
-  CXFA_NodeHelper* m_pNodeHelper;
+  std::unique_ptr<CXFA_NodeHelper> m_pNodeHelper;
 };
 
 #endif  // XFA_FXFA_PARSER_CXFA_RESOLVEPROCESSOR_H_

@@ -7,8 +7,8 @@
 #ifndef XFA_FXBARCODE_PDF417_BC_PDF417WRITER_H_
 #define XFA_FXBARCODE_PDF417_BC_PDF417WRITER_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/fx_system.h"
 #include "xfa/fxbarcode/BC_TwoDimWriter.h"
 
 class CBC_PDF417Writer : public CBC_TwoDimWriter {
@@ -22,13 +22,15 @@ class CBC_PDF417Writer : public CBC_TwoDimWriter {
                   int32_t& e);
 
   // CBC_TwoDimWriter
-  FX_BOOL SetErrorCorrectionLevel(int32_t level) override;
+  bool SetErrorCorrectionLevel(int32_t level) override;
 
-  void SetTruncated(FX_BOOL truncated);
+  void SetTruncated(bool truncated);
 
  private:
-  void rotateArray(CFX_ByteArray& bitarray, int32_t width, int32_t height);
-  FX_BOOL m_bTruncated;
+  void rotateArray(CFX_ArrayTemplate<uint8_t>& bitarray,
+                   int32_t width,
+                   int32_t height);
+  bool m_bTruncated;
 };
 
 #endif  // XFA_FXBARCODE_PDF417_BC_PDF417WRITER_H_

@@ -4,18 +4,12 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fxcrt/include/fx_basic.h"
-#include "core/fxcrt/include/fx_ext.h"
-
-#if _FXM_PLATFORM_ != _FXM_PLATFORM_WINDOWS_
-#include <dirent.h>
-#include <sys/types.h>
-#else
-#include <direct.h>
-#endif
+#include "core/fxcrt/fx_basic.h"
+#include "core/fxcrt/fx_ext.h"
 
 #include <algorithm>
 #include <cctype>
+#include <limits>
 #include <memory>
 
 bool FX_atonum(const CFX_ByteStringC& strc, void* pData) {
@@ -25,26 +19,53 @@ bool FX_atonum(const CFX_ByteStringC& strc, void* pData) {
     return false;
   }
 
-  int cc = 0;
-  pdfium::base::CheckedNumeric<int> integer = 0;
+  // Note, numbers in PDF are typically of the form 123, -123, etc. But,
+  // for things like the Permissions on the encryption hash the number is
+  // actually an unsigned value. We use a uint32_t so we can deal with the
+  // unsigned and then check for overflow if the user actually signed the value.
+  // The Permissions flag is listed in Table 3.20 PDF 1.7 spec.
+  pdfium::base::CheckedNumeric<uint32_t> integer = 0;
   bool bNegative = false;
+  bool bSigned = false;
+  int cc = 0;
   if (strc[0] == '+') {
     cc++;
+    bSigned = true;
   } else if (strc[0] == '-') {
     bNegative = true;
+    bSigned = true;
     cc++;
   }
+
   while (cc < strc.GetLength() && std::isdigit(strc[cc])) {
     integer = integer * 10 + FXSYS_toDecimalDigit(strc.CharAt(cc));
     if (!integer.IsValid())
       break;
     cc++;
   }
+
+  // We have a sign, and the value was greater then a regular integer
+  // we've overflowed, reset to the default value.
+  if (bSigned) {
+    if (bNegative) {
+      if (integer.ValueOrDefault(0) >
+          static_cast<uint32_t>(std::numeric_limits<int>::max()) + 1) {
+        integer = 0;
+      }
+    } else if (integer.ValueOrDefault(0) >
+               static_cast<uint32_t>(std::numeric_limits<int>::max())) {
+      integer = 0;
+    }
+  }
+
+  // Switch back to the int space so we can flip to a negative if we need.
+  uint32_t uValue = integer.ValueOrDefault(0);
+  int32_t value = static_cast<int>(uValue);
   if (bNegative)
-    integer = -integer;
+    value = -value;
 
   int* pInt = static_cast<int*>(pData);
-  *pInt = integer.ValueOrDefault(0);
+  *pInt = value;
   return true;
 }
 
@@ -52,6 +73,7 @@ static const FX_FLOAT fraction_scales[] = {
     0.1f,         0.01f,         0.001f,        0.0001f,
     0.00001f,     0.000001f,     0.0000001f,    0.00000001f,
     0.000000001f, 0.0000000001f, 0.00000000001f};
+
 int FXSYS_FractionalScaleCount() {
   return FX_ArraySize(fraction_scales);
 }
@@ -70,20 +92,18 @@ FX_FLOAT FX_atof(const CFX_ByteStringC& strc) {
   if (strc[0] == '+') {
     cc++;
   } else if (strc[0] == '-') {
-    bNegative = TRUE;
+    bNegative = true;
     cc++;
   }
   while (cc < len) {
-    if (strc[cc] != '+' && strc[cc] != '-') {
+    if (strc[cc] != '+' && strc[cc] != '-')
       break;
-    }
     cc++;
   }
   FX_FLOAT value = 0;
   while (cc < len) {
-    if (strc[cc] == '.') {
+    if (strc[cc] == '.')
       break;
-    }
     value = value * 10 + FXSYS_toDecimalDigit(strc.CharAt(cc));
     cc++;
   }
@@ -112,36 +132,15 @@ void FXSYS_snprintf(char* str,
   FXSYS_vsnprintf(str, size, fmt, ap);
   va_end(ap);
 }
+
 void FXSYS_vsnprintf(char* str, size_t size, const char* fmt, va_list ap) {
   (void)_vsnprintf(str, size, fmt, ap);
-  if (size) {
+  if (size)
     str[size - 1] = 0;
-  }
 }
 #endif  // _FXM_PLATFORM_WINDOWS_ && _MSC_VER < 1900
 
-#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-class CFindFileData {
- public:
-  virtual ~CFindFileData() {}
-  HANDLE m_Handle;
-  FX_BOOL m_bEnd;
-};
-
-class CFindFileDataA : public CFindFileData {
- public:
-  ~CFindFileDataA() override {}
-  WIN32_FIND_DATAA m_FindData;
-};
-
-class CFindFileDataW : public CFindFileData {
- public:
-  ~CFindFileDataW() override {}
-  WIN32_FIND_DATAW m_FindData;
-};
-#endif
-
-void* FX_OpenFolder(const FX_CHAR* path) {
+FX_FileHandle* FX_OpenFolder(const FX_CHAR* path) {
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
   std::unique_ptr<CFindFileDataA> pData(new CFindFileDataA);
   pData->m_Handle = FindFirstFileExA((CFX_ByteString(path) + "/*.*").c_str(),
@@ -150,101 +149,54 @@ void* FX_OpenFolder(const FX_CHAR* path) {
   if (pData->m_Handle == INVALID_HANDLE_VALUE)
     return nullptr;
 
-  pData->m_bEnd = FALSE;
+  pData->m_bEnd = false;
   return pData.release();
 #else
-  DIR* dir = opendir(path);
-  return dir;
+  return opendir(path);
 #endif
 }
 
-void* FX_OpenFolder(const FX_WCHAR* path) {
-#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-  std::unique_ptr<CFindFileDataW> pData(new CFindFileDataW);
-  pData->m_Handle = FindFirstFileExW((CFX_WideString(path) + L"/*.*").c_str(),
-                                     FindExInfoStandard, &pData->m_FindData,
-                                     FindExSearchNameMatch, nullptr, 0);
-  if (pData->m_Handle == INVALID_HANDLE_VALUE)
-    return nullptr;
+bool FX_GetNextFile(FX_FileHandle* handle,
+                    CFX_ByteString* filename,
+                    bool* bFolder) {
+  if (!handle)
+    return false;
 
-  pData->m_bEnd = FALSE;
-  return pData.release();
-#else
-  DIR* dir = opendir(CFX_ByteString::FromUnicode(path).c_str());
-  return dir;
-#endif
-}
-FX_BOOL FX_GetNextFile(void* handle,
-                       CFX_ByteString& filename,
-                       FX_BOOL& bFolder) {
-  if (!handle) {
-    return FALSE;
-  }
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-  CFindFileDataA* pData = (CFindFileDataA*)handle;
-  if (pData->m_bEnd)
-    return FALSE;
+  if (handle->m_bEnd)
+    return false;
 
-  filename = pData->m_FindData.cFileName;
-  bFolder = pData->m_FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
-  if (!FindNextFileA(pData->m_Handle, &pData->m_FindData))
-    pData->m_bEnd = TRUE;
-  return TRUE;
+  *filename = handle->m_FindData.cFileName;
+  *bFolder =
+      (handle->m_FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+  if (!FindNextFileA(handle->m_Handle, &handle->m_FindData))
+    handle->m_bEnd = true;
+  return true;
 #elif defined(__native_client__)
   abort();
-  return FALSE;
+  return false;
 #else
-  struct dirent* de = readdir((DIR*)handle);
-  if (!de) {
-    return FALSE;
-  }
-  filename = de->d_name;
-  bFolder = de->d_type == DT_DIR;
-  return TRUE;
+  struct dirent* de = readdir(handle);
+  if (!de)
+    return false;
+  *filename = de->d_name;
+  *bFolder = de->d_type == DT_DIR;
+  return true;
 #endif
 }
-FX_BOOL FX_GetNextFile(void* handle,
-                       CFX_WideString& filename,
-                       FX_BOOL& bFolder) {
-  if (!handle) {
-    return FALSE;
-  }
-#if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-  CFindFileDataW* pData = (CFindFileDataW*)handle;
-  if (pData->m_bEnd) {
-    return FALSE;
-  }
-  filename = pData->m_FindData.cFileName;
-  bFolder = pData->m_FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
-  if (!FindNextFileW(pData->m_Handle, &pData->m_FindData)) {
-    pData->m_bEnd = TRUE;
-  }
-  return TRUE;
-#elif defined(__native_client__)
-  abort();
-  return FALSE;
-#else
-  struct dirent* de = readdir((DIR*)handle);
-  if (!de) {
-    return FALSE;
-  }
-  filename = CFX_WideString::FromLocal(de->d_name);
-  bFolder = de->d_type == DT_DIR;
-  return TRUE;
-#endif
-}
-void FX_CloseFolder(void* handle) {
-  if (!handle) {
+
+void FX_CloseFolder(FX_FileHandle* handle) {
+  if (!handle)
     return;
-  }
+
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
-  CFindFileData* pData = (CFindFileData*)handle;
-  FindClose(pData->m_Handle);
-  delete pData;
+  FindClose(handle->m_Handle);
+  delete handle;
 #else
-  closedir((DIR*)handle);
+  closedir(handle);
 #endif
 }
+
 FX_WCHAR FX_GetFolderSeparator() {
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_WINDOWS_
   return '\\';
@@ -297,7 +249,8 @@ uint32_t GetBits32(const uint8_t* pData, int bitpos, int nbits) {
     bitMask = (1 << std::min(bitOffset, nbits)) - 1;
     dstShift = nbits - bitOffset;
   }
-  uint32_t result = (uint32_t)(*dataPtr++ >> bitShift & bitMask) << dstShift;
+  uint32_t result =
+      static_cast<uint32_t>((*dataPtr++ >> bitShift & bitMask) << dstShift);
   while (dstShift >= 8) {
     dstShift -= 8;
     result |= *dataPtr++ << dstShift;

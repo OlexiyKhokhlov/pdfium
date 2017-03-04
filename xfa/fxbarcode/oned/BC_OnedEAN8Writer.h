@@ -7,9 +7,9 @@
 #ifndef XFA_FXBARCODE_ONED_BC_ONEDEAN8WRITER_H_
 #define XFA_FXBARCODE_ONED_BC_ONEDEAN8WRITER_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxcrt/include/fx_system.h"
-#include "xfa/fxbarcode/include/BC_Library.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/fx_system.h"
+#include "xfa/fxbarcode/BC_Library.h"
 #include "xfa/fxbarcode/oned/BC_OneDimWriter.h"
 
 class CFX_DIBitmap;
@@ -39,13 +39,13 @@ class CBC_OnedEAN8Writer : public CBC_OneDimWriter {
   void RenderResult(const CFX_WideStringC& contents,
                     uint8_t* code,
                     int32_t codeLength,
-                    FX_BOOL isDevice,
+                    bool isDevice,
                     int32_t& e) override;
-  FX_BOOL CheckContentValidity(const CFX_WideStringC& contents) override;
+  bool CheckContentValidity(const CFX_WideStringC& contents) override;
   CFX_WideString FilterContents(const CFX_WideStringC& contents) override;
   void SetDataLength(int32_t length) override;
 
-  FX_BOOL SetTextLocation(BC_TEXT_LOC location);
+  bool SetTextLocation(BC_TEXT_LOC location);
   int32_t CalcChecksum(const CFX_ByteString& contents);
 
  protected:

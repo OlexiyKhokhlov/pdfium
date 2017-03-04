@@ -11,43 +11,57 @@
 
 class event : public CJS_EmbedObj {
  public:
-  event(CJS_Object* pJSObject);
+  explicit event(CJS_Object* pJSObject);
   ~event() override;
 
  public:
-  FX_BOOL change(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL changeEx(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL commitKey(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL fieldFull(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL keyDown(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL modifier(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL name(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL rc(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL richChange(IJS_Context* cc,
-                     CJS_PropValue& vp,
-                     CFX_WideString& sError);
-  FX_BOOL richChangeEx(IJS_Context* cc,
-                       CJS_PropValue& vp,
-                       CFX_WideString& sError);
-  FX_BOOL richValue(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL selEnd(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL selStart(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL shift(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL source(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL target(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL targetName(IJS_Context* cc,
-                     CJS_PropValue& vp,
-                     CFX_WideString& sError);
-  FX_BOOL type(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL value(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL willCommit(IJS_Context* cc,
-                     CJS_PropValue& vp,
-                     CFX_WideString& sError);
+  bool change(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool changeEx(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool commitKey(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool fieldFull(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool keyDown(CJS_Runtime* pRuntime,
+               CJS_PropValue& vp,
+               CFX_WideString& sError);
+  bool modifier(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool name(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool rc(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool richChange(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool richChangeEx(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError);
+  bool richValue(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool selEnd(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool selStart(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool shift(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool source(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool target(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool targetName(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool type(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool value(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool willCommit(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
 };
 
 class CJS_Event : public CJS_Object {
  public:
-  CJS_Event(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
+  explicit CJS_Event(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
   ~CJS_Event() override {}
 
   DECLARE_JS_CLASS();

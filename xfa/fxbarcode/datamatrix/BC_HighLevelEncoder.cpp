@@ -58,7 +58,8 @@ const wchar_t CBC_HighLevelEncoder::MACRO_TRAILER = 0x0004;
 CBC_HighLevelEncoder::CBC_HighLevelEncoder() {}
 CBC_HighLevelEncoder::~CBC_HighLevelEncoder() {}
 
-CFX_ByteArray& CBC_HighLevelEncoder::getBytesForMessage(CFX_WideString msg) {
+CFX_ArrayTemplate<uint8_t>& CBC_HighLevelEncoder::getBytesForMessage(
+    CFX_WideString msg) {
   CFX_ByteString bytestr;
   CBC_UtilCodingConvert::UnicodeToUTF8(msg, bytestr);
   for (int32_t i = 0; i < bytestr.GetLength(); i++) {
@@ -78,7 +79,8 @@ CFX_WideString CBC_HighLevelEncoder::encodeHighLevel(CFX_WideString msg,
                                                      CBC_Dimension* maxSize,
                                                      int32_t& e) {
   CBC_EncoderContext context(msg, ecLevel, e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, CFX_WideString());
+  if (e != BCExceptionNO)
+    return CFX_WideString();
   context.setSymbolShape(shape);
   context.setSizeConstraints(minSize, maxSize);
   if ((msg.Mid(0, 6) == MACRO_05_HEADER) &&
@@ -138,30 +140,30 @@ int32_t CBC_HighLevelEncoder::lookAheadTest(CFX_WideString msg,
   if (startpos >= msg.GetLength()) {
     return currentMode;
   }
-  CFX_FloatArray charCounts;
+  std::vector<FX_FLOAT> charCounts;
   if (currentMode == ASCII_ENCODATION) {
-    charCounts.Add(0);
-    charCounts.Add(1);
-    charCounts.Add(1);
-    charCounts.Add(1);
-    charCounts.Add(1);
-    charCounts.Add(1.25f);
+    charCounts.push_back(0);
+    charCounts.push_back(1);
+    charCounts.push_back(1);
+    charCounts.push_back(1);
+    charCounts.push_back(1);
+    charCounts.push_back(1.25f);
   } else {
-    charCounts.Add(1);
-    charCounts.Add(2);
-    charCounts.Add(2);
-    charCounts.Add(2);
-    charCounts.Add(2);
-    charCounts.Add(2.25f);
+    charCounts.push_back(1);
+    charCounts.push_back(2);
+    charCounts.push_back(2);
+    charCounts.push_back(2);
+    charCounts.push_back(2);
+    charCounts.push_back(2.25f);
     charCounts[currentMode] = 0;
   }
   int32_t charsProcessed = 0;
-  while (TRUE) {
+  while (true) {
     if ((startpos + charsProcessed) == msg.GetLength()) {
       int32_t min = std::numeric_limits<int32_t>::max();
-      CFX_ByteArray mins;
+      CFX_ArrayTemplate<uint8_t> mins;
       mins.SetSize(6);
-      CFX_Int32Array intCharCounts;
+      CFX_ArrayTemplate<int32_t> intCharCounts;
       intCharCounts.SetSize(6);
       min = findMinimums(charCounts, intCharCounts, min, mins);
       int32_t minCount = getMinimumCount(mins);
@@ -229,9 +231,9 @@ int32_t CBC_HighLevelEncoder::lookAheadTest(CFX_WideString msg,
       charCounts[BASE256_ENCODATION]++;
     }
     if (charsProcessed >= 4) {
-      CFX_Int32Array intCharCounts;
+      CFX_ArrayTemplate<int32_t> intCharCounts;
       intCharCounts.SetSize(6);
-      CFX_ByteArray mins;
+      CFX_ArrayTemplate<uint8_t> mins;
       mins.SetSize(6);
       findMinimums(charCounts, intCharCounts,
                    std::numeric_limits<int32_t>::max(), mins);
@@ -284,10 +286,10 @@ int32_t CBC_HighLevelEncoder::lookAheadTest(CFX_WideString msg,
     }
   }
 }
-FX_BOOL CBC_HighLevelEncoder::isDigit(FX_WCHAR ch) {
+bool CBC_HighLevelEncoder::isDigit(FX_WCHAR ch) {
   return ch >= '0' && ch <= '9';
 }
-FX_BOOL CBC_HighLevelEncoder::isExtendedASCII(FX_WCHAR ch) {
+bool CBC_HighLevelEncoder::isExtendedASCII(FX_WCHAR ch) {
   return ch >= 128 && ch <= 255;
 }
 int32_t CBC_HighLevelEncoder::determineConsecutiveDigitCount(CFX_WideString msg,
@@ -317,10 +319,11 @@ FX_WCHAR CBC_HighLevelEncoder::randomize253State(FX_WCHAR ch,
   return tempVariable <= 254 ? (FX_WCHAR)tempVariable
                              : (FX_WCHAR)(tempVariable - 254);
 }
-int32_t CBC_HighLevelEncoder::findMinimums(CFX_FloatArray& charCounts,
-                                           CFX_Int32Array& intCharCounts,
-                                           int32_t min,
-                                           CFX_ByteArray& mins) {
+int32_t CBC_HighLevelEncoder::findMinimums(
+    std::vector<FX_FLOAT>& charCounts,
+    CFX_ArrayTemplate<int32_t>& intCharCounts,
+    int32_t min,
+    CFX_ArrayTemplate<uint8_t>& mins) {
   for (int32_t l = 0; l < mins.GetSize(); l++) {
     mins[l] = (uint8_t)0;
   }
@@ -339,29 +342,30 @@ int32_t CBC_HighLevelEncoder::findMinimums(CFX_FloatArray& charCounts,
   }
   return min;
 }
-int32_t CBC_HighLevelEncoder::getMinimumCount(CFX_ByteArray& mins) {
+int32_t CBC_HighLevelEncoder::getMinimumCount(
+    CFX_ArrayTemplate<uint8_t>& mins) {
   int32_t minCount = 0;
   for (int32_t i = 0; i < 6; i++) {
     minCount += mins[i];
   }
   return minCount;
 }
-FX_BOOL CBC_HighLevelEncoder::isNativeC40(FX_WCHAR ch) {
+bool CBC_HighLevelEncoder::isNativeC40(FX_WCHAR ch) {
   return (ch == ' ') || (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z');
 }
-FX_BOOL CBC_HighLevelEncoder::isNativeText(FX_WCHAR ch) {
+bool CBC_HighLevelEncoder::isNativeText(FX_WCHAR ch) {
   return (ch == ' ') || (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z');
 }
-FX_BOOL CBC_HighLevelEncoder::isNativeX12(FX_WCHAR ch) {
+bool CBC_HighLevelEncoder::isNativeX12(FX_WCHAR ch) {
   return isX12TermSep(ch) || (ch == ' ') || (ch >= '0' && ch <= '9') ||
          (ch >= 'A' && ch <= 'Z');
 }
-FX_BOOL CBC_HighLevelEncoder::isX12TermSep(FX_WCHAR ch) {
+bool CBC_HighLevelEncoder::isX12TermSep(FX_WCHAR ch) {
   return (ch == '\r') || (ch == '*') || (ch == '>');
 }
-FX_BOOL CBC_HighLevelEncoder::isNativeEDIFACT(FX_WCHAR ch) {
+bool CBC_HighLevelEncoder::isNativeEDIFACT(FX_WCHAR ch) {
   return ch >= ' ' && ch <= '^';
 }
-FX_BOOL CBC_HighLevelEncoder::isSpecialB256(FX_WCHAR ch) {
-  return FALSE;
+bool CBC_HighLevelEncoder::isSpecialB256(FX_WCHAR ch) {
+  return false;
 }

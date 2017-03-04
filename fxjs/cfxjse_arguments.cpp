@@ -4,10 +4,10 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "fxjs/include/cfxjse_arguments.h"
+#include "fxjs/cfxjse_arguments.h"
 
-#include "fxjs/include/cfxjse_context.h"
-#include "fxjs/include/cfxjse_value.h"
+#include "fxjs/cfxjse_context.h"
+#include "fxjs/cfxjse_value.h"
 
 v8::Isolate* CFXJSE_Arguments::GetRuntime() const {
   return m_pRetValue->GetIsolate();
@@ -24,7 +24,7 @@ std::unique_ptr<CFXJSE_Value> CFXJSE_Arguments::GetValue(int32_t index) const {
   return lpArgValue;
 }
 
-FX_BOOL CFXJSE_Arguments::GetBoolean(int32_t index) const {
+bool CFXJSE_Arguments::GetBoolean(int32_t index) const {
   return (*m_pInfo)[index]->BooleanValue();
 }
 

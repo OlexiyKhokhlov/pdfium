@@ -7,7 +7,7 @@
 #ifndef XFA_FWL_THEME_CFWL_UTILS_H_
 #define XFA_FWL_THEME_CFWL_UTILS_H_
 
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 
 enum FWLTHEME_EDGE {
   FWLTHEME_EDGE_Flat = 0,
@@ -19,7 +19,7 @@ enum FWLTHEME_STATE {
   FWLTHEME_STATE_Normal = 1,
   FWLTHEME_STATE_Hover,
   FWLTHEME_STATE_Pressed,
-  FWLTHEME_STATE_Disabale
+  FWLTHEME_STATE_Disable
 };
 
 enum FWLTHEME_DIRECTION {

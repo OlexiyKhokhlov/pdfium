@@ -7,7 +7,10 @@
 #ifndef XFA_FDE_XML_CFX_SAXREADER_H_
 #define XFA_FDE_XML_CFX_SAXREADER_H_
 
-#include "core/fxcrt/include/fx_basic.h"
+#include <memory>
+#include <stack>
+
+#include "core/fxcrt/fx_basic.h"
 
 class CXFA_SAXContext;
 
@@ -23,29 +26,27 @@ class CFX_SAXItem {
     CharData,
   };
 
-  CFX_SAXItem()
-      : m_pNode(nullptr),
-        m_eNode(Type::Unknown),
-        m_dwID(0),
-        m_bSkip(FALSE),
-        m_pPrev(nullptr),
-        m_pNext(nullptr) {}
+  explicit CFX_SAXItem(uint32_t id)
+      : m_pNode(nullptr), m_eNode(Type::Unknown), m_dwID(id), m_bSkip(false) {}
 
   CXFA_SAXContext* m_pNode;
   Type m_eNode;
-  uint32_t m_dwID;
-  FX_BOOL m_bSkip;
-  CFX_SAXItem* m_pPrev;
-  CFX_SAXItem* m_pNext;
+  const uint32_t m_dwID;
+  bool m_bSkip;
 };
 
 class CFX_SAXFile {
  public:
   CFX_SAXFile();
-  FX_BOOL StartFile(IFX_FileRead* pFile, uint32_t dwStart, uint32_t dwLen);
-  FX_BOOL ReadNextBlock();
+  ~CFX_SAXFile();
+
+  bool StartFile(const CFX_RetainPtr<IFX_SeekableReadStream>& pFile,
+                 uint32_t dwStart,
+                 uint32_t dwLen);
+  bool ReadNextBlock();
   void Reset();
-  IFX_FileRead* m_pFile;
+
+  CFX_RetainPtr<IFX_SeekableReadStream> m_pFile;
   uint32_t m_dwStart;
   uint32_t m_dwEnd;
   uint32_t m_dwCur;
@@ -74,7 +75,7 @@ class CFX_SAXReader {
   CFX_SAXReader();
   ~CFX_SAXReader();
 
-  int32_t StartParse(IFX_FileRead* pFile,
+  int32_t StartParse(const CFX_RetainPtr<IFX_SeekableReadStream>& pFile,
                      uint32_t dwStart = 0,
                      uint32_t dwLen = -1,
                      uint32_t dwParseMode = 0);
@@ -103,7 +104,8 @@ class CFX_SAXReader {
   void Reset();
   void Push();
   void Pop();
-  FX_BOOL SkipSpace(uint8_t ch);
+  CFX_SAXItem* GetCurrentItem() const;
+  bool SkipSpace(uint8_t ch);
   void SkipNode();
   void NotifyData();
   void NotifyEnter();
@@ -119,15 +121,14 @@ class CFX_SAXReader {
   CFX_SAXFile m_File;
   CXFA_SAXReaderHandler* m_pHandler;
   int32_t m_iState;
-  CFX_SAXItem* m_pRoot;
-  CFX_SAXItem* m_pCurItem;
+  std::stack<std::unique_ptr<CFX_SAXItem>> m_Stack;
   uint32_t m_dwItemID;
   CFX_SaxMode m_eMode;
   CFX_SaxMode m_ePrevMode;
-  FX_BOOL m_bCharData;
+  bool m_bCharData;
   uint8_t m_CurByte;
   uint32_t m_dwDataOffset;
-  CFX_ByteArray m_SkipStack;
+  CFX_ArrayTemplate<uint8_t> m_SkipStack;
   uint8_t m_SkipChar;
   uint32_t m_dwNodePos;
   uint8_t* m_pszData;

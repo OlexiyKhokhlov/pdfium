@@ -7,7 +7,7 @@
 #ifndef XFA_FXBARCODE_ONED_BC_ONEDCODE39WRITER_H_
 #define XFA_FXBARCODE_ONED_BC_ONEDCODE39WRITER_H_
 
-#include "xfa/fxbarcode/include/BC_Library.h"
+#include "xfa/fxbarcode/BC_Library.h"
 #include "xfa/fxbarcode/oned/BC_OneDimWriter.h"
 
 class CBC_OnedCode39Writer : public CBC_OneDimWriter {
@@ -33,16 +33,16 @@ class CBC_OnedCode39Writer : public CBC_OneDimWriter {
   void RenderResult(const CFX_WideStringC& contents,
                     uint8_t* code,
                     int32_t codeLength,
-                    FX_BOOL isDevice,
+                    bool isDevice,
                     int32_t& e) override;
-  FX_BOOL CheckContentValidity(const CFX_WideStringC& contents) override;
+  bool CheckContentValidity(const CFX_WideStringC& contents) override;
   CFX_WideString FilterContents(const CFX_WideStringC& contents) override;
   CFX_WideString RenderTextContents(const CFX_WideStringC& contents) override;
 
   virtual CFX_WideString encodedContents(const CFX_WideStringC& contents,
                                          int32_t& e);
-  virtual FX_BOOL SetTextLocation(BC_TEXT_LOC loction);
-  virtual FX_BOOL SetWideNarrowRatio(int32_t ratio);
+  virtual bool SetTextLocation(BC_TEXT_LOC loction);
+  virtual bool SetWideNarrowRatio(int32_t ratio);
 
  private:
   void ToIntArray(int32_t a, int32_t* toReturn);

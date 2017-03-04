@@ -7,7 +7,7 @@
 #ifndef CORE_FXCODEC_JBIG2_JBIG2_GSIDPROC_H_
 #define CORE_FXCODEC_JBIG2_JBIG2_GSIDPROC_H_
 
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 
 class CJBig2_ArithDecoder;
 class CJBig2_BitStream;
@@ -24,8 +24,8 @@ class CJBig2_GSIDProc {
   uint32_t* decode_MMR(CJBig2_BitStream* pStream, IFX_Pause* pPause);
 
  public:
-  FX_BOOL GSMMR;
-  FX_BOOL GSUSESKIP;
+  bool GSMMR;
+  bool GSUSESKIP;
   uint8_t GSBPP;
   uint32_t GSW;
   uint32_t GSH;

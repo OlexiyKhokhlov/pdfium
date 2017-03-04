@@ -11,11 +11,11 @@
 
 struct PWL_CARET_INFO {
  public:
-  PWL_CARET_INFO() : bVisible(FALSE), ptHead(0, 0), ptFoot(0, 0) {}
+  PWL_CARET_INFO();
 
-  FX_BOOL bVisible;
-  CFX_FloatPoint ptHead;
-  CFX_FloatPoint ptFoot;
+  bool bVisible;
+  CFX_PointF ptHead;
+  CFX_PointF ptFoot;
 };
 
 class CPWL_Caret : public CPWL_Wnd {
@@ -29,22 +29,22 @@ class CPWL_Caret : public CPWL_Wnd {
   void DrawThisAppearance(CFX_RenderDevice* pDevice,
                           CFX_Matrix* pUser2Device) override;
   void InvalidateRect(CFX_FloatRect* pRect = nullptr) override;
-  void SetVisible(FX_BOOL bVisible) override {}
+  void SetVisible(bool bVisible) override {}
   void TimerProc() override;
 
-  void SetCaret(FX_BOOL bVisible,
-                const CFX_FloatPoint& ptHead,
-                const CFX_FloatPoint& ptFoot);
-  CFX_ByteString GetCaretAppearanceStream(const CFX_FloatPoint& ptOffset);
+  void SetCaret(bool bVisible,
+                const CFX_PointF& ptHead,
+                const CFX_PointF& ptFoot);
+  CFX_ByteString GetCaretAppearanceStream(const CFX_PointF& ptOffset);
   void SetInvalidRect(CFX_FloatRect rc) { m_rcInvalid = rc; }
 
  private:
-  void GetCaretApp(CFX_ByteTextBuf& sAppStream, const CFX_FloatPoint& ptOffset);
+  void GetCaretApp(CFX_ByteTextBuf& sAppStream, const CFX_PointF& ptOffset);
   CFX_FloatRect GetCaretRect() const;
 
-  FX_BOOL m_bFlash;
-  CFX_FloatPoint m_ptHead;
-  CFX_FloatPoint m_ptFoot;
+  bool m_bFlash;
+  CFX_PointF m_ptHead;
+  CFX_PointF m_ptFoot;
   FX_FLOAT m_fWidth;
   int32_t m_nDelay;
   CFX_FloatRect m_rcInvalid;

@@ -7,7 +7,7 @@
 #ifndef XFA_FXBARCODE_COMMON_BC_COMMONBITARRAY_H_
 #define XFA_FXBARCODE_COMMON_BC_COMMONBITARRAY_H_
 
-#include "core/fxcrt/include/fx_basic.h"
+#include "core/fxcrt/fx_basic.h"
 
 class CBC_CommonBitArray {
  public:
@@ -17,20 +17,20 @@ class CBC_CommonBitArray {
   virtual ~CBC_CommonBitArray();
 
   int32_t GetSize();
-  CFX_Int32Array& GetBits();
+  CFX_ArrayTemplate<int32_t>& GetBits();
   int32_t GetSizeInBytes();
-  FX_BOOL Get(int32_t i);
+  bool Get(int32_t i);
   void Set(int32_t i);
   void Flip(int32_t i);
   void SetBulk(int32_t i, int32_t newBits);
-  FX_BOOL IsRange(int32_t start, int32_t end, FX_BOOL value, int32_t& e);
+  bool IsRange(int32_t start, int32_t end, bool value, int32_t& e);
   int32_t* GetBitArray();
   void Reverse();
   void Clear();
 
  private:
   int32_t m_size;
-  CFX_Int32Array m_bits;
+  CFX_ArrayTemplate<int32_t> m_bits;
 };
 
 #endif  // XFA_FXBARCODE_COMMON_BC_COMMONBITARRAY_H_

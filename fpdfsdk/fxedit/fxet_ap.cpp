@@ -4,12 +4,12 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fpdfapi/fpdf_font/include/cpdf_font.h"
-#include "core/fpdfapi/fpdf_parser/include/fpdf_parser_decode.h"
-#include "core/fpdfdoc/include/cpvt_word.h"
-#include "core/fpdfdoc/include/ipvt_fontmap.h"
-#include "fpdfsdk/fxedit/include/fx_edit.h"
-#include "fpdfsdk/fxedit/include/fxet_edit.h"
+#include "core/fpdfapi/font/cpdf_font.h"
+#include "core/fpdfapi/parser/fpdf_parser_decode.h"
+#include "core/fpdfdoc/cpvt_word.h"
+#include "core/fpdfdoc/ipvt_fontmap.h"
+#include "fpdfsdk/fxedit/fx_edit.h"
+#include "fpdfsdk/fxedit/fxet_edit.h"
 
 CFX_ByteString GetPDFWordString(IPVT_FontMap* pFontMap,
                                 int32_t nFontIndex,

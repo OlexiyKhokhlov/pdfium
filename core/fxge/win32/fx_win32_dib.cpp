@@ -4,12 +4,11 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fxge/include/fx_ge.h"
-
-#if _FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN64_DESKTOP_
 #include <windows.h>
 
-#include "core/fxge/include/fx_ge_win32.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/cfx_gemodule.h"
+#include "core/fxge/win32/cfx_windowsdib.h"
 #include "core/fxge/win32/win32_int.h"
 
 CFX_ByteString CFX_WindowsDIB::GetBitmapInfo(const CFX_DIBitmap* pBitmap) {
@@ -54,20 +53,20 @@ CFX_ByteString CFX_WindowsDIB::GetBitmapInfo(const CFX_DIBitmap* pBitmap) {
 
 CFX_DIBitmap* _FX_WindowsDIB_LoadFromBuf(BITMAPINFO* pbmi,
                                          LPVOID pData,
-                                         FX_BOOL bAlpha) {
+                                         bool bAlpha) {
   int width = pbmi->bmiHeader.biWidth;
   int height = pbmi->bmiHeader.biHeight;
-  BOOL bBottomUp = TRUE;
+  BOOL bBottomUp = true;
   if (height < 0) {
     height = -height;
-    bBottomUp = FALSE;
+    bBottomUp = false;
   }
   int pitch = (width * pbmi->bmiHeader.biBitCount + 31) / 32 * 4;
   CFX_DIBitmap* pBitmap = new CFX_DIBitmap;
   FXDIB_Format format = bAlpha
                             ? (FXDIB_Format)(pbmi->bmiHeader.biBitCount + 0x200)
                             : (FXDIB_Format)pbmi->bmiHeader.biBitCount;
-  FX_BOOL ret = pBitmap->Create(width, height, format);
+  bool ret = pBitmap->Create(width, height, format);
   if (!ret) {
     delete pBitmap;
     return nullptr;
@@ -100,7 +99,7 @@ CFX_DIBitmap* _FX_WindowsDIB_LoadFromBuf(BITMAPINFO* pbmi,
 }
 
 CFX_DIBitmap* CFX_WindowsDIB::LoadFromBuf(BITMAPINFO* pbmi, LPVOID pData) {
-  return _FX_WindowsDIB_LoadFromBuf(pbmi, pData, FALSE);
+  return _FX_WindowsDIB_LoadFromBuf(pbmi, pData, false);
 }
 
 HBITMAP CFX_WindowsDIB::GetDDBitmap(const CFX_DIBitmap* pBitmap, HDC hDC) {
@@ -217,4 +216,3 @@ void CFX_WindowsDIB::LoadFromDevice(HDC hDC, int left, int top) {
 void CFX_WindowsDIB::SetToDevice(HDC hDC, int left, int top) {
   ::BitBlt(hDC, left, top, m_Width, m_Height, m_hMemDC, 0, 0, SRCCOPY);
 }
-#endif

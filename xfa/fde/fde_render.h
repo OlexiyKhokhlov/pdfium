@@ -8,8 +8,9 @@
 #define XFA_FDE_FDE_RENDER_H_
 
 #include <memory>
+#include <vector>
 
-#include "core/fxcrt/include/fx_coordinates.h"
+#include "core/fxcrt/fx_coordinates.h"
 #include "xfa/fde/fde_gedevice.h"
 #include "xfa/fde/fde_iterator.h"
 #include "xfa/fde/fde_visualset.h"
@@ -23,14 +24,14 @@ enum FDE_RENDERSTATUS {
   FDE_RENDERSTATUS_Failed,
 };
 
-class CFDE_RenderContext : public CFX_Target {
+class CFDE_RenderContext {
  public:
   CFDE_RenderContext();
-  ~CFDE_RenderContext() override;
+  ~CFDE_RenderContext();
 
-  FX_BOOL StartRender(CFDE_RenderDevice* pRenderDevice,
-                      IFDE_CanvasSet* pCanvasSet,
-                      const CFX_Matrix& tmDoc2Device);
+  bool StartRender(CFDE_RenderDevice* pRenderDevice,
+                   IFDE_CanvasSet* pCanvasSet,
+                   const CFX_Matrix& tmDoc2Device);
   FDE_RENDERSTATUS GetStatus() const { return m_eStatus; }
   FDE_RENDERSTATUS DoRender(IFX_Pause* pPause = nullptr);
   void StopRender();
@@ -40,8 +41,7 @@ class CFDE_RenderContext : public CFX_Target {
   FDE_RENDERSTATUS m_eStatus;
   CFDE_RenderDevice* m_pRenderDevice;
   CFX_Matrix m_Transform;
-  FXTEXT_CHARPOS* m_pCharPos;
-  int32_t m_iCharPosCount;
+  std::vector<FXTEXT_CHARPOS> m_CharPos;
   std::unique_ptr<CFDE_Brush> m_pBrush;
   std::unique_ptr<CFDE_VisualSetIterator> m_pIterator;
 };

@@ -7,16 +7,17 @@
 #include "xfa/fxfa/app/xfa_ffpath.h"
 
 #include "xfa/fxfa/app/xfa_ffdraw.h"
-#include "xfa/fxfa/include/xfa_ffapp.h"
-#include "xfa/fxfa/include/xfa_ffdoc.h"
-#include "xfa/fxfa/include/xfa_ffpageview.h"
-#include "xfa/fxfa/include/xfa_ffwidget.h"
+#include "xfa/fxfa/xfa_ffapp.h"
+#include "xfa/fxfa/xfa_ffdoc.h"
+#include "xfa/fxfa/xfa_ffpageview.h"
+#include "xfa/fxfa/xfa_ffwidget.h"
 #include "xfa/fxgraphics/cfx_color.h"
 #include "xfa/fxgraphics/cfx_path.h"
 
-CXFA_FFLine::CXFA_FFLine(CXFA_FFPageView* pPageView, CXFA_WidgetAcc* pDataAcc)
-    : CXFA_FFDraw(pPageView, pDataAcc) {}
+CXFA_FFLine::CXFA_FFLine(CXFA_WidgetAcc* pDataAcc) : CXFA_FFDraw(pDataAcc) {}
+
 CXFA_FFLine::~CXFA_FFLine() {}
+
 void CXFA_FFLine::GetRectFromHand(CFX_RectF& rect,
                                   int32_t iHand,
                                   FX_FLOAT fLineWidth) {
@@ -49,109 +50,107 @@ void CXFA_FFLine::GetRectFromHand(CFX_RectF& rect,
     }
   }
 }
+
 void CXFA_FFLine::RenderWidget(CFX_Graphics* pGS,
                                CFX_Matrix* pMatrix,
                                uint32_t dwStatus) {
-  if (!IsMatchVisibleStatus(dwStatus)) {
+  if (!IsMatchVisibleStatus(dwStatus))
     return;
-  }
+
   CXFA_Value value = m_pDataAcc->GetFormValue();
-  if (!value) {
+  if (!value)
     return;
-  }
+
   CXFA_Line lineObj = value.GetLine();
   FX_ARGB lineColor = 0xFF000000;
   int32_t iStrokeType = 0;
   FX_FLOAT fLineWidth = 1.0f;
-  FX_BOOL bSlope = lineObj.GetSlop();
   int32_t iCap = 0;
   CXFA_Edge edge = lineObj.GetEdge();
   if (edge) {
-    if (edge.GetPresence() != XFA_ATTRIBUTEENUM_Visible) {
+    if (edge.GetPresence() != XFA_ATTRIBUTEENUM_Visible)
       return;
-    }
+
     lineColor = edge.GetColor();
     iStrokeType = edge.GetStrokeType();
     fLineWidth = edge.GetThickness();
     iCap = edge.GetCapType();
   }
-  CFX_Matrix mtRotate;
-  GetRotateMatrix(mtRotate);
-  if (pMatrix) {
+
+  CFX_Matrix mtRotate = GetRotateMatrix();
+  if (pMatrix)
     mtRotate.Concat(*pMatrix);
-  }
-  CFX_RectF rtLine;
-  GetRectWithoutRotate(rtLine);
-  if (CXFA_Margin mgWidget = m_pDataAcc->GetMargin()) {
+
+  CFX_RectF rtLine = GetRectWithoutRotate();
+  if (CXFA_Margin mgWidget = m_pDataAcc->GetMargin())
     XFA_RectWidthoutMargin(rtLine, mgWidget);
-  }
+
   GetRectFromHand(rtLine, lineObj.GetHand(), fLineWidth);
   CFX_Path linePath;
-  linePath.Create();
-  if (bSlope && rtLine.right() > 0.0f && rtLine.bottom() > 0.0f) {
-    linePath.AddLine(rtLine.right(), rtLine.top, rtLine.left, rtLine.bottom());
-  } else {
-    linePath.AddLine(rtLine.left, rtLine.top, rtLine.right(), rtLine.bottom());
-  }
+  if (lineObj.GetSlope() && rtLine.right() > 0.0f && rtLine.bottom() > 0.0f)
+    linePath.AddLine(rtLine.TopRight(), rtLine.BottomLeft());
+  else
+    linePath.AddLine(rtLine.TopLeft(), rtLine.BottomRight());
+
   CFX_Color color(lineColor);
   pGS->SaveGraphState();
-  pGS->SetLineWidth(fLineWidth, TRUE);
+  pGS->SetLineWidth(fLineWidth, true);
   XFA_StrokeTypeSetLineDash(pGS, iStrokeType, iCap);
   pGS->SetStrokeColor(&color);
   pGS->SetLineCap(XFA_LineCapToFXGE(iCap));
   pGS->StrokePath(&linePath, &mtRotate);
   pGS->RestoreGraphState();
 }
-CXFA_FFArc::CXFA_FFArc(CXFA_FFPageView* pPageView, CXFA_WidgetAcc* pDataAcc)
-    : CXFA_FFDraw(pPageView, pDataAcc) {}
+
+CXFA_FFArc::CXFA_FFArc(CXFA_WidgetAcc* pDataAcc) : CXFA_FFDraw(pDataAcc) {}
+
 CXFA_FFArc::~CXFA_FFArc() {}
+
 void CXFA_FFArc::RenderWidget(CFX_Graphics* pGS,
                               CFX_Matrix* pMatrix,
                               uint32_t dwStatus) {
-  if (!IsMatchVisibleStatus(dwStatus)) {
+  if (!IsMatchVisibleStatus(dwStatus))
     return;
-  }
+
   CXFA_Value value = m_pDataAcc->GetFormValue();
-  if (!value) {
+  if (!value)
     return;
-  }
+
   CXFA_Arc arcObj = value.GetArc();
-  CFX_Matrix mtRotate;
-  GetRotateMatrix(mtRotate);
-  if (pMatrix) {
+  CFX_Matrix mtRotate = GetRotateMatrix();
+  if (pMatrix)
     mtRotate.Concat(*pMatrix);
-  }
-  CFX_RectF rtArc;
-  GetRectWithoutRotate(rtArc);
-  if (CXFA_Margin mgWidget = m_pDataAcc->GetMargin()) {
+
+  CFX_RectF rtArc = GetRectWithoutRotate();
+  if (CXFA_Margin mgWidget = m_pDataAcc->GetMargin())
     XFA_RectWidthoutMargin(rtArc, mgWidget);
-  }
+
   DrawBorder(pGS, arcObj, rtArc, &mtRotate);
 }
-CXFA_FFRectangle::CXFA_FFRectangle(CXFA_FFPageView* pPageView,
-                                   CXFA_WidgetAcc* pDataAcc)
-    : CXFA_FFDraw(pPageView, pDataAcc) {}
+
+CXFA_FFRectangle::CXFA_FFRectangle(CXFA_WidgetAcc* pDataAcc)
+    : CXFA_FFDraw(pDataAcc) {}
+
 CXFA_FFRectangle::~CXFA_FFRectangle() {}
+
 void CXFA_FFRectangle::RenderWidget(CFX_Graphics* pGS,
                                     CFX_Matrix* pMatrix,
                                     uint32_t dwStatus) {
-  if (!IsMatchVisibleStatus(dwStatus)) {
+  if (!IsMatchVisibleStatus(dwStatus))
     return;
-  }
+
   CXFA_Value value = m_pDataAcc->GetFormValue();
-  if (!value) {
+  if (!value)
     return;
-  }
+
   CXFA_Rectangle rtObj = value.GetRectangle();
-  CFX_RectF rect;
-  GetRectWithoutRotate(rect);
-  if (CXFA_Margin mgWidget = m_pDataAcc->GetMargin()) {
+  CFX_RectF rect = GetRectWithoutRotate();
+  if (CXFA_Margin mgWidget = m_pDataAcc->GetMargin())
     XFA_RectWidthoutMargin(rect, mgWidget);
-  }
-  CFX_Matrix mtRotate;
-  GetRotateMatrix(mtRotate);
-  if (pMatrix) {
+
+  CFX_Matrix mtRotate = GetRotateMatrix();
+  if (pMatrix)
     mtRotate.Concat(*pMatrix);
-  }
+
   DrawBorder(pGS, rtObj, rect, &mtRotate);
 }

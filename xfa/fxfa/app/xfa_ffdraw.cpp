@@ -6,11 +6,11 @@
 
 #include "xfa/fxfa/app/xfa_ffdraw.h"
 
-#include "xfa/fxfa/include/xfa_ffapp.h"
-#include "xfa/fxfa/include/xfa_ffdoc.h"
-#include "xfa/fxfa/include/xfa_ffpageview.h"
-#include "xfa/fxfa/include/xfa_ffwidget.h"
+#include "xfa/fxfa/xfa_ffapp.h"
+#include "xfa/fxfa/xfa_ffdoc.h"
+#include "xfa/fxfa/xfa_ffpageview.h"
+#include "xfa/fxfa/xfa_ffwidget.h"
 
-CXFA_FFDraw::CXFA_FFDraw(CXFA_FFPageView* pPageView, CXFA_WidgetAcc* pDataAcc)
-    : CXFA_FFWidget(pPageView, pDataAcc) {}
+CXFA_FFDraw::CXFA_FFDraw(CXFA_WidgetAcc* pDataAcc) : CXFA_FFWidget(pDataAcc) {}
+
 CXFA_FFDraw::~CXFA_FFDraw() {}

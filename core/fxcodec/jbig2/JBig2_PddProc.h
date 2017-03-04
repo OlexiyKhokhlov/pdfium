@@ -7,7 +7,7 @@
 #ifndef CORE_FXCODEC_JBIG2_JBIG2_PDDPROC_H_
 #define CORE_FXCODEC_JBIG2_JBIG2_PDDPROC_H_
 
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 
 class CJBig2_ArithDecoder;
 class CJBig2_BitStream;
@@ -24,7 +24,7 @@ class CJBig2_PDDProc {
   CJBig2_PatternDict* decode_MMR(CJBig2_BitStream* pStream, IFX_Pause* pPause);
 
  public:
-  FX_BOOL HDMMR;
+  bool HDMMR;
   uint8_t HDPW;
   uint8_t HDPH;
   uint32_t GRAYMAX;

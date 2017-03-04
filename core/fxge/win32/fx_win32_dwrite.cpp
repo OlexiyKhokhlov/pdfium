@@ -4,9 +4,6 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fxge/include/fx_ge.h"
-
-#if _FX_OS_ == _FX_WIN32_DESKTOP_ || _FX_OS_ == _FX_WIN64_DESKTOP_
 #include <dwrite.h>
 
 #ifndef __in
@@ -19,7 +16,8 @@
   #define __in_opt
 #endif
 
-#include "core/fxge/include/fx_ge_win32.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/ge/cfx_cliprgn.h"
 #include "core/fxge/win32/dwrite_int.h"
 
 typedef HRESULT(__stdcall* FuncType_DWriteCreateFactory)(
@@ -101,7 +99,7 @@ class CDwFontFileLoader final : public IDWriteFontFileLoader {
 
 class CDwFontContext {
  public:
-  CDwFontContext(IDWriteFactory* dwriteFactory);
+  explicit CDwFontContext(IDWriteFactory* dwriteFactory);
   ~CDwFontContext();
 
   HRESULT Initialize();
@@ -161,7 +159,7 @@ LPVOID CDWriteExt::DwCreateFontFaceFromStream(uint8_t* pData,
   IDWriteFactory* pDwFactory = (IDWriteFactory*)m_pDWriteFactory;
   IDWriteFontFile* pDwFontFile = nullptr;
   IDWriteFontFace* pDwFontFace = nullptr;
-  BOOL isSupportedFontType = FALSE;
+  BOOL isSupportedFontType = false;
   DWRITE_FONT_FILE_TYPE fontFileType;
   DWRITE_FONT_FACE_TYPE fontFaceType;
   UINT32 numberOfFaces;
@@ -192,10 +190,10 @@ failed:
   return nullptr;
 }
 
-FX_BOOL CDWriteExt::DwCreateRenderingTarget(CFX_DIBitmap* pBitmap,
-                                            void** renderTarget) {
+bool CDWriteExt::DwCreateRenderingTarget(CFX_DIBitmap* pBitmap,
+                                         void** renderTarget) {
   if (pBitmap->GetFormat() > FXDIB_Argb) {
-    return FALSE;
+    return false;
   }
   IDWriteFactory* pDwFactory = (IDWriteFactory*)m_pDWriteFactory;
   IDWriteGdiInterop* pGdiInterop = nullptr;
@@ -226,29 +224,29 @@ FX_BOOL CDWriteExt::DwCreateRenderingTarget(CFX_DIBitmap* pBitmap,
   SafeRelease(&pGdiInterop);
   SafeRelease(&pBitmapRenderTarget);
   SafeRelease(&pRenderingParams);
-  return TRUE;
+  return true;
 failed:
   SafeRelease(&pGdiInterop);
   SafeRelease(&pBitmapRenderTarget);
   SafeRelease(&pRenderingParams);
-  return FALSE;
+  return false;
 }
 
-FX_BOOL CDWriteExt::DwRendingString(void* renderTarget,
-                                    CFX_ClipRgn* pClipRgn,
-                                    FX_RECT& stringRect,
-                                    CFX_Matrix* pMatrix,
-                                    void* font,
-                                    FX_FLOAT font_size,
-                                    FX_ARGB text_color,
-                                    int glyph_count,
-                                    unsigned short* glyph_indices,
-                                    FX_FLOAT baselineOriginX,
-                                    FX_FLOAT baselineOriginY,
-                                    void* glyph_offsets,
-                                    FX_FLOAT* glyph_advances) {
+bool CDWriteExt::DwRendingString(void* renderTarget,
+                                 CFX_ClipRgn* pClipRgn,
+                                 FX_RECT& stringRect,
+                                 CFX_Matrix* pMatrix,
+                                 void* font,
+                                 FX_FLOAT font_size,
+                                 FX_ARGB text_color,
+                                 int glyph_count,
+                                 unsigned short* glyph_indices,
+                                 FX_FLOAT baselineOriginX,
+                                 FX_FLOAT baselineOriginY,
+                                 void* glyph_offsets,
+                                 FX_FLOAT* glyph_advances) {
   if (!renderTarget) {
-    return TRUE;
+    return true;
   }
   CDwGdiTextRenderer* pTextRenderer = (CDwGdiTextRenderer*)renderTarget;
   DWRITE_MATRIX transform;
@@ -268,7 +266,7 @@ FX_BOOL CDWriteExt::DwRendingString(void* renderTarget,
   glyphRun.glyphIndices = glyph_indices;
   glyphRun.glyphAdvances = glyph_advances;
   glyphRun.glyphOffsets = (DWRITE_GLYPH_OFFSET*)glyph_offsets;
-  glyphRun.isSideways = FALSE;
+  glyphRun.isSideways = false;
   glyphRun.bidiLevel = 0;
   hr = pTextRenderer->DrawGlyphRun(
       stringRect, pClipRgn, pMatrix ? &transform : nullptr, baselineOriginX,
@@ -456,4 +454,3 @@ STDMETHODIMP CDwGdiTextRenderer::DrawGlyphRun(
                             text_bbox.top, FXDIB_BLEND_NORMAL, pClipRgn);
   return hr;
 }
-#endif

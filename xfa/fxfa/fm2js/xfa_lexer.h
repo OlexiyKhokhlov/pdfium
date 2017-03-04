@@ -9,7 +9,7 @@
 
 #include <memory>
 
-#include "core/fxcrt/include/fx_string.h"
+#include "core/fxcrt/fx_string.h"
 #include "xfa/fxfa/fm2js/xfa_error.h"
 
 enum XFA_FM_TOKEN {
@@ -122,7 +122,7 @@ class CXFA_FMLexer {
   const FX_WCHAR* SavePos() { return m_ptr; }
   void RestorePos(const FX_WCHAR* pPos) { m_ptr = pPos; }
   void Error(const FX_WCHAR* msg, ...);
-  FX_BOOL HasError() const;
+  bool HasError() const;
 
  protected:
   CXFA_FMToken* Scan();

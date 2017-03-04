@@ -9,8 +9,8 @@
 
 #include <stdint.h>
 
-#include "core/fxcrt/include/fx_coordinates.h"
-#include "core/fxge/include/fx_dib.h"
+#include "core/fxcrt/fx_coordinates.h"
+#include "core/fxge/fx_dib.h"
 
 class IFX_ScanlineComposer;
 
@@ -40,26 +40,30 @@ struct PixelWeight {
   int m_SrcEnd;
   int m_Weights[1];
 };
+
 class CWeightTable {
  public:
-  CWeightTable() { m_pWeightTables = nullptr; }
-  ~CWeightTable() {
-    FX_Free(m_pWeightTables);
-    m_pWeightTables = nullptr;
-  }
-  void Calc(int dest_len,
+  CWeightTable();
+  ~CWeightTable();
+
+  bool Calc(int dest_len,
             int dest_min,
             int dest_max,
             int src_len,
             int src_min,
             int src_max,
             int flags);
-  PixelWeight* GetPixelWeight(int pixel) {
-    return (PixelWeight*)(m_pWeightTables + (pixel - m_DestMin) * m_ItemSize);
-  }
-  int m_DestMin, m_ItemSize;
+  PixelWeight* GetPixelWeight(int pixel) const;
+  int* GetValueFromPixelWeight(PixelWeight* pWeight, int index) const;
+  size_t GetPixelWeightSize() const;
+
+ private:
+  int m_DestMin;
+  int m_ItemSize;
   uint8_t* m_pWeightTables;
+  size_t m_dwWeightTablesSize;
 };
+
 class CStretchEngine {
  public:
   CStretchEngine(IFX_ScanlineComposer* pDestBitmap,
@@ -70,11 +74,17 @@ class CStretchEngine {
                  const CFX_DIBSource* pSrcBitmap,
                  int flags);
   ~CStretchEngine();
-  FX_BOOL Continue(IFX_Pause* pPause);
 
- public:
+  bool Continue(IFX_Pause* pPause);
+
+  bool StartStretchHorz();
+  bool ContinueStretchHorz(IFX_Pause* pPause);
+  void StretchVert();
+
   FXDIB_Format m_DestFormat;
-  int m_DestBpp, m_SrcBpp, m_bHasAlpha;
+  int m_DestBpp;
+  int m_SrcBpp;
+  int m_bHasAlpha;
   IFX_ScanlineComposer* m_pDestBitmap;
   int m_DestWidth, m_DestHeight;
   FX_RECT m_DestClip;
@@ -83,8 +93,10 @@ class CStretchEngine {
   FX_RECT m_SrcClip;
   const CFX_DIBSource* m_pSource;
   uint32_t* m_pSrcPalette;
-  int m_SrcWidth, m_SrcHeight;
-  int m_SrcPitch, m_InterPitch;
+  int m_SrcWidth;
+  int m_SrcHeight;
+  int m_SrcPitch;
+  int m_InterPitch;
   int m_ExtraMaskPitch;
   uint8_t* m_pInterBuf;
   uint8_t* m_pExtraAlphaBuf;
@@ -92,16 +104,13 @@ class CStretchEngine {
   int m_Flags;
   CWeightTable m_WeightTable;
   int m_CurRow;
-  FX_BOOL StartStretchHorz();
-  FX_BOOL ContinueStretchHorz(IFX_Pause* pPause);
-  void StretchVert();
   int m_State;
 };
 
 FX_RECT FXDIB_SwapClipBox(FX_RECT& clip,
                           int width,
                           int height,
-                          FX_BOOL bFlipX,
-                          FX_BOOL bFlipY);
+                          bool bFlipX,
+                          bool bFlipY);
 
 #endif  // CORE_FXGE_DIB_DIB_INT_H_

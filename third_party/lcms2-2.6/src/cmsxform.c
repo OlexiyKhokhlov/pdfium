@@ -593,7 +593,10 @@ _cmsTRANSFORM* AllocEmptyTransform(cmsContext ContextID, cmsPipeline* lut,
 
     // Allocate needed memory
     _cmsTRANSFORM* p = (_cmsTRANSFORM*) _cmsMallocZero(ContextID, sizeof(_cmsTRANSFORM));
-    if (!p) return NULL;
+    if (!p) {
+      cmsPipelineFree(lut);
+      return NULL;
+    }
 
     // Store the proposed pipeline
     p ->Lut = lut;
@@ -643,7 +646,7 @@ _cmsTRANSFORM* AllocEmptyTransform(cmsContext ContextID, cmsPipeline* lut,
         if (p ->FromInputFloat == NULL || p ->ToOutputFloat == NULL) {
 
             cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
-            _cmsFree(ContextID, p);
+            cmsDeleteTransform(p);
             return NULL;
         }
 
@@ -673,7 +676,7 @@ _cmsTRANSFORM* AllocEmptyTransform(cmsContext ContextID, cmsPipeline* lut,
             if (p ->FromInput == NULL || p ->ToOutput == NULL) {
 
                 cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
-                _cmsFree(ContextID, p);
+                cmsDeleteTransform(p);
                 return NULL;
             }
 
@@ -691,13 +694,15 @@ _cmsTRANSFORM* AllocEmptyTransform(cmsContext ContextID, cmsPipeline* lut,
             if (*dwFlags & cmsFLAGS_NOCACHE) {
 
                 if (*dwFlags & cmsFLAGS_GAMUTCHECK)
-                    p ->xform = PrecalculatedXFORMGamutCheck;  // Gamut check, no cach?                else
+                    p ->xform = PrecalculatedXFORMGamutCheck;  // Gamut check, no cach?
+                else
                     p ->xform = PrecalculatedXFORM;  // No cach? no gamut check
             }
             else {
 
                 if (*dwFlags & cmsFLAGS_GAMUTCHECK)
-                    p ->xform = CachedXFORMGamutCheck;    // Gamut check, cach?                else
+                    p ->xform = CachedXFORMGamutCheck;    // Gamut check, cach?
+                else
                     p ->xform = CachedXFORM;  // No gamut check, cach?
             }
         }

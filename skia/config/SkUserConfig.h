@@ -127,9 +127,6 @@
 
 // ===== Begin Chrome-specific definitions =====
 
-#define SK_SCALAR_IS_FLOAT
-#undef SK_SCALAR_IS_FIXED
-
 #define SK_MSCALAR_IS_FLOAT
 #undef SK_MSCALAR_IS_DOUBLE
 
@@ -205,6 +202,10 @@ SK_API void SkDebugf_FileLine(const char* file,
 //
 #ifndef SK_SUPPORT_LEGACY_GETTOPDEVICE
 #define SK_SUPPORT_LEGACY_GETTOPDEVICE
+#endif
+
+#ifndef SK_SUPPORT_EXOTIC_CLIPOPS
+#define SK_SUPPORT_EXOTIC_CLIPOPS
 #endif
 
 #ifndef SK_SUPPORT_LEGACY_GETDEVICE

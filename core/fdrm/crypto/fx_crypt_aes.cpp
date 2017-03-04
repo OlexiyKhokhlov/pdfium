@@ -4,7 +4,7 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fdrm/crypto/include/fx_crypt.h"
+#include "core/fdrm/crypto/fx_crypt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -807,7 +807,7 @@ void CRYPT_AESSetKey(void* context,
                      uint32_t blocklen,
                      const uint8_t* key,
                      uint32_t keylen,
-                     FX_BOOL bEncrypt) {
+                     bool bEncrypt) {
   aes_setup((AESContext*)context, blocklen, key, keylen);
 }
 void CRYPT_AESSetIV(void* context, const uint8_t* iv) {

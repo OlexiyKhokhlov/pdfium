@@ -20,6 +20,7 @@
 #include "public/fpdf_progressive.h"
 #include "public/fpdf_save.h"
 #include "public/fpdf_searchex.h"
+#include "public/fpdf_structtree.h"
 #include "public/fpdf_sysfontinfo.h"
 #include "public/fpdf_text.h"
 #include "public/fpdf_transformpage.h"
@@ -54,6 +55,7 @@ int CheckPDFiumCApi() {
     CHK(FPDFAction_GetFilePath);
     CHK(FPDFAction_GetURIPath);
     CHK(FPDFDest_GetPageIndex);
+    CHK(FPDFDest_GetLocationInPage);
     CHK(FPDFLink_GetLinkAtPoint);
     CHK(FPDFLink_GetLinkZOrderAtPoint);
     CHK(FPDFLink_GetDest);
@@ -63,6 +65,7 @@ int CheckPDFiumCApi() {
     CHK(FPDFLink_CountQuadPoints);
     CHK(FPDFLink_GetQuadPoints);
     CHK(FPDF_GetMetaText);
+    CHK(FPDF_GetPageLabel);
 
     // fpdf_edit.h
     CHK(FPDF_CreateNewDocument);
@@ -80,8 +83,22 @@ int CheckPDFiumCApi() {
     CHK(FPDFPage_TransformAnnots);
     CHK(FPDFPageObj_NewImgeObj);
     CHK(FPDFImageObj_LoadJpegFile);
+    CHK(FPDFImageObj_LoadJpegFileInline);
     CHK(FPDFImageObj_SetMatrix);
     CHK(FPDFImageObj_SetBitmap);
+    CHK(FPDFPageObj_CreateNewPath);
+    CHK(FPDFPageObj_CreateNewRect);
+    CHK(FPDFPath_SetStrokeColor);
+    CHK(FPDFPath_SetStrokeWidth);
+    CHK(FPDFPath_SetFillColor);
+    CHK(FPDFPath_MoveTo);
+    CHK(FPDFPath_LineTo);
+    CHK(FPDFPath_BezierTo);
+    CHK(FPDFPath_Close);
+    CHK(FPDFPath_SetDrawMode);
+    CHK(FPDFPageObj_NewTextObj);
+    CHK(FPDFText_SetText);
+    CHK(FPDFText_LoadType1Font);
 
     // fpdf_ext.h
     CHK(FSDK_SetUnSpObjProcessHandler);
@@ -152,11 +169,21 @@ int CheckPDFiumCApi() {
     // fpdf_searchex.h
     CHK(FPDFText_GetCharIndexFromTextIndex);
 
+    // fpdf_structtree.h
+    CHK(FPDF_StructTree_GetForPage);
+    CHK(FPDF_StructTree_Close);
+    CHK(FPDF_StructTree_CountChildren);
+    CHK(FPDF_StructTree_GetChildAtIndex);
+    CHK(FPDF_StructElement_GetAltText);
+    CHK(FPDF_StructElement_CountChildren);
+    CHK(FPDF_StructElement_GetChildAtIndex);
+
     // fpdf_sysfontinfo.h
     CHK(FPDF_GetDefaultTTFMap);
     CHK(FPDF_AddInstalledFont);
     CHK(FPDF_SetSystemFontInfo);
     CHK(FPDF_GetDefaultSystemFontInfo);
+    CHK(FPDF_FreeDefaultSystemFontInfo);
 
     // fpdf_text.h
     CHK(FPDFText_LoadPage);
@@ -212,6 +239,7 @@ int CheckPDFiumCApi() {
     CHK(FPDF_GetPageHeight);
     CHK(FPDF_GetPageSizeByIndex);
     CHK(FPDF_RenderPageBitmap);
+    CHK(FPDF_RenderPageBitmapWithMatrix);
     CHK(FPDF_ClosePage);
     CHK(FPDF_CloseDocument);
     CHK(FPDF_DeviceToPage);
@@ -228,6 +256,7 @@ int CheckPDFiumCApi() {
     CHK(FPDF_VIEWERREF_GetNumCopies);
     CHK(FPDF_VIEWERREF_GetPrintPageRange);
     CHK(FPDF_VIEWERREF_GetDuplex);
+    CHK(FPDF_VIEWERREF_GetName);
     CHK(FPDF_CountNamedDests);
     CHK(FPDF_GetNamedDestByName);
     CHK(FPDF_GetNamedDest);

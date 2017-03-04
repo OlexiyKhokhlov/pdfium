@@ -6,7 +6,7 @@
 
 #include "xfa/fxfa/parser/cscript_datawindow.h"
 
-#include "fxjs/include/cfxjse_arguments.h"
+#include "fxjs/cfxjse_arguments.h"
 #include "xfa/fxfa/parser/cxfa_document.h"
 #include "xfa/fxfa/parser/xfa_localemgr.h"
 #include "xfa/fxfa/parser/xfa_object.h"
@@ -29,17 +29,17 @@ void CScript_DataWindow::GotoRecord(CFXJSE_Arguments* pArguments) {}
 void CScript_DataWindow::IsRecordGroup(CFXJSE_Arguments* pArguments) {}
 
 void CScript_DataWindow::RecordsBefore(CFXJSE_Value* pValue,
-                                       FX_BOOL bSetting,
+                                       bool bSetting,
                                        XFA_ATTRIBUTE eAttribute) {}
 
 void CScript_DataWindow::CurrentRecordNumber(CFXJSE_Value* pValue,
-                                             FX_BOOL bSetting,
+                                             bool bSetting,
                                              XFA_ATTRIBUTE eAttribute) {}
 
 void CScript_DataWindow::RecordsAfter(CFXJSE_Value* pValue,
-                                      FX_BOOL bSetting,
+                                      bool bSetting,
                                       XFA_ATTRIBUTE eAttribute) {}
 
 void CScript_DataWindow::IsDefined(CFXJSE_Value* pValue,
-                                   FX_BOOL bSetting,
+                                   bool bSetting,
                                    XFA_ATTRIBUTE eAttribute) {}

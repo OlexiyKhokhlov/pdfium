@@ -7,8 +7,8 @@
 #ifndef XFA_FXFA_PARSER_CXFA_FILL_H_
 #define XFA_FXFA_PARSER_CXFA_FILL_H_
 
-#include "core/fxcrt/include/fx_system.h"
-#include "core/fxge/include/fx_dib.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/fx_dib.h"
 #include "xfa/fxfa/parser/cxfa_data.h"
 
 class CXFA_Node;
@@ -19,7 +19,7 @@ class CXFA_Fill : public CXFA_Data {
   ~CXFA_Fill();
 
   int32_t GetPresence();
-  FX_ARGB GetColor(FX_BOOL bText = FALSE);
+  FX_ARGB GetColor(bool bText = false);
   XFA_Element GetFillType();
   int32_t GetPattern(FX_ARGB& foreColor);
   int32_t GetStipple(FX_ARGB& stippleColor);

@@ -7,9 +7,9 @@
 #ifndef XFA_FXFA_PARSER_CXFA_STROKE_H_
 #define XFA_FXFA_PARSER_CXFA_STROKE_H_
 
-#include "core/fxcrt/include/fx_system.h"
-#include "core/fxge/include/fx_dib.h"
-#include "xfa/fxfa/include/fxfa_basic.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/fx_dib.h"
+#include "xfa/fxfa/fxfa_basic.h"
 #include "xfa/fxfa/parser/cxfa_data.h"
 
 enum StrokeSameStyle {
@@ -21,6 +21,7 @@ class CXFA_Node;
 
 class CXFA_Stroke : public CXFA_Data {
  public:
+  CXFA_Stroke() : CXFA_Stroke(nullptr) {}
   explicit CXFA_Stroke(CXFA_Node* pNode) : CXFA_Data(pNode) {}
 
   bool IsCorner() const { return GetElementType() == XFA_Element::Corner; }
@@ -35,11 +36,9 @@ class CXFA_Stroke : public CXFA_Data {
   FX_ARGB GetColor() const;
   void SetColor(FX_ARGB argb);
   int32_t GetJoinType() const;
-  FX_BOOL IsInverted() const;
+  bool IsInverted() const;
   FX_FLOAT GetRadius() const;
-  FX_BOOL SameStyles(CXFA_Stroke stroke, uint32_t dwFlags = 0) const;
+  bool SameStyles(CXFA_Stroke stroke, uint32_t dwFlags = 0) const;
 };
-
-typedef CFX_ArrayTemplate<CXFA_Stroke> CXFA_StrokeArray;
 
 #endif  // XFA_FXFA_PARSER_CXFA_STROKE_H_

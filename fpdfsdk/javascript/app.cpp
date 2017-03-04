@@ -6,94 +6,198 @@
 
 #include "fpdfsdk/javascript/app.h"
 
+#include <map>
 #include <memory>
 #include <vector>
 
-#include "fpdfsdk/include/fsdk_mgr.h"
+#include "fpdfsdk/cpdfsdk_formfillenvironment.h"
+#include "fpdfsdk/cpdfsdk_interform.h"
 #include "fpdfsdk/javascript/Document.h"
 #include "fpdfsdk/javascript/JS_Define.h"
 #include "fpdfsdk/javascript/JS_EventHandler.h"
 #include "fpdfsdk/javascript/JS_Object.h"
 #include "fpdfsdk/javascript/JS_Value.h"
-#include "fpdfsdk/javascript/cjs_context.h"
+#include "fpdfsdk/javascript/cjs_event_context.h"
 #include "fpdfsdk/javascript/cjs_runtime.h"
 #include "fpdfsdk/javascript/resource.h"
+#include "third_party/base/stl_util.h"
 
-BEGIN_JS_STATIC_CONST(CJS_TimerObj)
-END_JS_STATIC_CONST()
+class GlobalTimer {
+ public:
+  GlobalTimer(app* pObj,
+              CPDFSDK_FormFillEnvironment* pFormFillEnv,
+              CJS_Runtime* pRuntime,
+              int nType,
+              const CFX_WideString& script,
+              uint32_t dwElapse,
+              uint32_t dwTimeOut);
+  ~GlobalTimer();
 
-BEGIN_JS_STATIC_PROP(CJS_TimerObj)
-END_JS_STATIC_PROP()
+  static void Trigger(int nTimerID);
+  static void Cancel(int nTimerID);
 
-BEGIN_JS_STATIC_METHOD(CJS_TimerObj)
-END_JS_STATIC_METHOD()
+  bool IsOneShot() const { return m_nType == 1; }
+  uint32_t GetTimeOut() const { return m_dwTimeOut; }
+  int GetTimerID() const { return m_nTimerID; }
+  CJS_Runtime* GetRuntime() const { return m_pRuntime.Get(); }
+  CFX_WideString GetJScript() const { return m_swJScript; }
+
+ private:
+  using TimerMap = std::map<uint32_t, GlobalTimer*>;
+  static TimerMap* GetGlobalTimerMap();
+
+  uint32_t m_nTimerID;
+  app* const m_pEmbedObj;
+  bool m_bProcessing;
+
+  // data
+  const int m_nType;  // 0:Interval; 1:TimeOut
+  const uint32_t m_dwTimeOut;
+  const CFX_WideString m_swJScript;
+  CJS_Runtime::ObservedPtr m_pRuntime;
+  CPDFSDK_FormFillEnvironment::ObservedPtr m_pFormFillEnv;
+};
+
+GlobalTimer::GlobalTimer(app* pObj,
+                         CPDFSDK_FormFillEnvironment* pFormFillEnv,
+                         CJS_Runtime* pRuntime,
+                         int nType,
+                         const CFX_WideString& script,
+                         uint32_t dwElapse,
+                         uint32_t dwTimeOut)
+    : m_nTimerID(0),
+      m_pEmbedObj(pObj),
+      m_bProcessing(false),
+      m_nType(nType),
+      m_dwTimeOut(dwTimeOut),
+      m_swJScript(script),
+      m_pRuntime(pRuntime),
+      m_pFormFillEnv(pFormFillEnv) {
+  CFX_SystemHandler* pHandler = m_pFormFillEnv->GetSysHandler();
+  m_nTimerID = pHandler->SetTimer(dwElapse, Trigger);
+  if (m_nTimerID)
+    (*GetGlobalTimerMap())[m_nTimerID] = this;
+}
+
+GlobalTimer::~GlobalTimer() {
+  if (!m_nTimerID)
+    return;
+
+  if (GetRuntime())
+    m_pFormFillEnv->GetSysHandler()->KillTimer(m_nTimerID);
+
+  GetGlobalTimerMap()->erase(m_nTimerID);
+}
+
+// static
+void GlobalTimer::Trigger(int nTimerID) {
+  auto it = GetGlobalTimerMap()->find(nTimerID);
+  if (it == GetGlobalTimerMap()->end())
+    return;
+
+  GlobalTimer* pTimer = it->second;
+  if (pTimer->m_bProcessing)
+    return;
+
+  pTimer->m_bProcessing = true;
+  if (pTimer->m_pEmbedObj)
+    pTimer->m_pEmbedObj->TimerProc(pTimer);
+
+  // Timer proc may have destroyed timer, find it again.
+  it = GetGlobalTimerMap()->find(nTimerID);
+  if (it == GetGlobalTimerMap()->end())
+    return;
+
+  pTimer = it->second;
+  pTimer->m_bProcessing = false;
+  if (pTimer->IsOneShot())
+    pTimer->m_pEmbedObj->CancelProc(pTimer);
+}
+
+// static
+void GlobalTimer::Cancel(int nTimerID) {
+  auto it = GetGlobalTimerMap()->find(nTimerID);
+  if (it == GetGlobalTimerMap()->end())
+    return;
+
+  GlobalTimer* pTimer = it->second;
+  pTimer->m_pEmbedObj->CancelProc(pTimer);
+}
+
+// static
+GlobalTimer::TimerMap* GlobalTimer::GetGlobalTimerMap() {
+  // Leak the timer array at shutdown.
+  static auto* s_TimerMap = new TimerMap;
+  return s_TimerMap;
+}
+
+JSConstSpec CJS_TimerObj::ConstSpecs[] = {{0, JSConstSpec::Number, 0, 0}};
+
+JSPropertySpec CJS_TimerObj::PropertySpecs[] = {{0, 0, 0}};
+
+JSMethodSpec CJS_TimerObj::MethodSpecs[] = {{0, 0}};
 
 IMPLEMENT_JS_CLASS(CJS_TimerObj, TimerObj)
 
 TimerObj::TimerObj(CJS_Object* pJSObject)
-    : CJS_EmbedObj(pJSObject), m_pTimer(nullptr) {}
+    : CJS_EmbedObj(pJSObject), m_nTimerID(0) {}
 
 TimerObj::~TimerObj() {}
 
-void TimerObj::SetTimer(CJS_Timer* pTimer) {
-  m_pTimer = pTimer;
-}
-
-CJS_Timer* TimerObj::GetTimer() const {
-  return m_pTimer;
+void TimerObj::SetTimer(GlobalTimer* pTimer) {
+  m_nTimerID = pTimer->GetTimerID();
 }
 
 #define JS_STR_VIEWERTYPE L"pdfium"
 #define JS_STR_VIEWERVARIATION L"Full"
 #define JS_STR_PLATFORM L"WIN"
-#define JS_STR_LANGUANGE L"ENU"
+#define JS_STR_LANGUAGE L"ENU"
 #define JS_NUM_VIEWERVERSION 8
 #ifdef PDF_ENABLE_XFA
 #define JS_NUM_VIEWERVERSION_XFA 11
 #endif  // PDF_ENABLE_XFA
 #define JS_NUM_FORMSVERSION 7
 
-BEGIN_JS_STATIC_CONST(CJS_App)
-END_JS_STATIC_CONST()
+JSConstSpec CJS_App::ConstSpecs[] = {{0, JSConstSpec::Number, 0, 0}};
 
-BEGIN_JS_STATIC_PROP(CJS_App)
-JS_STATIC_PROP_ENTRY(activeDocs)
-JS_STATIC_PROP_ENTRY(calculate)
-JS_STATIC_PROP_ENTRY(formsVersion)
-JS_STATIC_PROP_ENTRY(fs)
-JS_STATIC_PROP_ENTRY(fullscreen)
-JS_STATIC_PROP_ENTRY(language)
-JS_STATIC_PROP_ENTRY(media)
-JS_STATIC_PROP_ENTRY(platform)
-JS_STATIC_PROP_ENTRY(runtimeHighlight)
-JS_STATIC_PROP_ENTRY(viewerType)
-JS_STATIC_PROP_ENTRY(viewerVariation)
-JS_STATIC_PROP_ENTRY(viewerVersion)
-END_JS_STATIC_PROP()
+JSPropertySpec CJS_App::PropertySpecs[] = {
+    {"activeDocs", get_activeDocs_static, set_activeDocs_static},
+    {"calculate", get_calculate_static, set_calculate_static},
+    {"formsVersion", get_formsVersion_static, set_formsVersion_static},
+    {"fs", get_fs_static, set_fs_static},
+    {"fullscreen", get_fullscreen_static, set_fullscreen_static},
+    {"language", get_language_static, set_language_static},
+    {"media", get_media_static, set_media_static},
+    {"platform", get_platform_static, set_platform_static},
+    {"runtimeHighlight", get_runtimeHighlight_static,
+     set_runtimeHighlight_static},
+    {"viewerType", get_viewerType_static, set_viewerType_static},
+    {"viewerVariation", get_viewerVariation_static, set_viewerVariation_static},
+    {"viewerVersion", get_viewerVersion_static, set_viewerVersion_static},
+    {0, 0, 0}};
 
-BEGIN_JS_STATIC_METHOD(CJS_App)
-JS_STATIC_METHOD_ENTRY(alert)
-JS_STATIC_METHOD_ENTRY(beep)
-JS_STATIC_METHOD_ENTRY(browseForDoc)
-JS_STATIC_METHOD_ENTRY(clearInterval)
-JS_STATIC_METHOD_ENTRY(clearTimeOut)
-JS_STATIC_METHOD_ENTRY(execDialog)
-JS_STATIC_METHOD_ENTRY(execMenuItem)
-JS_STATIC_METHOD_ENTRY(findComponent)
-JS_STATIC_METHOD_ENTRY(goBack)
-JS_STATIC_METHOD_ENTRY(goForward)
-JS_STATIC_METHOD_ENTRY(launchURL)
-JS_STATIC_METHOD_ENTRY(mailMsg)
-JS_STATIC_METHOD_ENTRY(newFDF)
-JS_STATIC_METHOD_ENTRY(newDoc)
-JS_STATIC_METHOD_ENTRY(openDoc)
-JS_STATIC_METHOD_ENTRY(openFDF)
-JS_STATIC_METHOD_ENTRY(popUpMenuEx)
-JS_STATIC_METHOD_ENTRY(popUpMenu)
-JS_STATIC_METHOD_ENTRY(response)
-JS_STATIC_METHOD_ENTRY(setInterval)
-JS_STATIC_METHOD_ENTRY(setTimeOut)
-END_JS_STATIC_METHOD()
+JSMethodSpec CJS_App::MethodSpecs[] = {{"alert", alert_static},
+                                       {"beep", beep_static},
+                                       {"browseForDoc", browseForDoc_static},
+                                       {"clearInterval", clearInterval_static},
+                                       {"clearTimeOut", clearTimeOut_static},
+                                       {"execDialog", execDialog_static},
+                                       {"execMenuItem", execMenuItem_static},
+                                       {"findComponent", findComponent_static},
+                                       {"goBack", goBack_static},
+                                       {"goForward", goForward_static},
+                                       {"launchURL", launchURL_static},
+                                       {"mailMsg", mailMsg_static},
+                                       {"newFDF", newFDF_static},
+                                       {"newDoc", newDoc_static},
+                                       {"openDoc", openDoc_static},
+                                       {"openFDF", openFDF_static},
+                                       {"popUpMenuEx", popUpMenuEx_static},
+                                       {"popUpMenu", popUpMenu_static},
+                                       {"response", response_static},
+                                       {"setInterval", setInterval_static},
+                                       {"setTimeOut", setTimeOut_static},
+                                       {0, 0}};
 
 IMPLEMENT_JS_CLASS(CJS_App, app)
 
@@ -103,369 +207,350 @@ app::app(CJS_Object* pJSObject)
 app::~app() {
 }
 
-FX_BOOL app::activeDocs(IJS_Context* cc,
-                        CJS_PropValue& vp,
-                        CFX_WideString& sError) {
+bool app::activeDocs(CJS_Runtime* pRuntime,
+                     CJS_PropValue& vp,
+                     CFX_WideString& sError) {
   if (!vp.IsGetting())
-    return FALSE;
+    return false;
 
-  CJS_Context* pContext = (CJS_Context*)cc;
-  CPDFDoc_Environment* pApp = pContext->GetReaderApp();
-  CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-  CPDFSDK_Document* pCurDoc = pContext->GetReaderDocument();
-  CJS_Array aDocs(pRuntime);
-  if (CPDFSDK_Document* pDoc = pApp->GetSDKDocument()) {
-    CJS_Document* pJSDocument = nullptr;
-    if (pDoc == pCurDoc) {
-      v8::Local<v8::Object> pObj = FXJS_GetThisObj(pRuntime->GetIsolate());
-      if (FXJS_GetObjDefnID(pObj) == CJS_Document::g_nObjDefnID)
-        pJSDocument =
-            (CJS_Document*)FXJS_GetPrivate(pRuntime->GetIsolate(), pObj);
-    } else {
-      v8::Local<v8::Object> pObj = FXJS_NewFxDynamicObj(
-          pRuntime->GetIsolate(), pRuntime, CJS_Document::g_nObjDefnID);
-      pJSDocument =
-          (CJS_Document*)FXJS_GetPrivate(pRuntime->GetIsolate(), pObj);
-      ASSERT(pJSDocument);
-    }
-    aDocs.SetElement(0, CJS_Value(pRuntime, pJSDocument));
-  }
-  if (aDocs.GetLength() > 0)
+  CJS_Document* pJSDocument = nullptr;
+  v8::Local<v8::Object> pObj = pRuntime->GetThisObj();
+  if (CFXJS_Engine::GetObjDefnID(pObj) == CJS_Document::g_nObjDefnID)
+    pJSDocument = static_cast<CJS_Document*>(pRuntime->GetObjectPrivate(pObj));
+
+  CJS_Array aDocs;
+  aDocs.SetElement(pRuntime, 0, CJS_Value(pRuntime, pJSDocument));
+  if (aDocs.GetLength(pRuntime) > 0)
     vp << aDocs;
   else
-    vp.SetNull();
+    vp.GetJSValue()->SetNull(pRuntime);
 
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::calculate(IJS_Context* cc,
-                       CJS_PropValue& vp,
-                       CFX_WideString& sError) {
+bool app::calculate(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError) {
   if (vp.IsSetting()) {
     bool bVP;
     vp >> bVP;
-    m_bCalculate = (FX_BOOL)bVP;
-
-    CJS_Context* pContext = (CJS_Context*)cc;
-    CPDFDoc_Environment* pApp = pContext->GetReaderApp();
-    CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-    CJS_Array aDocs(pRuntime);
-    if (CPDFSDK_Document* pDoc = pApp->GetSDKDocument())
-      pDoc->GetInterForm()->EnableCalculate((FX_BOOL)m_bCalculate);
+    m_bCalculate = (bool)bVP;
+    pRuntime->GetFormFillEnv()->GetInterForm()->EnableCalculate(
+        (bool)m_bCalculate);
   } else {
     vp << (bool)m_bCalculate;
   }
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::formsVersion(IJS_Context* cc,
+bool app::formsVersion(CJS_Runtime* pRuntime,
+                       CJS_PropValue& vp,
+                       CFX_WideString& sError) {
+  if (vp.IsGetting()) {
+    vp << JS_NUM_FORMSVERSION;
+    return true;
+  }
+
+  return false;
+}
+
+bool app::viewerType(CJS_Runtime* pRuntime,
+                     CJS_PropValue& vp,
+                     CFX_WideString& sError) {
+  if (vp.IsGetting()) {
+    vp << JS_STR_VIEWERTYPE;
+    return true;
+  }
+
+  return false;
+}
+
+bool app::viewerVariation(CJS_Runtime* pRuntime,
                           CJS_PropValue& vp,
                           CFX_WideString& sError) {
   if (vp.IsGetting()) {
-    vp << JS_NUM_FORMSVERSION;
-    return TRUE;
+    vp << JS_STR_VIEWERVARIATION;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
-FX_BOOL app::viewerType(IJS_Context* cc,
+bool app::viewerVersion(CJS_Runtime* pRuntime,
                         CJS_PropValue& vp,
                         CFX_WideString& sError) {
-  if (vp.IsGetting()) {
-    vp << JS_STR_VIEWERTYPE;
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-FX_BOOL app::viewerVariation(IJS_Context* cc,
-                             CJS_PropValue& vp,
-                             CFX_WideString& sError) {
-  if (vp.IsGetting()) {
-    vp << JS_STR_VIEWERVARIATION;
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-FX_BOOL app::viewerVersion(IJS_Context* cc,
-                           CJS_PropValue& vp,
-                           CFX_WideString& sError) {
   if (!vp.IsGetting())
-    return FALSE;
+    return false;
 #ifdef PDF_ENABLE_XFA
-  CJS_Context* pContext = (CJS_Context*)cc;
-  CPDFSDK_Document* pCurDoc = pContext->GetReaderDocument();
-  CPDFXFA_Document* pDoc = pCurDoc->GetXFADocument();
-  if (pDoc->GetDocType() == 1 || pDoc->GetDocType() == 2) {
+  CPDFXFA_Context* pXFAContext = pRuntime->GetFormFillEnv()->GetXFAContext();
+  if (pXFAContext->GetDocType() == 1 || pXFAContext->GetDocType() == 2) {
     vp << JS_NUM_VIEWERVERSION_XFA;
-    return TRUE;
+    return true;
   }
 #endif  // PDF_ENABLE_XFA
   vp << JS_NUM_VIEWERVERSION;
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::platform(IJS_Context* cc,
-                      CJS_PropValue& vp,
-                      CFX_WideString& sError) {
+bool app::platform(CJS_Runtime* pRuntime,
+                   CJS_PropValue& vp,
+                   CFX_WideString& sError) {
   if (!vp.IsGetting())
-    return FALSE;
+    return false;
 #ifdef PDF_ENABLE_XFA
-  CPDFDoc_Environment* pEnv =
-      static_cast<CJS_Context*>(cc)->GetJSRuntime()->GetReaderApp();
-  if (!pEnv)
-    return FALSE;
-  CFX_WideString platfrom = pEnv->FFI_GetPlatform();
+  CPDFSDK_FormFillEnvironment* pFormFillEnv = pRuntime->GetFormFillEnv();
+  if (!pFormFillEnv)
+    return false;
+  CFX_WideString platfrom = pFormFillEnv->GetPlatform();
   if (!platfrom.IsEmpty()) {
     vp << platfrom;
-    return TRUE;
+    return true;
   }
 #endif
   vp << JS_STR_PLATFORM;
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::language(IJS_Context* cc,
-                      CJS_PropValue& vp,
-                      CFX_WideString& sError) {
+bool app::language(CJS_Runtime* pRuntime,
+                   CJS_PropValue& vp,
+                   CFX_WideString& sError) {
   if (!vp.IsGetting())
-    return FALSE;
+    return false;
 #ifdef PDF_ENABLE_XFA
-  CPDFDoc_Environment* pEnv =
-      static_cast<CJS_Context*>(cc)->GetJSRuntime()->GetReaderApp();
-  if (!pEnv)
-    return FALSE;
-  CFX_WideString language = pEnv->FFI_GetLanguage();
+  CPDFSDK_FormFillEnvironment* pFormFillEnv = pRuntime->GetFormFillEnv();
+  if (!pFormFillEnv)
+    return false;
+  CFX_WideString language = pFormFillEnv->GetLanguage();
   if (!language.IsEmpty()) {
     vp << language;
-    return TRUE;
+    return true;
   }
 #endif
-  vp << JS_STR_LANGUANGE;
-  return TRUE;
+  vp << JS_STR_LANGUAGE;
+  return true;
 }
 
 // creates a new fdf object that contains no data
 // comment: need reader support
 // note:
-// CFDF_Document * CPDFDoc_Environment::NewFDF();
-FX_BOOL app::newFDF(IJS_Context* cc,
-                    const std::vector<CJS_Value>& params,
-                    CJS_Value& vRet,
-                    CFX_WideString& sError) {
-  return TRUE;
+// CFDF_Document * CPDFSDK_FormFillEnvironment::NewFDF();
+bool app::newFDF(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError) {
+  return true;
 }
 // opens a specified pdf document and returns its document object
 // comment:need reader support
 // note: as defined in js reference, the proto of this function's fourth
 // parmeters, how old an fdf document while do not show it.
-// CFDF_Document * CPDFDoc_Environment::OpenFDF(string strPath,bool bUserConv);
+// CFDF_Document * CPDFSDK_FormFillEnvironment::OpenFDF(string strPath,bool
+// bUserConv);
 
-FX_BOOL app::openFDF(IJS_Context* cc,
-                     const std::vector<CJS_Value>& params,
-                     CJS_Value& vRet,
-                     CFX_WideString& sError) {
-  return TRUE;
+bool app::openFDF(CJS_Runtime* pRuntime,
+                  const std::vector<CJS_Value>& params,
+                  CJS_Value& vRet,
+                  CFX_WideString& sError) {
+  return true;
 }
 
-FX_BOOL app::alert(IJS_Context* cc,
-                   const std::vector<CJS_Value>& params,
-                   CJS_Value& vRet,
-                   CFX_WideString& sError) {
-  CJS_Context* pContext = static_cast<CJS_Context*>(cc);
-  CJS_Runtime* pRuntime = CJS_Runtime::FromContext(cc);
+bool app::alert(CJS_Runtime* pRuntime,
+                const std::vector<CJS_Value>& params,
+                CJS_Value& vRet,
+                CFX_WideString& sError) {
   std::vector<CJS_Value> newParams = JS_ExpandKeywordParams(
       pRuntime, params, 4, L"cMsg", L"nIcon", L"nType", L"cTitle");
 
   if (newParams[0].GetType() == CJS_Value::VT_unknown) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-    return FALSE;
+    sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+    return false;
+  }
+
+  CPDFSDK_FormFillEnvironment* pFormFillEnv = pRuntime->GetFormFillEnv();
+  if (!pFormFillEnv) {
+    vRet = CJS_Value(pRuntime, 0);
+    return true;
   }
 
   CFX_WideString swMsg;
   if (newParams[0].GetType() == CJS_Value::VT_object) {
-    CJS_Array carray(pRuntime);
-    if (newParams[0].ConvertToArray(carray)) {
+    CJS_Array carray;
+    if (newParams[0].ConvertToArray(pRuntime, carray)) {
       swMsg = L"[";
       CJS_Value element(pRuntime);
-      for (int i = 0; i < carray.GetLength(); ++i) {
+      for (int i = 0; i < carray.GetLength(pRuntime); ++i) {
         if (i)
           swMsg += L", ";
-        carray.GetElement(i, element);
-        swMsg += element.ToCFXWideString();
+        carray.GetElement(pRuntime, i, element);
+        swMsg += element.ToCFXWideString(pRuntime);
       }
       swMsg += L"]";
     } else {
-      swMsg = newParams[0].ToCFXWideString();
+      swMsg = newParams[0].ToCFXWideString(pRuntime);
     }
   } else {
-    swMsg = newParams[0].ToCFXWideString();
+    swMsg = newParams[0].ToCFXWideString(pRuntime);
   }
 
   int iIcon = 0;
   if (newParams[1].GetType() != CJS_Value::VT_unknown)
-    iIcon = newParams[1].ToInt();
+    iIcon = newParams[1].ToInt(pRuntime);
 
   int iType = 0;
   if (newParams[2].GetType() != CJS_Value::VT_unknown)
-    iType = newParams[2].ToInt();
+    iType = newParams[2].ToInt(pRuntime);
 
   CFX_WideString swTitle;
   if (newParams[3].GetType() != CJS_Value::VT_unknown)
-    swTitle = newParams[3].ToCFXWideString();
+    swTitle = newParams[3].ToCFXWideString(pRuntime);
   else
-    swTitle = JSGetStringFromID(pContext, IDS_STRING_JSALERT);
+    swTitle = JSGetStringFromID(IDS_STRING_JSALERT);
 
   pRuntime->BeginBlock();
-  vRet = MsgBox(pRuntime->GetReaderApp(), swMsg.c_str(), swTitle.c_str(), iType,
-                iIcon);
+  pFormFillEnv->KillFocusAnnot(0);
+
+  vRet = CJS_Value(pRuntime, pFormFillEnv->JS_appAlert(
+                                 swMsg.c_str(), swTitle.c_str(), iType, iIcon));
   pRuntime->EndBlock();
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::beep(IJS_Context* cc,
-                  const std::vector<CJS_Value>& params,
-                  CJS_Value& vRet,
-                  CFX_WideString& sError) {
+bool app::beep(CJS_Runtime* pRuntime,
+               const std::vector<CJS_Value>& params,
+               CJS_Value& vRet,
+               CFX_WideString& sError) {
   if (params.size() == 1) {
-    CJS_Context* pContext = (CJS_Context*)cc;
-    CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-    CPDFDoc_Environment* pEnv = pRuntime->GetReaderApp();
-    pEnv->JS_appBeep(params[0].ToInt());
-    return TRUE;
+    pRuntime->GetFormFillEnv()->JS_appBeep(params[0].ToInt(pRuntime));
+    return true;
   }
 
-  sError = JSGetStringFromID((CJS_Context*)cc, IDS_STRING_JSPARAMERROR);
-  return FALSE;
+  sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+  return false;
 }
 
-FX_BOOL app::findComponent(IJS_Context* cc,
-                           const std::vector<CJS_Value>& params,
-                           CJS_Value& vRet,
-                           CFX_WideString& sError) {
-  return TRUE;
-}
-
-FX_BOOL app::popUpMenuEx(IJS_Context* cc,
-                         const std::vector<CJS_Value>& params,
-                         CJS_Value& vRet,
-                         CFX_WideString& sError) {
-  return FALSE;
-}
-
-FX_BOOL app::fs(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError) {
-  return FALSE;
-}
-
-FX_BOOL app::setInterval(IJS_Context* cc,
-                         const std::vector<CJS_Value>& params,
-                         CJS_Value& vRet,
-                         CFX_WideString& sError) {
-  CJS_Context* pContext = (CJS_Context*)cc;
-  if (params.size() > 2 || params.size() == 0) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-    return FALSE;
-  }
-
-  CFX_WideString script = params.size() > 0 ? params[0].ToCFXWideString() : L"";
-  if (script.IsEmpty()) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSAFNUMBER_KEYSTROKE);
-    return TRUE;
-  }
-
-  CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-  uint32_t dwInterval = params.size() > 1 ? params[1].ToInt() : 1000;
-  CPDFDoc_Environment* pApp = pRuntime->GetReaderApp();
-  m_Timers.push_back(std::unique_ptr<CJS_Timer>(
-      new CJS_Timer(this, pApp, pRuntime, 0, script, dwInterval, 0)));
-
-  v8::Local<v8::Object> pRetObj = FXJS_NewFxDynamicObj(
-      pRuntime->GetIsolate(), pRuntime, CJS_TimerObj::g_nObjDefnID);
-  CJS_TimerObj* pJS_TimerObj = static_cast<CJS_TimerObj*>(
-      FXJS_GetPrivate(pRuntime->GetIsolate(), pRetObj));
-  TimerObj* pTimerObj = static_cast<TimerObj*>(pJS_TimerObj->GetEmbedObject());
-  pTimerObj->SetTimer(m_Timers.back().get());
-
-  vRet = pRetObj;
-  return TRUE;
-}
-
-FX_BOOL app::setTimeOut(IJS_Context* cc,
+bool app::findComponent(CJS_Runtime* pRuntime,
                         const std::vector<CJS_Value>& params,
                         CJS_Value& vRet,
                         CFX_WideString& sError) {
-  CJS_Context* pContext = static_cast<CJS_Context*>(cc);
+  return true;
+}
+
+bool app::popUpMenuEx(CJS_Runtime* pRuntime,
+                      const std::vector<CJS_Value>& params,
+                      CJS_Value& vRet,
+                      CFX_WideString& sError) {
+  return false;
+}
+
+bool app::fs(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError) {
+  return false;
+}
+
+bool app::setInterval(CJS_Runtime* pRuntime,
+                      const std::vector<CJS_Value>& params,
+                      CJS_Value& vRet,
+                      CFX_WideString& sError) {
   if (params.size() > 2 || params.size() == 0) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-    return FALSE;
+    sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+    return false;
   }
 
-  CFX_WideString script = params[0].ToCFXWideString();
+  CFX_WideString script =
+      params.size() > 0 ? params[0].ToCFXWideString(pRuntime) : L"";
   if (script.IsEmpty()) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSAFNUMBER_KEYSTROKE);
-    return TRUE;
+    sError = JSGetStringFromID(IDS_STRING_JSAFNUMBER_KEYSTROKE);
+    return true;
   }
 
-  uint32_t dwTimeOut = params.size() > 1 ? params[1].ToInt() : 1000;
-  CJS_Runtime* pRuntime = pContext->GetJSRuntime();
-  CPDFDoc_Environment* pApp = pRuntime->GetReaderApp();
-  m_Timers.push_back(std::unique_ptr<CJS_Timer>(
-      new CJS_Timer(this, pApp, pRuntime, 1, script, dwTimeOut, dwTimeOut)));
+  uint32_t dwInterval = params.size() > 1 ? params[1].ToInt(pRuntime) : 1000;
 
-  v8::Local<v8::Object> pRetObj = FXJS_NewFxDynamicObj(
-      pRuntime->GetIsolate(), pRuntime, CJS_TimerObj::g_nObjDefnID);
+  GlobalTimer* timerRef = new GlobalTimer(this, pRuntime->GetFormFillEnv(),
+                                          pRuntime, 0, script, dwInterval, 0);
+  m_Timers.insert(std::unique_ptr<GlobalTimer>(timerRef));
 
-  CJS_TimerObj* pJS_TimerObj = static_cast<CJS_TimerObj*>(
-      FXJS_GetPrivate(pRuntime->GetIsolate(), pRetObj));
+  v8::Local<v8::Object> pRetObj =
+      pRuntime->NewFxDynamicObj(CJS_TimerObj::g_nObjDefnID);
+  if (pRetObj.IsEmpty())
+    return false;
 
+  CJS_TimerObj* pJS_TimerObj =
+      static_cast<CJS_TimerObj*>(pRuntime->GetObjectPrivate(pRetObj));
   TimerObj* pTimerObj = static_cast<TimerObj*>(pJS_TimerObj->GetEmbedObject());
-  pTimerObj->SetTimer(m_Timers.back().get());
+  pTimerObj->SetTimer(timerRef);
 
-  vRet = pRetObj;
-  return TRUE;
+  vRet = CJS_Value(pRuntime, pRetObj);
+  return true;
 }
 
-FX_BOOL app::clearTimeOut(IJS_Context* cc,
-                          const std::vector<CJS_Value>& params,
-                          CJS_Value& vRet,
-                          CFX_WideString& sError) {
-  CJS_Context* pContext = (CJS_Context*)cc;
-  if (params.size() != 1) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-    return FALSE;
+bool app::setTimeOut(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
+                     CFX_WideString& sError) {
+  if (params.size() > 2 || params.size() == 0) {
+    sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+    return false;
   }
 
-  app::ClearTimerCommon(params[0]);
-  return TRUE;
-}
-
-FX_BOOL app::clearInterval(IJS_Context* cc,
-                           const std::vector<CJS_Value>& params,
-                           CJS_Value& vRet,
-                           CFX_WideString& sError) {
-  CJS_Context* pContext = (CJS_Context*)cc;
-  if (params.size() != 1) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-    return FALSE;
+  CFX_WideString script = params[0].ToCFXWideString(pRuntime);
+  if (script.IsEmpty()) {
+    sError = JSGetStringFromID(IDS_STRING_JSAFNUMBER_KEYSTROKE);
+    return true;
   }
 
-  app::ClearTimerCommon(params[0]);
-  return TRUE;
+  uint32_t dwTimeOut = params.size() > 1 ? params[1].ToInt(pRuntime) : 1000;
+  GlobalTimer* timerRef =
+      new GlobalTimer(this, pRuntime->GetFormFillEnv(), pRuntime, 1, script,
+                      dwTimeOut, dwTimeOut);
+  m_Timers.insert(std::unique_ptr<GlobalTimer>(timerRef));
+
+  v8::Local<v8::Object> pRetObj =
+      pRuntime->NewFxDynamicObj(CJS_TimerObj::g_nObjDefnID);
+  if (pRetObj.IsEmpty())
+    return false;
+
+  CJS_TimerObj* pJS_TimerObj =
+      static_cast<CJS_TimerObj*>(pRuntime->GetObjectPrivate(pRetObj));
+  TimerObj* pTimerObj = static_cast<TimerObj*>(pJS_TimerObj->GetEmbedObject());
+  pTimerObj->SetTimer(timerRef);
+  vRet = CJS_Value(pRuntime, pRetObj);
+  return true;
 }
 
-void app::ClearTimerCommon(const CJS_Value& param) {
+bool app::clearTimeOut(CJS_Runtime* pRuntime,
+                       const std::vector<CJS_Value>& params,
+                       CJS_Value& vRet,
+                       CFX_WideString& sError) {
+  if (params.size() != 1) {
+    sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+    return false;
+  }
+
+  app::ClearTimerCommon(pRuntime, params[0]);
+  return true;
+}
+
+bool app::clearInterval(CJS_Runtime* pRuntime,
+                        const std::vector<CJS_Value>& params,
+                        CJS_Value& vRet,
+                        CFX_WideString& sError) {
+  if (params.size() != 1) {
+    sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+    return false;
+  }
+
+  app::ClearTimerCommon(pRuntime, params[0]);
+  return true;
+}
+
+void app::ClearTimerCommon(CJS_Runtime* pRuntime, const CJS_Value& param) {
   if (param.GetType() != CJS_Value::VT_object)
     return;
 
-  v8::Local<v8::Object> pObj = param.ToV8Object();
-  if (FXJS_GetObjDefnID(pObj) != CJS_TimerObj::g_nObjDefnID)
+  v8::Local<v8::Object> pObj = param.ToV8Object(pRuntime);
+  if (CFXJS_Engine::GetObjDefnID(pObj) != CJS_TimerObj::g_nObjDefnID)
     return;
 
-  CJS_Object* pJSObj = param.ToCJSObject();
+  CJS_Object* pJSObj = param.ToCJSObject(pRuntime);
   if (!pJSObj)
     return;
 
@@ -473,162 +558,139 @@ void app::ClearTimerCommon(const CJS_Value& param) {
   if (!pTimerObj)
     return;
 
-  CJS_Timer* pTimer = pTimerObj->GetTimer();
-  if (!pTimer)
-    return;
-
-  pTimer->KillJSTimer();
-  auto iter = std::find_if(m_Timers.begin(), m_Timers.end(),
-                           [pTimer](const std::unique_ptr<CJS_Timer>& that) {
-                             return pTimer == that.get();
-                           });
-
-  if (iter != m_Timers.end())
-    m_Timers.erase(iter);
-
-  pTimerObj->SetTimer(nullptr);
+  GlobalTimer::Cancel(pTimerObj->GetTimerID());
 }
 
-FX_BOOL app::execMenuItem(IJS_Context* cc,
-                          const std::vector<CJS_Value>& params,
-                          CJS_Value& vRet,
-                          CFX_WideString& sError) {
-  return FALSE;
+bool app::execMenuItem(CJS_Runtime* pRuntime,
+                       const std::vector<CJS_Value>& params,
+                       CJS_Value& vRet,
+                       CFX_WideString& sError) {
+  return false;
 }
 
-void app::TimerProc(CJS_Timer* pTimer) {
+void app::TimerProc(GlobalTimer* pTimer) {
   CJS_Runtime* pRuntime = pTimer->GetRuntime();
+  if (pRuntime && (!pTimer->IsOneShot() || pTimer->GetTimeOut() > 0))
+    RunJsScript(pRuntime, pTimer->GetJScript());
+}
 
-  switch (pTimer->GetType()) {
-    case 0:  // interval
-      if (pRuntime)
-        RunJsScript(pRuntime, pTimer->GetJScript());
-      break;
-    case 1:
-      if (pTimer->GetTimeOut() > 0) {
-        if (pRuntime)
-          RunJsScript(pRuntime, pTimer->GetJScript());
-        pTimer->KillJSTimer();
-      }
-      break;
-  }
+void app::CancelProc(GlobalTimer* pTimer) {
+  m_Timers.erase(pdfium::FakeUniquePtr<GlobalTimer>(pTimer));
 }
 
 void app::RunJsScript(CJS_Runtime* pRuntime, const CFX_WideString& wsScript) {
   if (!pRuntime->IsBlocking()) {
-    IJS_Context* pContext = pRuntime->NewContext();
+    IJS_EventContext* pContext = pRuntime->NewEventContext();
     pContext->OnExternal_Exec();
     CFX_WideString wtInfo;
     pContext->RunScript(wsScript, &wtInfo);
-    pRuntime->ReleaseContext(pContext);
+    pRuntime->ReleaseEventContext(pContext);
   }
 }
 
-FX_BOOL app::goBack(IJS_Context* cc,
+bool app::goBack(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError) {
+  // Not supported.
+  return true;
+}
+
+bool app::goForward(CJS_Runtime* pRuntime,
                     const std::vector<CJS_Value>& params,
                     CJS_Value& vRet,
                     CFX_WideString& sError) {
   // Not supported.
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::goForward(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError) {
-  // Not supported.
-  return TRUE;
-}
-
-FX_BOOL app::mailMsg(IJS_Context* cc,
-                     const std::vector<CJS_Value>& params,
-                     CJS_Value& vRet,
-                     CFX_WideString& sError) {
-  CJS_Context* pContext = static_cast<CJS_Context*>(cc);
-  CJS_Runtime* pRuntime = pContext->GetJSRuntime();
+bool app::mailMsg(CJS_Runtime* pRuntime,
+                  const std::vector<CJS_Value>& params,
+                  CJS_Value& vRet,
+                  CFX_WideString& sError) {
   std::vector<CJS_Value> newParams =
       JS_ExpandKeywordParams(pRuntime, params, 6, L"bUI", L"cTo", L"cCc",
                              L"cBcc", L"cSubject", L"cMsg");
 
   if (newParams[0].GetType() == CJS_Value::VT_unknown) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-    return FALSE;
+    sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+    return false;
   }
-  bool bUI = newParams[0].ToBool();
+  bool bUI = newParams[0].ToBool(pRuntime);
 
   CFX_WideString cTo;
   if (newParams[1].GetType() != CJS_Value::VT_unknown) {
-    cTo = newParams[1].ToCFXWideString();
+    cTo = newParams[1].ToCFXWideString(pRuntime);
   } else {
     if (!bUI) {
       // cTo parameter required when UI not invoked.
-      sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-      return FALSE;
+      sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+      return false;
     }
   }
 
   CFX_WideString cCc;
   if (newParams[2].GetType() != CJS_Value::VT_unknown)
-    cCc = newParams[2].ToCFXWideString();
+    cCc = newParams[2].ToCFXWideString(pRuntime);
 
   CFX_WideString cBcc;
   if (newParams[3].GetType() != CJS_Value::VT_unknown)
-    cBcc = newParams[3].ToCFXWideString();
+    cBcc = newParams[3].ToCFXWideString(pRuntime);
 
   CFX_WideString cSubject;
   if (newParams[4].GetType() != CJS_Value::VT_unknown)
-    cSubject = newParams[4].ToCFXWideString();
+    cSubject = newParams[4].ToCFXWideString(pRuntime);
 
   CFX_WideString cMsg;
   if (newParams[5].GetType() != CJS_Value::VT_unknown)
-    cMsg = newParams[5].ToCFXWideString();
+    cMsg = newParams[5].ToCFXWideString(pRuntime);
 
   pRuntime->BeginBlock();
-  pContext->GetReaderApp()->JS_docmailForm(nullptr, 0, bUI, cTo.c_str(),
-                                           cSubject.c_str(), cCc.c_str(),
-                                           cBcc.c_str(), cMsg.c_str());
+  pRuntime->GetFormFillEnv()->JS_docmailForm(nullptr, 0, bUI, cTo.c_str(),
+                                             cSubject.c_str(), cCc.c_str(),
+                                             cBcc.c_str(), cMsg.c_str());
   pRuntime->EndBlock();
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::launchURL(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError) {
+bool app::launchURL(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError) {
   // Unsafe, not supported.
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::runtimeHighlight(IJS_Context* cc,
-                              CJS_PropValue& vp,
-                              CFX_WideString& sError) {
+bool app::runtimeHighlight(CJS_Runtime* pRuntime,
+                           CJS_PropValue& vp,
+                           CFX_WideString& sError) {
   if (vp.IsSetting()) {
     vp >> m_bRuntimeHighLight;
   } else {
     vp << m_bRuntimeHighLight;
   }
-  return TRUE;
+  return true;
 }
 
-FX_BOOL app::fullscreen(IJS_Context* cc,
-                        CJS_PropValue& vp,
-                        CFX_WideString& sError) {
-  return FALSE;
+bool app::fullscreen(CJS_Runtime* pRuntime,
+                     CJS_PropValue& vp,
+                     CFX_WideString& sError) {
+  return false;
 }
 
-FX_BOOL app::popUpMenu(IJS_Context* cc,
+bool app::popUpMenu(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError) {
+  return false;
+}
+
+bool app::browseForDoc(CJS_Runtime* pRuntime,
                        const std::vector<CJS_Value>& params,
                        CJS_Value& vRet,
                        CFX_WideString& sError) {
-  return FALSE;
-}
-
-FX_BOOL app::browseForDoc(IJS_Context* cc,
-                          const std::vector<CJS_Value>& params,
-                          CJS_Value& vRet,
-                          CFX_WideString& sError) {
   // Unsafe, not supported.
-  return TRUE;
+  return true;
 }
 
 CFX_WideString app::SysPathToPDFPath(const CFX_WideString& sOldPath) {
@@ -649,78 +711,80 @@ CFX_WideString app::SysPathToPDFPath(const CFX_WideString& sOldPath) {
   return sRet;
 }
 
-FX_BOOL app::newDoc(IJS_Context* cc,
-                    const std::vector<CJS_Value>& params,
-                    CJS_Value& vRet,
-                    CFX_WideString& sError) {
-  return FALSE;
+bool app::newDoc(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError) {
+  return false;
 }
 
-FX_BOOL app::openDoc(IJS_Context* cc,
-                     const std::vector<CJS_Value>& params,
-                     CJS_Value& vRet,
-                     CFX_WideString& sError) {
-  return FALSE;
+bool app::openDoc(CJS_Runtime* pRuntime,
+                  const std::vector<CJS_Value>& params,
+                  CJS_Value& vRet,
+                  CFX_WideString& sError) {
+  return false;
 }
 
-FX_BOOL app::response(IJS_Context* cc,
-                      const std::vector<CJS_Value>& params,
-                      CJS_Value& vRet,
-                      CFX_WideString& sError) {
-  CJS_Context* pContext = static_cast<CJS_Context*>(cc);
-  CJS_Runtime* pRuntime = CJS_Runtime::FromContext(cc);
+bool app::response(CJS_Runtime* pRuntime,
+                   const std::vector<CJS_Value>& params,
+                   CJS_Value& vRet,
+                   CFX_WideString& sError) {
   std::vector<CJS_Value> newParams =
       JS_ExpandKeywordParams(pRuntime, params, 5, L"cQuestion", L"cTitle",
                              L"cDefault", L"bPassword", L"cLabel");
 
   if (newParams[0].GetType() == CJS_Value::VT_unknown) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAMERROR);
-    return FALSE;
+    sError = JSGetStringFromID(IDS_STRING_JSPARAMERROR);
+    return false;
   }
-  CFX_WideString swQuestion = newParams[0].ToCFXWideString();
+  CFX_WideString swQuestion = newParams[0].ToCFXWideString(pRuntime);
 
   CFX_WideString swTitle = L"PDF";
   if (newParams[1].GetType() != CJS_Value::VT_unknown)
-    swTitle = newParams[1].ToCFXWideString();
+    swTitle = newParams[1].ToCFXWideString(pRuntime);
 
   CFX_WideString swDefault;
   if (newParams[2].GetType() != CJS_Value::VT_unknown)
-    swDefault = newParams[2].ToCFXWideString();
+    swDefault = newParams[2].ToCFXWideString(pRuntime);
 
   bool bPassword = false;
   if (newParams[3].GetType() != CJS_Value::VT_unknown)
-    bPassword = newParams[3].ToBool();
+    bPassword = newParams[3].ToBool(pRuntime);
 
   CFX_WideString swLabel;
   if (newParams[4].GetType() != CJS_Value::VT_unknown)
-    swLabel = newParams[4].ToCFXWideString();
+    swLabel = newParams[4].ToCFXWideString(pRuntime);
 
   const int MAX_INPUT_BYTES = 2048;
   std::unique_ptr<char[]> pBuff(new char[MAX_INPUT_BYTES + 2]);
   memset(pBuff.get(), 0, MAX_INPUT_BYTES + 2);
 
-  int nLengthBytes = pContext->GetReaderApp()->JS_appResponse(
+  int nLengthBytes = pRuntime->GetFormFillEnv()->JS_appResponse(
       swQuestion.c_str(), swTitle.c_str(), swDefault.c_str(), swLabel.c_str(),
       bPassword, pBuff.get(), MAX_INPUT_BYTES);
 
   if (nLengthBytes < 0 || nLengthBytes > MAX_INPUT_BYTES) {
-    sError = JSGetStringFromID(pContext, IDS_STRING_JSPARAM_TOOLONG);
-    return FALSE;
+    sError = JSGetStringFromID(IDS_STRING_JSPARAM_TOOLONG);
+    return false;
   }
 
-  vRet = CFX_WideString::FromUTF16LE(reinterpret_cast<uint16_t*>(pBuff.get()),
-                                     nLengthBytes / sizeof(uint16_t))
-             .c_str();
-  return TRUE;
+  vRet = CJS_Value(pRuntime, CFX_WideString::FromUTF16LE(
+                                 reinterpret_cast<uint16_t*>(pBuff.get()),
+                                 nLengthBytes / sizeof(uint16_t))
+                                 .c_str());
+
+  return true;
 }
 
-FX_BOOL app::media(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError) {
-  return FALSE;
+bool app::media(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError) {
+  return false;
 }
 
-FX_BOOL app::execDialog(IJS_Context* cc,
-                        const std::vector<CJS_Value>& params,
-                        CJS_Value& vRet,
-                        CFX_WideString& sError) {
-  return TRUE;
+bool app::execDialog(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
+                     CFX_WideString& sError) {
+  return true;
 }

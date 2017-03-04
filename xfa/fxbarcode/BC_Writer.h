@@ -7,19 +7,19 @@
 #ifndef XFA_FXBARCODE_BC_WRITER_H_
 #define XFA_FXBARCODE_BC_WRITER_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxge/include/fx_dib.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxge/fx_dib.h"
 #include "xfa/fxbarcode/utils.h"
 
 class CBC_Writer {
  public:
   CBC_Writer();
   virtual ~CBC_Writer();
-  virtual FX_BOOL SetCharEncoding(int32_t encoding);
-  virtual FX_BOOL SetModuleHeight(int32_t moduleHeight);
-  virtual FX_BOOL SetModuleWidth(int32_t moduleWidth);
-  virtual FX_BOOL SetHeight(int32_t height);
-  virtual FX_BOOL SetWidth(int32_t width);
+  virtual bool SetCharEncoding(int32_t encoding);
+  virtual bool SetModuleHeight(int32_t moduleHeight);
+  virtual bool SetModuleWidth(int32_t moduleWidth);
+  virtual bool SetHeight(int32_t height);
+  virtual bool SetWidth(int32_t width);
   virtual void SetBackgroundColor(FX_ARGB backgroundColor);
   virtual void SetBarcodeColor(FX_ARGB foregroundColor);
 

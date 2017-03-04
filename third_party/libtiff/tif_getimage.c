@@ -31,6 +31,7 @@
  */
 #include "tiffiop.h"
 #include <stdio.h>
+#include <limits.h>
 
 static int gtTileContig(TIFFRGBAImage*, uint32*, uint32, uint32);
 static int gtTileSeparate(TIFFRGBAImage*, uint32*, uint32, uint32);
@@ -267,6 +268,13 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
 	img->redcmap = NULL;
 	img->greencmap = NULL;
 	img->bluecmap = NULL;
+	img->Map = NULL;
+	img->BWmap = NULL;
+	img->PALmap = NULL;
+	img->ycbcr = NULL;
+	img->cielab = NULL;
+	img->UaToAa = NULL;
+	img->Bitdepth16To8 = NULL;
 	img->req_orientation = ORIENTATION_BOTLEFT;     /* It is the default */
 
 	img->tif = tif;
@@ -452,13 +460,6 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
 			    photoTag, img->photometric);
                         goto fail_return;
 	}
-	img->Map = NULL;
-	img->BWmap = NULL;
-	img->PALmap = NULL;
-	img->ycbcr = NULL;
-	img->cielab = NULL;
-	img->UaToAa = NULL;
-	img->Bitdepth16To8 = NULL;
 	TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &img->width);
 	TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &img->height);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &img->orientation);
@@ -478,10 +479,7 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
 	return 1;
 
   fail_return:
-        _TIFFfree( img->redcmap );
-        _TIFFfree( img->greencmap );
-        _TIFFfree( img->bluecmap );
-        img->redcmap = img->greencmap = img->bluecmap = NULL;
+        TIFFRGBAImageEnd( img );
         return 0;
 }
 
@@ -615,6 +613,7 @@ gtTileContig(TIFFRGBAImage* img, uint32* raster, uint32 w, uint32 h)
     uint32 tw, th;
     unsigned char* buf;
     int32 fromskew, toskew;
+    int64 safeskew;
     uint32 nrow;
     int ret = 1, flip;
     uint32 this_tw, tocol;
@@ -634,19 +633,37 @@ gtTileContig(TIFFRGBAImage* img, uint32* raster, uint32 w, uint32 h)
     flip = setorientation(img);
     if (flip & FLIP_VERTICALLY) {
 	    y = h - 1;
-	    toskew = -(int32)(tw + w);
+	    safeskew = 0;
+	    safeskew -= tw;
+	    safeskew -= w;
     }
     else {
 	    y = 0;
-	    toskew = -(int32)(tw - w);
+	    safeskew = 0;
+	    safeskew -= tw;
+	    safeskew +=w;
     }
+    if(safeskew > INT_MAX || safeskew < INT_MIN){
+    	_TIFFfree(buf);
+    	TIFFErrorExt(tif->tif_clientdata, TIFFFileName(tif), "%s", "Invalid skew");
+    	return (0);
+    }
+    toskew = safeskew;
+
      
     /*
      *	Leftmost tile is clipped on left side if col_offset > 0.
      */
     leftmost_fromskew = img->col_offset % tw;
     leftmost_tw = tw - leftmost_fromskew;
-    leftmost_toskew = toskew + leftmost_fromskew;
+    safeskew = toskew;
+    safeskew += leftmost_fromskew;
+    if(safeskew > INT_MAX || safeskew < INT_MIN){
+    	_TIFFfree(buf);
+    	TIFFErrorExt(tif->tif_clientdata, TIFFFileName(tif), "%s", "Invalid skew");
+    	return (0);
+    }
+    leftmost_toskew = safeskew;
     for (row = 0; row < h; row += nrow)
     {
         rowstoread = th - (row + img->row_offset) % th;
@@ -671,9 +688,24 @@ gtTileContig(TIFFRGBAImage* img, uint32* raster, uint32 w, uint32 h)
 		/*
 		 * Rightmost tile is clipped on right side.
 		 */
-		fromskew = tw - (w - tocol);
+		safeskew = tw;
+		safeskew -= w;
+		safeskew += tocol;
+		if(safeskew > INT_MAX || safeskew < INT_MIN){
+			_TIFFfree(buf);
+			TIFFErrorExt(tif->tif_clientdata, TIFFFileName(tif), "%s", "Invalid skew");
+			return (0);
+		}
+		fromskew = safeskew;
 		this_tw = tw - fromskew;
-		this_toskew = toskew + fromskew;
+		safeskew = toskew;
+		safeskew += fromskew;
+		if(safeskew > INT_MAX || safeskew < INT_MIN){
+			_TIFFfree(buf);
+			TIFFErrorExt(tif->tif_clientdata, TIFFFileName(tif), "%s", "Invalid skew");
+			return (0);
+		}
+		this_toskew = safeskew;
 	    }
 	    (*put)(img, raster+y*w+tocol, tocol, y, this_tw, nrow, fromskew, this_toskew, buf + pos);
 	    tocol += this_tw;
@@ -1284,7 +1316,7 @@ DECLAREContigPutFunc(putagreytile)
     while (h-- > 0) {
 	for (x = w; x-- > 0;)
         {
-            *cp++ = BWmap[*pp][0] & (*(pp+1) << 24 | ~A1);
+            *cp++ = BWmap[*pp][0] & ((uint32)*(pp+1) << 24 | ~A1);
             pp += samplesperpixel;
         }
 	cp += toskew;

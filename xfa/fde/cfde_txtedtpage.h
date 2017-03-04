@@ -7,6 +7,10 @@
 #ifndef XFA_FDE_CFDE_TXTEDTPAGE_H_
 #define XFA_FDE_CFDE_TXTEDTPAGE_H_
 
+#include <deque>
+#include <memory>
+#include <vector>
+
 #include "xfa/fde/ifde_txtedtpage.h"
 #include "xfa/fde/ifx_chariter.h"
 
@@ -23,25 +27,25 @@ class CFDE_TxtEdtPage : public IFDE_TxtEdtPage {
   CFDE_TxtEdtEngine* GetEngine() const override;
   int32_t GetCharRect(int32_t nIndex,
                       CFX_RectF& rect,
-                      FX_BOOL bBBox = FALSE) const override;
-  int32_t GetCharIndex(const CFX_PointF& fPoint, FX_BOOL& bBefore) override;
+                      bool bBBox = false) const override;
+  int32_t GetCharIndex(const CFX_PointF& fPoint, bool& bBefore) override;
   void CalcRangeRectArray(int32_t nStart,
                           int32_t nCount,
-                          CFX_RectFArray& RectFArr) const override;
+                          std::vector<CFX_RectF>* RectFArr) const override;
   int32_t SelectWord(const CFX_PointF& fPoint, int32_t& nCount) override;
   int32_t GetCharStart() const override;
   int32_t GetCharCount() const override;
   int32_t GetDisplayPos(const CFX_RectF& rtClip,
                         FXTEXT_CHARPOS*& pCharPos,
                         CFX_RectF* pBBox) const override;
-  FX_BOOL IsLoaded(const CFX_RectF* pClipBox) override;
+  bool IsLoaded(const CFX_RectF* pClipBox) override;
   int32_t LoadPage(const CFX_RectF* pClipBox, IFX_Pause* pPause) override;
   void UnloadPage(const CFX_RectF* pClipBox) override;
   const CFX_RectF& GetContentsBox() override;
 
   // IFDE_VisualSet:
   FDE_VISUALOBJTYPE GetType() override;
-  void GetRect(FDE_TEXTEDITPIECE* pPiece, CFX_RectF& rt) override;
+  CFX_RectF GetRect(const FDE_TEXTEDITPIECE& pPiece) override;
 
   // IFDE_CanvasSet:
   FX_POSITION GetFirstPosition() override;
@@ -60,21 +64,21 @@ class CFDE_TxtEdtPage : public IFDE_TxtEdtPage {
                         FX_FLOAT fTolerance) const;
 
   std::unique_ptr<IFX_CharIter> m_pIter;
-  CFDE_TxtEdtTextSet* m_pTextSet;
-  CFDE_TxtEdtEngine* m_pEditEngine;
-  CFX_MassArrayTemplate<FDE_TEXTEDITPIECE> m_PieceMassArr;
+  std::unique_ptr<CFDE_TxtEdtTextSet> m_pTextSet;
+  CFDE_TxtEdtEngine* const m_pEditEngine;
+  std::deque<FDE_TEXTEDITPIECE> m_Pieces;
   CFDE_TxtEdtParag* m_pBgnParag;
   CFDE_TxtEdtParag* m_pEndParag;
   int32_t m_nRefCount;
   int32_t m_nPageStart;
   int32_t m_nCharCount;
   int32_t m_nPageIndex;
-  FX_BOOL m_bLoaded;
+  bool m_bLoaded;
   CFX_RectF m_rtPage;
   CFX_RectF m_rtPageMargin;
   CFX_RectF m_rtPageContents;
   CFX_RectF m_rtPageCanvas;
-  int32_t* m_pCharWidth;
+  std::vector<int32_t> m_CharWidths;
 };
 
 #endif  // XFA_FDE_CFDE_TXTEDTPAGE_H_

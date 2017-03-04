@@ -8,7 +8,7 @@
 #define CORE_FPDFDOC_CTYPESET_H_
 
 #include "core/fpdfdoc/cpvt_floatrect.h"
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 
 class CPDF_VariableText;
 class CSection;
@@ -23,7 +23,7 @@ class CTypeset final {
   CPVT_FloatRect CharArray();
 
  private:
-  void SplitLines(FX_BOOL bTypeset, FX_FLOAT fFontSize);
+  void SplitLines(bool bTypeset, FX_FLOAT fFontSize);
   void OutputLines();
 
   CPVT_FloatRect m_rcRet;

@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "core/fxcrt/cfx_observable.h"
+#include "fpdfsdk/cpdfsdk_formfillenvironment.h"
 #include "fpdfsdk/javascript/JS_Define.h"
 #include "fpdfsdk/pdfwindow/PWL_Wnd.h"  // For CPWL_Color.
 
@@ -75,366 +77,404 @@ class Field : public CJS_EmbedObj {
   explicit Field(CJS_Object* pJSObject);
   ~Field() override;
 
-  FX_BOOL alignment(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL borderStyle(IJS_Context* cc,
+  bool alignment(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool borderStyle(CJS_Runtime* pRuntime,
+                   CJS_PropValue& vp,
+                   CFX_WideString& sError);
+  bool buttonAlignX(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError);
+  bool buttonAlignY(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError);
+  bool buttonFitBounds(CJS_Runtime* pRuntime,
+                       CJS_PropValue& vp,
+                       CFX_WideString& sError);
+  bool buttonPosition(CJS_Runtime* pRuntime,
                       CJS_PropValue& vp,
                       CFX_WideString& sError);
-  FX_BOOL buttonAlignX(IJS_Context* cc,
-                       CJS_PropValue& vp,
-                       CFX_WideString& sError);
-  FX_BOOL buttonAlignY(IJS_Context* cc,
-                       CJS_PropValue& vp,
-                       CFX_WideString& sError);
-  FX_BOOL buttonFitBounds(IJS_Context* cc,
-                          CJS_PropValue& vp,
-                          CFX_WideString& sError);
-  FX_BOOL buttonPosition(IJS_Context* cc,
-                         CJS_PropValue& vp,
-                         CFX_WideString& sError);
-  FX_BOOL buttonScaleHow(IJS_Context* cc,
-                         CJS_PropValue& vp,
-                         CFX_WideString& sError);
-  FX_BOOL buttonScaleWhen(IJS_Context* cc,
-                          CJS_PropValue& vp,
-                          CFX_WideString& sError);
-  FX_BOOL calcOrderIndex(IJS_Context* cc,
-                         CJS_PropValue& vp,
-                         CFX_WideString& sError);
-  FX_BOOL charLimit(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL comb(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL commitOnSelChange(IJS_Context* cc,
-                            CJS_PropValue& vp,
-                            CFX_WideString& sError);
-  FX_BOOL currentValueIndices(IJS_Context* cc,
-                              CJS_PropValue& vp,
-                              CFX_WideString& sError);
-  FX_BOOL defaultStyle(IJS_Context* cc,
-                       CJS_PropValue& vp,
-                       CFX_WideString& sError);
-  FX_BOOL defaultValue(IJS_Context* cc,
-                       CJS_PropValue& vp,
-                       CFX_WideString& sError);
-  FX_BOOL doNotScroll(IJS_Context* cc,
+  bool buttonScaleHow(CJS_Runtime* pRuntime,
                       CJS_PropValue& vp,
                       CFX_WideString& sError);
-  FX_BOOL doNotSpellCheck(IJS_Context* cc,
-                          CJS_PropValue& vp,
-                          CFX_WideString& sError);
-  FX_BOOL delay(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL display(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL doc(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL editable(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL exportValues(IJS_Context* cc,
+  bool buttonScaleWhen(CJS_Runtime* pRuntime,
                        CJS_PropValue& vp,
                        CFX_WideString& sError);
-  FX_BOOL fileSelect(IJS_Context* cc,
+  bool calcOrderIndex(CJS_Runtime* pRuntime,
+                      CJS_PropValue& vp,
+                      CFX_WideString& sError);
+  bool charLimit(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool comb(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool commitOnSelChange(CJS_Runtime* pRuntime,
+                         CJS_PropValue& vp,
+                         CFX_WideString& sError);
+  bool currentValueIndices(CJS_Runtime* pRuntime,
+                           CJS_PropValue& vp,
+                           CFX_WideString& sError);
+  bool defaultStyle(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError);
+  bool defaultValue(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError);
+  bool doNotScroll(CJS_Runtime* pRuntime,
+                   CJS_PropValue& vp,
+                   CFX_WideString& sError);
+  bool doNotSpellCheck(CJS_Runtime* pRuntime,
+                       CJS_PropValue& vp,
+                       CFX_WideString& sError);
+  bool delay(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool display(CJS_Runtime* pRuntime,
+               CJS_PropValue& vp,
+               CFX_WideString& sError);
+  bool doc(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool editable(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool exportValues(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError);
+  bool fileSelect(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool fillColor(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool hidden(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool highlight(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool lineWidth(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool multiline(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool multipleSelection(CJS_Runtime* pRuntime,
+                         CJS_PropValue& vp,
+                         CFX_WideString& sError);
+  bool name(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool numItems(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool page(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool password(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool print(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool radiosInUnison(CJS_Runtime* pRuntime,
+                      CJS_PropValue& vp,
+                      CFX_WideString& sError);
+  bool readonly(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool rect(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool required(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool richText(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool richValue(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool rotation(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool strokeColor(CJS_Runtime* pRuntime,
+                   CJS_PropValue& vp,
+                   CFX_WideString& sError);
+  bool style(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool submitName(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool textColor(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool textFont(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool textSize(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool type(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool userName(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool value(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool valueAsString(CJS_Runtime* pRuntime,
                      CJS_PropValue& vp,
                      CFX_WideString& sError);
-  FX_BOOL fillColor(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL hidden(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL highlight(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL lineWidth(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL multiline(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL multipleSelection(IJS_Context* cc,
-                            CJS_PropValue& vp,
-                            CFX_WideString& sError);
-  FX_BOOL name(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL numItems(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL page(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL password(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL print(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL radiosInUnison(IJS_Context* cc,
-                         CJS_PropValue& vp,
-                         CFX_WideString& sError);
-  FX_BOOL readonly(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL rect(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL required(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL richText(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL richValue(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL rotation(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL strokeColor(IJS_Context* cc,
-                      CJS_PropValue& vp,
-                      CFX_WideString& sError);
-  FX_BOOL style(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL submitName(IJS_Context* cc,
-                     CJS_PropValue& vp,
-                     CFX_WideString& sError);
-  FX_BOOL textColor(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL textFont(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL textSize(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL type(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL userName(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL value(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL valueAsString(IJS_Context* cc,
-                        CJS_PropValue& vp,
-                        CFX_WideString& sError);
-  FX_BOOL source(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
+  bool source(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
 
-  FX_BOOL browseForFileToSubmit(IJS_Context* cc,
-                                const std::vector<CJS_Value>& params,
-                                CJS_Value& vRet,
-                                CFX_WideString& sError);
-  FX_BOOL buttonGetCaption(IJS_Context* cc,
-                           const std::vector<CJS_Value>& params,
-                           CJS_Value& vRet,
-                           CFX_WideString& sError);
-  FX_BOOL buttonGetIcon(IJS_Context* cc,
+  bool browseForFileToSubmit(CJS_Runtime* pRuntime,
+                             const std::vector<CJS_Value>& params,
+                             CJS_Value& vRet,
+                             CFX_WideString& sError);
+  bool buttonGetCaption(CJS_Runtime* pRuntime,
                         const std::vector<CJS_Value>& params,
                         CJS_Value& vRet,
                         CFX_WideString& sError);
-  FX_BOOL buttonImportIcon(IJS_Context* cc,
-                           const std::vector<CJS_Value>& params,
-                           CJS_Value& vRet,
-                           CFX_WideString& sError);
-  FX_BOOL buttonSetCaption(IJS_Context* cc,
-                           const std::vector<CJS_Value>& params,
-                           CJS_Value& vRet,
-                           CFX_WideString& sError);
-  FX_BOOL buttonSetIcon(IJS_Context* cc,
-                        const std::vector<CJS_Value>& params,
-                        CJS_Value& vRet,
-                        CFX_WideString& sError);
-  FX_BOOL checkThisBox(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError);
-  FX_BOOL clearItems(IJS_Context* cc,
+  bool buttonGetIcon(CJS_Runtime* pRuntime,
                      const std::vector<CJS_Value>& params,
                      CJS_Value& vRet,
                      CFX_WideString& sError);
-  FX_BOOL defaultIsChecked(IJS_Context* cc,
-                           const std::vector<CJS_Value>& params,
-                           CJS_Value& vRet,
-                           CFX_WideString& sError);
-  FX_BOOL deleteItemAt(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError);
-  FX_BOOL getArray(IJS_Context* cc,
-                   const std::vector<CJS_Value>& params,
-                   CJS_Value& vRet,
-                   CFX_WideString& sError);
-  FX_BOOL getItemAt(IJS_Context* cc,
-                    const std::vector<CJS_Value>& params,
-                    CJS_Value& vRet,
-                    CFX_WideString& sError);
-  FX_BOOL getLock(IJS_Context* cc,
-                  const std::vector<CJS_Value>& params,
-                  CJS_Value& vRet,
-                  CFX_WideString& sError);
-  FX_BOOL insertItemAt(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError);
-  FX_BOOL isBoxChecked(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError);
-  FX_BOOL isDefaultChecked(IJS_Context* cc,
-                           const std::vector<CJS_Value>& params,
-                           CJS_Value& vRet,
-                           CFX_WideString& sError);
-  FX_BOOL setAction(IJS_Context* cc,
-                    const std::vector<CJS_Value>& params,
-                    CJS_Value& vRet,
-                    CFX_WideString& sError);
-  FX_BOOL setFocus(IJS_Context* cc,
-                   const std::vector<CJS_Value>& params,
-                   CJS_Value& vRet,
-                   CFX_WideString& sError);
-  FX_BOOL setItems(IJS_Context* cc,
-                   const std::vector<CJS_Value>& params,
-                   CJS_Value& vRet,
-                   CFX_WideString& sError);
-  FX_BOOL setLock(IJS_Context* cc,
-                  const std::vector<CJS_Value>& params,
-                  CJS_Value& vRet,
-                  CFX_WideString& sError);
-  FX_BOOL signatureGetModifications(IJS_Context* cc,
-                                    const std::vector<CJS_Value>& params,
-                                    CJS_Value& vRet,
-                                    CFX_WideString& sError);
-  FX_BOOL signatureGetSeedValue(IJS_Context* cc,
-                                const std::vector<CJS_Value>& params,
-                                CJS_Value& vRet,
-                                CFX_WideString& sError);
-  FX_BOOL signatureInfo(IJS_Context* cc,
+  bool buttonImportIcon(CJS_Runtime* pRuntime,
                         const std::vector<CJS_Value>& params,
                         CJS_Value& vRet,
                         CFX_WideString& sError);
-  FX_BOOL signatureSetSeedValue(IJS_Context* cc,
-                                const std::vector<CJS_Value>& params,
-                                CJS_Value& vRet,
-                                CFX_WideString& sError);
-  FX_BOOL signatureSign(IJS_Context* cc,
+  bool buttonSetCaption(CJS_Runtime* pRuntime,
                         const std::vector<CJS_Value>& params,
                         CJS_Value& vRet,
                         CFX_WideString& sError);
-  FX_BOOL signatureValidate(IJS_Context* cc,
-                            const std::vector<CJS_Value>& params,
-                            CJS_Value& vRet,
-                            CFX_WideString& sError);
+  bool buttonSetIcon(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
+                     CFX_WideString& sError);
+  bool checkThisBox(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError);
+  bool clearItems(CJS_Runtime* pRuntime,
+                  const std::vector<CJS_Value>& params,
+                  CJS_Value& vRet,
+                  CFX_WideString& sError);
+  bool defaultIsChecked(CJS_Runtime* pRuntime,
+                        const std::vector<CJS_Value>& params,
+                        CJS_Value& vRet,
+                        CFX_WideString& sError);
+  bool deleteItemAt(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError);
+  bool getArray(CJS_Runtime* pRuntime,
+                const std::vector<CJS_Value>& params,
+                CJS_Value& vRet,
+                CFX_WideString& sError);
+  bool getItemAt(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError);
+  bool getLock(CJS_Runtime* pRuntime,
+               const std::vector<CJS_Value>& params,
+               CJS_Value& vRet,
+               CFX_WideString& sError);
+  bool insertItemAt(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError);
+  bool isBoxChecked(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError);
+  bool isDefaultChecked(CJS_Runtime* pRuntime,
+                        const std::vector<CJS_Value>& params,
+                        CJS_Value& vRet,
+                        CFX_WideString& sError);
+  bool setAction(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError);
+  bool setFocus(CJS_Runtime* pRuntime,
+                const std::vector<CJS_Value>& params,
+                CJS_Value& vRet,
+                CFX_WideString& sError);
+  bool setItems(CJS_Runtime* pRuntime,
+                const std::vector<CJS_Value>& params,
+                CJS_Value& vRet,
+                CFX_WideString& sError);
+  bool setLock(CJS_Runtime* pRuntime,
+               const std::vector<CJS_Value>& params,
+               CJS_Value& vRet,
+               CFX_WideString& sError);
+  bool signatureGetModifications(CJS_Runtime* pRuntime,
+                                 const std::vector<CJS_Value>& params,
+                                 CJS_Value& vRet,
+                                 CFX_WideString& sError);
+  bool signatureGetSeedValue(CJS_Runtime* pRuntime,
+                             const std::vector<CJS_Value>& params,
+                             CJS_Value& vRet,
+                             CFX_WideString& sError);
+  bool signatureInfo(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
+                     CFX_WideString& sError);
+  bool signatureSetSeedValue(CJS_Runtime* pRuntime,
+                             const std::vector<CJS_Value>& params,
+                             CJS_Value& vRet,
+                             CFX_WideString& sError);
+  bool signatureSign(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
+                     CFX_WideString& sError);
+  bool signatureValidate(CJS_Runtime* pRuntime,
+                         const std::vector<CJS_Value>& params,
+                         CJS_Value& vRet,
+                         CFX_WideString& sError);
 
-  static void SetAlignment(CPDFSDK_Document* pDocument,
+  static void SetAlignment(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                            const CFX_WideString& swFieldName,
                            int nControlIndex,
                            const CFX_ByteString& string);
-  static void SetBorderStyle(CPDFSDK_Document* pDocument,
+  static void SetBorderStyle(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                              const CFX_WideString& swFieldName,
                              int nControlIndex,
                              const CFX_ByteString& string);
-  static void SetButtonAlignX(CPDFSDK_Document* pDocument,
+  static void SetButtonAlignX(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                               const CFX_WideString& swFieldName,
                               int nControlIndex,
                               int number);
-  static void SetButtonAlignY(CPDFSDK_Document* pDocument,
+  static void SetButtonAlignY(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                               const CFX_WideString& swFieldName,
                               int nControlIndex,
                               int number);
-  static void SetButtonFitBounds(CPDFSDK_Document* pDocument,
+  static void SetButtonFitBounds(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                  const CFX_WideString& swFieldName,
                                  int nControlIndex,
                                  bool b);
-  static void SetButtonPosition(CPDFSDK_Document* pDocument,
+  static void SetButtonPosition(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                 const CFX_WideString& swFieldName,
                                 int nControlIndex,
                                 int number);
-  static void SetButtonScaleHow(CPDFSDK_Document* pDocument,
+  static void SetButtonScaleHow(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                 const CFX_WideString& swFieldName,
                                 int nControlIndex,
                                 int number);
-  static void SetButtonScaleWhen(CPDFSDK_Document* pDocument,
+  static void SetButtonScaleWhen(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                  const CFX_WideString& swFieldName,
                                  int nControlIndex,
                                  int number);
-  static void SetCalcOrderIndex(CPDFSDK_Document* pDocument,
+  static void SetCalcOrderIndex(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                 const CFX_WideString& swFieldName,
                                 int nControlIndex,
                                 int number);
-  static void SetCharLimit(CPDFSDK_Document* pDocument,
+  static void SetCharLimit(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                            const CFX_WideString& swFieldName,
                            int nControlIndex,
                            int number);
-  static void SetComb(CPDFSDK_Document* pDocument,
+  static void SetComb(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                       const CFX_WideString& swFieldName,
                       int nControlIndex,
                       bool b);
-  static void SetCommitOnSelChange(CPDFSDK_Document* pDocument,
+  static void SetCommitOnSelChange(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                    const CFX_WideString& swFieldName,
                                    int nControlIndex,
                                    bool b);
-  static void SetCurrentValueIndices(CPDFSDK_Document* pDocument,
+  static void SetCurrentValueIndices(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                      const CFX_WideString& swFieldName,
                                      int nControlIndex,
                                      const std::vector<uint32_t>& array);
-  static void SetDefaultStyle(CPDFSDK_Document* pDocument,
+  static void SetDefaultStyle(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                               const CFX_WideString& swFieldName,
                               int nControlIndex);
-  static void SetDefaultValue(CPDFSDK_Document* pDocument,
+  static void SetDefaultValue(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                               const CFX_WideString& swFieldName,
                               int nControlIndex,
                               const CFX_WideString& string);
-  static void SetDoNotScroll(CPDFSDK_Document* pDocument,
+  static void SetDoNotScroll(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                              const CFX_WideString& swFieldName,
                              int nControlIndex,
                              bool b);
-  static void SetDisplay(CPDFSDK_Document* pDocument,
+  static void SetDisplay(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                          const CFX_WideString& swFieldName,
                          int nControlIndex,
                          int number);
-  static void SetFillColor(CPDFSDK_Document* pDocument,
+  static void SetFillColor(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                            const CFX_WideString& swFieldName,
                            int nControlIndex,
                            const CPWL_Color& color);
-  static void SetHidden(CPDFSDK_Document* pDocument,
+  static void SetHidden(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                         const CFX_WideString& swFieldName,
                         int nControlIndex,
                         bool b);
-  static void SetHighlight(CPDFSDK_Document* pDocument,
+  static void SetHighlight(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                            const CFX_WideString& swFieldName,
                            int nControlIndex,
                            const CFX_ByteString& string);
-  static void SetLineWidth(CPDFSDK_Document* pDocument,
+  static void SetLineWidth(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                            const CFX_WideString& swFieldName,
                            int nControlIndex,
                            int number);
-  static void SetMultiline(CPDFSDK_Document* pDocument,
+  static void SetMultiline(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                            const CFX_WideString& swFieldName,
                            int nControlIndex,
                            bool b);
-  static void SetMultipleSelection(CPDFSDK_Document* pDocument,
+  static void SetMultipleSelection(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                    const CFX_WideString& swFieldName,
                                    int nControlIndex,
                                    bool b);
-  static void SetPassword(CPDFSDK_Document* pDocument,
+  static void SetPassword(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                           const CFX_WideString& swFieldName,
                           int nControlIndex,
                           bool b);
-  static void SetRect(CPDFSDK_Document* pDocument,
+  static void SetRect(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                       const CFX_WideString& swFieldName,
                       int nControlIndex,
                       const CFX_FloatRect& rect);
-  static void SetRotation(CPDFSDK_Document* pDocument,
+  static void SetRotation(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                           const CFX_WideString& swFieldName,
                           int nControlIndex,
                           int number);
-  static void SetStrokeColor(CPDFSDK_Document* pDocument,
+  static void SetStrokeColor(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                              const CFX_WideString& swFieldName,
                              int nControlIndex,
                              const CPWL_Color& color);
-  static void SetStyle(CPDFSDK_Document* pDocument,
+  static void SetStyle(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                        const CFX_WideString& swFieldName,
                        int nControlIndex,
                        const CFX_ByteString& string);
-  static void SetTextColor(CPDFSDK_Document* pDocument,
+  static void SetTextColor(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                            const CFX_WideString& swFieldName,
                            int nControlIndex,
                            const CPWL_Color& color);
-  static void SetTextFont(CPDFSDK_Document* pDocument,
+  static void SetTextFont(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                           const CFX_WideString& swFieldName,
                           int nControlIndex,
                           const CFX_ByteString& string);
-  static void SetTextSize(CPDFSDK_Document* pDocument,
+  static void SetTextSize(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                           const CFX_WideString& swFieldName,
                           int nControlIndex,
                           int number);
-  static void SetUserName(CPDFSDK_Document* pDocument,
+  static void SetUserName(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                           const CFX_WideString& swFieldName,
                           int nControlIndex,
                           const CFX_WideString& string);
-  static void SetValue(CPDFSDK_Document* pDocument,
+  static void SetValue(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                        const CFX_WideString& swFieldName,
                        int nControlIndex,
                        const std::vector<CFX_WideString>& strArray);
 
-  static void AddField(CPDFSDK_Document* pDocument,
+  static void AddField(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                        int nPageIndex,
                        int nFieldType,
                        const CFX_WideString& sName,
                        const CFX_FloatRect& rcCoords);
 
-  static void UpdateFormField(CPDFSDK_Document* pDocument,
+  static void UpdateFormField(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                               CPDF_FormField* pFormField,
-                              FX_BOOL bChangeMark,
-                              FX_BOOL bResetAP,
-                              FX_BOOL bRefresh);
-  static void UpdateFormControl(CPDFSDK_Document* pDocument,
+                              bool bChangeMark,
+                              bool bResetAP,
+                              bool bRefresh);
+  static void UpdateFormControl(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                 CPDF_FormControl* pFormControl,
-                                FX_BOOL bChangeMark,
-                                FX_BOOL bResetAP,
-                                FX_BOOL bRefresh);
+                                bool bChangeMark,
+                                bool bResetAP,
+                                bool bRefresh);
 
-  static CPDFSDK_Widget* GetWidget(CPDFSDK_Document* pDocument,
+  static CPDFSDK_Widget* GetWidget(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                    CPDF_FormControl* pFormControl);
   static std::vector<CPDF_FormField*> GetFormFields(
-      CPDFSDK_Document* pDocument,
+      CPDFSDK_FormFillEnvironment* pFormFillEnv,
       const CFX_WideString& csFieldName);
 
-  static void DoDelay(CPDFSDK_Document* pDocument, CJS_DelayData* pData);
+  static void DoDelay(CPDFSDK_FormFillEnvironment* pFormFillEnv,
+                      CJS_DelayData* pData);
 
-  FX_BOOL AttachField(Document* pDocument, const CFX_WideString& csFieldName);
-  void SetDelay(FX_BOOL bDelay);
-  void SetIsolate(v8::Isolate* isolate) { m_isolate = isolate; }
+  bool AttachField(Document* pDocument, const CFX_WideString& csFieldName);
+  void SetDelay(bool bDelay);
 
  protected:
   void ParseFieldName(const std::wstring& strFieldNameParsed,
@@ -443,7 +483,7 @@ class Field : public CJS_EmbedObj {
   std::vector<CPDF_FormField*> GetFormFields(
       const CFX_WideString& csFieldName) const;
   CPDF_FormControl* GetSmartFieldControl(CPDF_FormField* pFormField);
-  FX_BOOL ValueIsOccur(CPDF_FormField* pFormField, CFX_WideString csOptLabel);
+  bool ValueIsOccur(CPDF_FormField* pFormField, CFX_WideString csOptLabel);
 
   void AddDelay_Int(FIELD_PROP prop, int32_t n);
   void AddDelay_Bool(FIELD_PROP prop, bool b);
@@ -459,13 +499,11 @@ class Field : public CJS_EmbedObj {
 
  public:
   Document* m_pJSDoc;
-  CPDFSDK_Document* m_pDocument;
+  CPDFSDK_FormFillEnvironment::ObservedPtr m_pFormFillEnv;
   CFX_WideString m_FieldName;
   int m_nFormControlIndex;
-  FX_BOOL m_bCanSet;
-
-  FX_BOOL m_bDelay;
-  v8::Isolate* m_isolate;
+  bool m_bCanSet;
+  bool m_bDelay;
 };
 
 class CJS_Field : public CJS_Object {

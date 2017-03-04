@@ -25,37 +25,23 @@ def RunCommand(cmd):
   except subprocess.CalledProcessError as e:
     return e
 
-# Adjust Dr. Memory wrapper to have separate log directory for each test
-# for better error reporting.
-def DrMemoryWrapper(wrapper, pdf_name):
-  if not wrapper:
-    return []
-  # convert string to list
-  cmd_to_run = wrapper.split()
-
-  # Do nothing if using default log directory.
-  if cmd_to_run.count("-logdir") == 0:
-    return cmd_to_run
-  # Usually, we pass "-logdir" "foo\bar\spam path" args to Dr. Memory.
-  # To group reports per test, we want to put the reports for each test into a
-  # separate directory. This code can be simplified when we have
-  # https://github.com/DynamoRIO/drmemory/issues/684 fixed.
-  logdir_idx = cmd_to_run.index("-logdir")
-  old_logdir = cmd_to_run[logdir_idx + 1]
-  wrapper_pid = str(os.getpid())
-
-  # We are using the same pid of the same python process, so append the number
-  # of entries in the logdir at the end of wrapper_pid to avoid conflict.
-  wrapper_pid += "_%d" % len(glob.glob(old_logdir + "\\*"))
-
-  cmd_to_run[logdir_idx + 1] += "\\testcase.%s.logs" % wrapper_pid
-  os.makedirs(cmd_to_run[logdir_idx + 1])
-
-  f = open(old_logdir + "\\testcase.%s.name" % wrapper_pid, "w")
-  print >>f, pdf_name + ".pdf"
-  f.close()
-
-  return cmd_to_run
+# RunCommandExtractHashedFiles returns a tuple: (raised_exception, hashed_files)
+# It runs the given command. If it fails it will return an exception and None.
+# If it succeeds it will return None and the list of processed files extracted
+# from the output of the command. It expects lines in this format:
+#    MD5:<path_to_image_file>:<md5_hash_in_hex>
+# The returned hashed_files is a list of (file_path, MD5-hash) pairs.
+def RunCommandExtractHashedFiles(cmd):
+  try:
+    output = subprocess.check_output(cmd, universal_newlines=True)
+    ret = []
+    for line in output.split('\n'):
+      line = line.strip()
+      if line.startswith("MD5:"):
+          ret.append([x.strip() for x in line.lstrip("MD5:").rsplit(":", 1)])
+    return None, ret
+  except subprocess.CalledProcessError as e:
+    return e, None
 
 
 class DirectoryFinder:

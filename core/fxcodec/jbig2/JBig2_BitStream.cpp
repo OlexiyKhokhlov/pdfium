@@ -8,8 +8,8 @@
 
 #include <algorithm>
 
-#include "core/fpdfapi/fpdf_parser/include/cpdf_stream.h"
-#include "core/fpdfapi/fpdf_parser/include/cpdf_stream_acc.h"
+#include "core/fpdfapi/parser/cpdf_stream.h"
+#include "core/fpdfapi/parser/cpdf_stream_acc.h"
 
 CJBig2_BitStream::CJBig2_BitStream(CPDF_StreamAcc* pSrcStream)
     : m_pBuf(pSrcStream->GetData()),
@@ -73,7 +73,7 @@ int32_t CJBig2_BitStream::read1Bit(uint32_t* dwResult) {
   return 0;
 }
 
-int32_t CJBig2_BitStream::read1Bit(FX_BOOL* bResult) {
+int32_t CJBig2_BitStream::read1Bit(bool* bResult) {
   if (!IsInBound())
     return -1;
 

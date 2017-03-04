@@ -15,16 +15,10 @@ class CFWL_DateTimePickerTP : public CFWL_WidgetTP {
   ~CFWL_DateTimePickerTP() override;
 
   // CFWL_WidgetTP
-  bool IsValidWidget(IFWL_Widget* pWidget) override;
-  FX_BOOL DrawBackground(CFWL_ThemeBackground* pParams) override;
+  void DrawBackground(CFWL_ThemeBackground* pParams) override;
 
  protected:
   void DrawDropDownButton(CFWL_ThemeBackground* pParams, CFX_Matrix* pMatrix);
-  void initThemeData();
-
-  struct DTPThemeData {
-    FX_ARGB BoxBkColor[13][2];
-  } * m_pThemeData;
 };
 
 #endif  // XFA_FWL_THEME_CFWL_DATETIMEPICKERTP_H_

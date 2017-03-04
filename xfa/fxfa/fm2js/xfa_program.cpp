@@ -6,34 +6,32 @@
 
 #include "xfa/fxfa/fm2js/xfa_program.h"
 
-CXFA_FMProgram::CXFA_FMProgram() : m_globalFunction(0) {}
-CXFA_FMProgram::~CXFA_FMProgram() {
-  if (m_globalFunction != 0) {
-    delete m_globalFunction;
-    m_globalFunction = 0;
-  }
-}
-int32_t CXFA_FMProgram::Init(const CFX_WideStringC& wsFormcalc) {
-  return m_parse.Init(wsFormcalc, &m_pErrorInfo);
-}
-int32_t CXFA_FMProgram::ParseProgram() {
-  CFX_ArrayTemplate<CXFA_FMExpression*>* expressions = nullptr;
-  m_parse.NextToken();
-  if (!m_pErrorInfo.message.IsEmpty()) {
-    return -1;
-  }
-  expressions = m_parse.ParseTopExpression();
-  if (!m_pErrorInfo.message.IsEmpty()) {
-    for (int32_t u = 0; u < expressions->GetSize(); ++u)
-      delete expressions->GetAt(u);
+#include <utility>
+#include <vector>
 
-    delete expressions;
+#include "third_party/base/ptr_util.h"
+
+CXFA_FMProgram::CXFA_FMProgram(const CFX_WideStringC& wsFormcalc)
+    : m_parse(wsFormcalc, &m_pErrorInfo) {}
+
+CXFA_FMProgram::~CXFA_FMProgram() {}
+
+int32_t CXFA_FMProgram::ParseProgram() {
+  m_parse.NextToken();
+  if (!m_pErrorInfo.message.IsEmpty())
     return -1;
-  }
-  m_globalFunction =
-      new CXFA_FMFunctionDefinition(1, 1, FX_WSTRC(L""), 0, expressions);
+
+  std::vector<std::unique_ptr<CXFA_FMExpression>> expressions =
+      m_parse.ParseTopExpression();
+  if (!m_pErrorInfo.message.IsEmpty())
+    return -1;
+
+  std::vector<CFX_WideStringC> arguments;
+  m_globalFunction = pdfium::MakeUnique<CXFA_FMFunctionDefinition>(
+      1, true, L"", std::move(arguments), std::move(expressions));
   return 0;
 }
+
 int32_t CXFA_FMProgram::TranslateProgram(CFX_WideTextBuf& wsJavaScript) {
   m_globalFunction->ToJavaScript(wsJavaScript);
   wsJavaScript.AppendChar(0);

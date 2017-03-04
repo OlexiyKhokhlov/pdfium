@@ -7,7 +7,10 @@
 #ifndef XFA_FXFA_PARSER_CXFA_DOCUMENT_H_
 #define XFA_FXFA_PARSER_CXFA_DOCUMENT_H_
 
-#include "xfa/fxfa/include/fxfa.h"
+#include <map>
+#include <unordered_set>
+
+#include "xfa/fxfa/fxfa.h"
 #include "xfa/fxfa/parser/xfa_localemgr.h"
 #include "xfa/fxfa/parser/xfa_object.h"
 
@@ -75,13 +78,13 @@ class CXFA_Document {
   void SetRoot(CXFA_Node* pNewRoot);
 
   void AddPurgeNode(CXFA_Node* pNode);
-  FX_BOOL RemovePurgeNode(CXFA_Node* pNode);
+  bool RemovePurgeNode(CXFA_Node* pNode);
   void PurgeNodes();
 
   bool HasFlag(uint32_t dwFlag) { return (m_dwDocFlags & dwFlag) == dwFlag; }
-  void SetFlag(uint32_t dwFlag, FX_BOOL bOn);
+  void SetFlag(uint32_t dwFlag, bool bOn);
 
-  FX_BOOL IsInteractive();
+  bool IsInteractive();
   XFA_VERSION GetCurVersionMode() { return m_eCurVersionMode; }
   XFA_VERSION RecognizeXFAVersionNumber(CFX_WideString& wsTemplateNS);
 
@@ -90,18 +93,18 @@ class CXFA_Document {
 
   void DoProtoMerge();
   void DoDataMerge();
-  void DoDataRemerge(FX_BOOL bDoDataMerge);
+  void DoDataRemerge(bool bDoDataMerge);
   CXFA_Node* DataMerge_CopyContainer(CXFA_Node* pTemplateNode,
                                      CXFA_Node* pFormNode,
                                      CXFA_Node* pDataScope,
-                                     FX_BOOL bOneInstance,
-                                     FX_BOOL bDataMerge,
-                                     FX_BOOL bUpLevel);
+                                     bool bOneInstance,
+                                     bool bDataMerge,
+                                     bool bUpLevel);
   void DataMerge_UpdateBindingRelations(CXFA_Node* pFormUpdateRoot);
 
   void ClearLayoutData();
 
-  CFX_MapPtrTemplate<uint32_t, CXFA_Node*> m_rgGlobalBinding;
+  std::map<uint32_t, CXFA_Node*> m_rgGlobalBinding;
   CXFA_NodeArray m_pPendingPageSet;
 
  protected:
@@ -116,7 +119,7 @@ class CXFA_Document {
   CScript_LogPseudoModel* m_pScriptLog;
   CScript_LayoutPseudoModel* m_pScriptLayout;
   CScript_SignaturePseudoModel* m_pScriptSignature;
-  CXFA_NodeSet m_PurgeNodes;
+  std::unordered_set<CXFA_Node*> m_PurgeNodes;
   XFA_VERSION m_eCurVersionMode;
   uint32_t m_dwDocFlags;
 };

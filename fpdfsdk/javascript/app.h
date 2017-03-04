@@ -8,29 +8,29 @@
 #define FPDFSDK_JAVASCRIPT_APP_H_
 
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 #include "fpdfsdk/javascript/JS_Define.h"
 
 class CJS_Runtime;
-class CJS_Timer;
+class GlobalTimer;
 
 class TimerObj : public CJS_EmbedObj {
  public:
-  TimerObj(CJS_Object* pJSObject);
+  explicit TimerObj(CJS_Object* pJSObject);
   ~TimerObj() override;
 
- public:
-  void SetTimer(CJS_Timer* pTimer);
-  CJS_Timer* GetTimer() const;
+  void SetTimer(GlobalTimer* pTimer);
+  int GetTimerID() const { return m_nTimerID; }
 
  private:
-  CJS_Timer* m_pTimer;
+  int m_nTimerID;  // Weak reference to GlobalTimer through global map.
 };
 
 class CJS_TimerObj : public CJS_Object {
  public:
-  CJS_TimerObj(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
+  explicit CJS_TimerObj(v8::Local<v8::Object> pObject) : CJS_Object(pObject) {}
   ~CJS_TimerObj() override {}
 
   DECLARE_JS_CLASS();
@@ -38,133 +38,141 @@ class CJS_TimerObj : public CJS_Object {
 
 class app : public CJS_EmbedObj {
  public:
-  app(CJS_Object* pJSObject);
+  explicit app(CJS_Object* pJSObject);
   ~app() override;
 
-  FX_BOOL activeDocs(IJS_Context* cc,
-                     CJS_PropValue& vp,
-                     CFX_WideString& sError);
-  FX_BOOL calculate(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL formsVersion(IJS_Context* cc,
-                       CJS_PropValue& vp,
-                       CFX_WideString& sError);
-  FX_BOOL fs(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL fullscreen(IJS_Context* cc,
-                     CJS_PropValue& vp,
-                     CFX_WideString& sError);
-  FX_BOOL language(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL media(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL platform(IJS_Context* cc, CJS_PropValue& vp, CFX_WideString& sError);
-  FX_BOOL runtimeHighlight(IJS_Context* cc,
-                           CJS_PropValue& vp,
-                           CFX_WideString& sError);
-  FX_BOOL viewerType(IJS_Context* cc,
-                     CJS_PropValue& vp,
-                     CFX_WideString& sError);
-  FX_BOOL viewerVariation(IJS_Context* cc,
-                          CJS_PropValue& vp,
-                          CFX_WideString& sError);
-  FX_BOOL viewerVersion(IJS_Context* cc,
+  bool activeDocs(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool calculate(CJS_Runtime* pRuntime,
+                 CJS_PropValue& vp,
+                 CFX_WideString& sError);
+  bool formsVersion(CJS_Runtime* pRuntime,
+                    CJS_PropValue& vp,
+                    CFX_WideString& sError);
+  bool fs(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool fullscreen(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool language(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool media(CJS_Runtime* pRuntime, CJS_PropValue& vp, CFX_WideString& sError);
+  bool platform(CJS_Runtime* pRuntime,
+                CJS_PropValue& vp,
+                CFX_WideString& sError);
+  bool runtimeHighlight(CJS_Runtime* pRuntime,
                         CJS_PropValue& vp,
                         CFX_WideString& sError);
+  bool viewerType(CJS_Runtime* pRuntime,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool viewerVariation(CJS_Runtime* pRuntime,
+                       CJS_PropValue& vp,
+                       CFX_WideString& sError);
+  bool viewerVersion(CJS_Runtime* pRuntime,
+                     CJS_PropValue& vp,
+                     CFX_WideString& sError);
 
-  FX_BOOL alert(IJS_Context* cc,
-                const std::vector<CJS_Value>& params,
-                CJS_Value& vRet,
-                CFX_WideString& sError);
-  FX_BOOL beep(IJS_Context* cc,
+  bool alert(CJS_Runtime* pRuntime,
+             const std::vector<CJS_Value>& params,
+             CJS_Value& vRet,
+             CFX_WideString& sError);
+  bool beep(CJS_Runtime* pRuntime,
+            const std::vector<CJS_Value>& params,
+            CJS_Value& vRet,
+            CFX_WideString& sError);
+  bool browseForDoc(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError);
+  bool clearInterval(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
+                     CFX_WideString& sError);
+  bool clearTimeOut(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError);
+  bool execDialog(CJS_Runtime* pRuntime,
+                  const std::vector<CJS_Value>& params,
+                  CJS_Value& vRet,
+                  CFX_WideString& sError);
+  bool execMenuItem(CJS_Runtime* pRuntime,
+                    const std::vector<CJS_Value>& params,
+                    CJS_Value& vRet,
+                    CFX_WideString& sError);
+  bool findComponent(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
+                     CFX_WideString& sError);
+  bool goBack(CJS_Runtime* pRuntime,
+              const std::vector<CJS_Value>& params,
+              CJS_Value& vRet,
+              CFX_WideString& sError);
+  bool goForward(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError);
+  bool launchURL(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError);
+  bool mailMsg(CJS_Runtime* pRuntime,
                const std::vector<CJS_Value>& params,
                CJS_Value& vRet,
                CFX_WideString& sError);
-  FX_BOOL browseForDoc(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError);
-  FX_BOOL clearInterval(IJS_Context* cc,
-                        const std::vector<CJS_Value>& params,
-                        CJS_Value& vRet,
-                        CFX_WideString& sError);
-  FX_BOOL clearTimeOut(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError);
-  FX_BOOL execDialog(IJS_Context* cc,
-                     const std::vector<CJS_Value>& params,
-                     CJS_Value& vRet,
-                     CFX_WideString& sError);
-  FX_BOOL execMenuItem(IJS_Context* cc,
-                       const std::vector<CJS_Value>& params,
-                       CJS_Value& vRet,
-                       CFX_WideString& sError);
-  FX_BOOL findComponent(IJS_Context* cc,
-                        const std::vector<CJS_Value>& params,
-                        CJS_Value& vRet,
-                        CFX_WideString& sError);
-  FX_BOOL goBack(IJS_Context* cc,
-                 const std::vector<CJS_Value>& params,
-                 CJS_Value& vRet,
-                 CFX_WideString& sError);
-  FX_BOOL goForward(IJS_Context* cc,
-                    const std::vector<CJS_Value>& params,
-                    CJS_Value& vRet,
-                    CFX_WideString& sError);
-  FX_BOOL launchURL(IJS_Context* cc,
-                    const std::vector<CJS_Value>& params,
-                    CJS_Value& vRet,
-                    CFX_WideString& sError);
-  FX_BOOL mailMsg(IJS_Context* cc,
-                  const std::vector<CJS_Value>& params,
-                  CJS_Value& vRet,
-                  CFX_WideString& sError);
-  FX_BOOL newFDF(IJS_Context* cc,
-                 const std::vector<CJS_Value>& params,
-                 CJS_Value& vRet,
-                 CFX_WideString& sError);
-  FX_BOOL newDoc(IJS_Context* cc,
-                 const std::vector<CJS_Value>& params,
-                 CJS_Value& vRet,
-                 CFX_WideString& sError);
-  FX_BOOL openDoc(IJS_Context* cc,
-                  const std::vector<CJS_Value>& params,
-                  CJS_Value& vRet,
-                  CFX_WideString& sError);
-  FX_BOOL openFDF(IJS_Context* cc,
-                  const std::vector<CJS_Value>& params,
-                  CJS_Value& vRet,
-                  CFX_WideString& sError);
-  FX_BOOL popUpMenuEx(IJS_Context* cc,
-                      const std::vector<CJS_Value>& params,
-                      CJS_Value& vRet,
-                      CFX_WideString& sError);
-  FX_BOOL popUpMenu(IJS_Context* cc,
-                    const std::vector<CJS_Value>& params,
-                    CJS_Value& vRet,
-                    CFX_WideString& sError);
-  FX_BOOL response(IJS_Context* cc,
+  bool newFDF(CJS_Runtime* pRuntime,
+              const std::vector<CJS_Value>& params,
+              CJS_Value& vRet,
+              CFX_WideString& sError);
+  bool newDoc(CJS_Runtime* pRuntime,
+              const std::vector<CJS_Value>& params,
+              CJS_Value& vRet,
+              CFX_WideString& sError);
+  bool openDoc(CJS_Runtime* pRuntime,
+               const std::vector<CJS_Value>& params,
+               CJS_Value& vRet,
+               CFX_WideString& sError);
+  bool openFDF(CJS_Runtime* pRuntime,
+               const std::vector<CJS_Value>& params,
+               CJS_Value& vRet,
+               CFX_WideString& sError);
+  bool popUpMenuEx(CJS_Runtime* pRuntime,
                    const std::vector<CJS_Value>& params,
                    CJS_Value& vRet,
                    CFX_WideString& sError);
-  FX_BOOL setInterval(IJS_Context* cc,
-                      const std::vector<CJS_Value>& params,
-                      CJS_Value& vRet,
-                      CFX_WideString& sError);
-  FX_BOOL setTimeOut(IJS_Context* cc,
-                     const std::vector<CJS_Value>& params,
-                     CJS_Value& vRet,
-                     CFX_WideString& sError);
+  bool popUpMenu(CJS_Runtime* pRuntime,
+                 const std::vector<CJS_Value>& params,
+                 CJS_Value& vRet,
+                 CFX_WideString& sError);
+  bool response(CJS_Runtime* pRuntime,
+                const std::vector<CJS_Value>& params,
+                CJS_Value& vRet,
+                CFX_WideString& sError);
+  bool setInterval(CJS_Runtime* pRuntime,
+                   const std::vector<CJS_Value>& params,
+                   CJS_Value& vRet,
+                   CFX_WideString& sError);
+  bool setTimeOut(CJS_Runtime* pRuntime,
+                  const std::vector<CJS_Value>& params,
+                  CJS_Value& vRet,
+                  CFX_WideString& sError);
+
+  void TimerProc(GlobalTimer* pTimer);
+  void CancelProc(GlobalTimer* pTimer);
 
   static CFX_WideString SysPathToPDFPath(const CFX_WideString& sOldPath);
 
  private:
   // CJS_EmbedObj
-  void TimerProc(CJS_Timer* pTimer) override;
   void RunJsScript(CJS_Runtime* pRuntime, const CFX_WideString& wsScript);
 
-  void ClearTimerCommon(const CJS_Value& param);
+  void ClearTimerCommon(CJS_Runtime* pRuntime, const CJS_Value& param);
 
   bool m_bCalculate;
   bool m_bRuntimeHighLight;
-  std::vector<std::unique_ptr<CJS_Timer>> m_Timers;
+  std::unordered_set<std::unique_ptr<GlobalTimer>> m_Timers;
 };
 
 class CJS_App : public CJS_Object {

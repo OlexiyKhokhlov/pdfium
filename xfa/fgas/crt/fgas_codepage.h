@@ -7,7 +7,7 @@
 #ifndef XFA_FGAS_CRT_FGAS_CODEPAGE_H_
 #define XFA_FGAS_CRT_FGAS_CODEPAGE_H_
 
-#include "core/fxcrt/include/fx_basic.h"
+#include "core/fxcrt/fx_basic.h"
 
 #define FX_CODEPAGE_DefANSI 0
 #define FX_CODEPAGE_DefOEM 1
@@ -144,7 +144,7 @@ int32_t FX_DecodeString(uint16_t wCodePage,
                         int32_t* pSrcLen,
                         FX_WCHAR* pDst,
                         int32_t* pDstLen,
-                        FX_BOOL bErrBreak);
+                        bool bErrBreak);
 int32_t FX_UTF8Decode(const FX_CHAR* pSrc,
                       int32_t* pSrcLen,
                       FX_WCHAR* pDst,

@@ -6,11 +6,13 @@
 
 #include "fpdfsdk/formfiller/cffl_radiobutton.h"
 
+#include "fpdfsdk/cpdfsdk_formfillenvironment.h"
+#include "fpdfsdk/cpdfsdk_widget.h"
 #include "fpdfsdk/formfiller/cffl_formfiller.h"
-#include "fpdfsdk/include/fsdk_mgr.h"
 #include "fpdfsdk/pdfwindow/PWL_SpecialButton.h"
+#include "public/fpdf_fwlevent.h"
 
-CFFL_RadioButton::CFFL_RadioButton(CPDFDoc_Environment* pApp,
+CFFL_RadioButton::CFFL_RadioButton(CPDFSDK_FormFillEnvironment* pApp,
                                    CPDFSDK_Annot* pWidget)
     : CFFL_Button(pApp, pWidget) {}
 
@@ -26,81 +28,77 @@ CPWL_Wnd* CFFL_RadioButton::NewPDFWindow(const PWL_CREATEPARAM& cp,
   return pWnd;
 }
 
-FX_BOOL CFFL_RadioButton::OnKeyDown(CPDFSDK_Annot* pAnnot,
-                                    FX_UINT nKeyCode,
-                                    FX_UINT nFlags) {
+bool CFFL_RadioButton::OnKeyDown(CPDFSDK_Annot* pAnnot,
+                                 uint32_t nKeyCode,
+                                 uint32_t nFlags) {
   switch (nKeyCode) {
     case FWL_VKEY_Return:
     case FWL_VKEY_Space:
-      return TRUE;
+      return true;
     default:
       return CFFL_FormFiller::OnKeyDown(pAnnot, nKeyCode, nFlags);
   }
 }
 
-FX_BOOL CFFL_RadioButton::OnChar(CPDFSDK_Annot* pAnnot,
-                                 FX_UINT nChar,
-                                 FX_UINT nFlags) {
+bool CFFL_RadioButton::OnChar(CPDFSDK_Annot* pAnnot,
+                              uint32_t nChar,
+                              uint32_t nFlags) {
   switch (nChar) {
     case FWL_VKEY_Return:
     case FWL_VKEY_Space: {
-      CFFL_IFormFiller* pIFormFiller = m_pApp->GetIFormFiller();
       CPDFSDK_PageView* pPageView = pAnnot->GetPageView();
       ASSERT(pPageView);
 
-      FX_BOOL bReset = FALSE;
-      FX_BOOL bExit = FALSE;
-
-      pIFormFiller->OnButtonUp(m_pWidget, pPageView, bReset, bExit, nFlags);
-
-      if (bReset)
-        return TRUE;
-      if (bExit)
-        return TRUE;
+      bool bReset = false;
+      bool bExit = false;
+      CPDFSDK_Annot::ObservedPtr pObserved(m_pWidget);
+      m_pFormFillEnv->GetInteractiveFormFiller()->OnButtonUp(
+          &pObserved, pPageView, bReset, bExit, nFlags);
+      if (!pObserved || bReset || bExit)
+        return true;
 
       CFFL_FormFiller::OnChar(pAnnot, nChar, nFlags);
-
       if (CPWL_RadioButton* pWnd =
-              (CPWL_RadioButton*)GetPDFWindow(pPageView, TRUE))
-        pWnd->SetCheck(TRUE);
+              (CPWL_RadioButton*)GetPDFWindow(pPageView, true))
+        pWnd->SetCheck(true);
       CommitData(pPageView, nFlags);
-      return TRUE;
+      return true;
     }
     default:
       return CFFL_FormFiller::OnChar(pAnnot, nChar, nFlags);
   }
 }
 
-FX_BOOL CFFL_RadioButton::OnLButtonUp(CPDFSDK_PageView* pPageView,
-                                      CPDFSDK_Annot* pAnnot,
-                                      FX_UINT nFlags,
-                                      const CFX_FloatPoint& point) {
+bool CFFL_RadioButton::OnLButtonUp(CPDFSDK_PageView* pPageView,
+                                   CPDFSDK_Annot* pAnnot,
+                                   uint32_t nFlags,
+                                   const CFX_PointF& point) {
   CFFL_Button::OnLButtonUp(pPageView, pAnnot, nFlags, point);
 
   if (IsValid()) {
     if (CPWL_RadioButton* pWnd =
-            (CPWL_RadioButton*)GetPDFWindow(pPageView, TRUE))
-      pWnd->SetCheck(TRUE);
+            (CPWL_RadioButton*)GetPDFWindow(pPageView, true))
+      pWnd->SetCheck(true);
 
     if (!CommitData(pPageView, nFlags))
-      return FALSE;
+      return false;
   }
 
-  return TRUE;
+  return true;
 }
 
-FX_BOOL CFFL_RadioButton::IsDataChanged(CPDFSDK_PageView* pPageView) {
+bool CFFL_RadioButton::IsDataChanged(CPDFSDK_PageView* pPageView) {
   if (CPWL_RadioButton* pWnd =
-          (CPWL_RadioButton*)GetPDFWindow(pPageView, FALSE)) {
+          (CPWL_RadioButton*)GetPDFWindow(pPageView, false)) {
     return pWnd->IsChecked() != m_pWidget->IsChecked();
   }
 
-  return FALSE;
+  return false;
 }
 
 void CFFL_RadioButton::SaveData(CPDFSDK_PageView* pPageView) {
   if (CPWL_RadioButton* pWnd =
-          (CPWL_RadioButton*)GetPDFWindow(pPageView, FALSE)) {
+          (CPWL_RadioButton*)GetPDFWindow(pPageView, false)) {
     bool bNewChecked = pWnd->IsChecked();
 
     if (bNewChecked) {

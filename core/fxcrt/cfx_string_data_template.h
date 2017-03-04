@@ -7,8 +7,8 @@
 #ifndef CORE_FXCRT_CFX_STRING_DATA_TEMPLATE_H_
 #define CORE_FXCRT_CFX_STRING_DATA_TEMPLATE_H_
 
-#include "core/fxcrt/include/fx_memory.h"
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_memory.h"
+#include "core/fxcrt/fx_system.h"
 #include "third_party/base/numerics/safe_math.h"
 
 template <typename CharType>
@@ -30,7 +30,8 @@ class CFX_StringDataTemplate {
     // where we can save a re-alloc when adding a few characters to a string
     // by using this otherwise wasted space.
     nSize += 7;
-    int totalSize = nSize.ValueOrDie() & ~7;
+    nSize &= ~7;
+    int totalSize = nSize.ValueOrDie();
     int usableLen = (totalSize - overhead) / sizeof(CharType);
     ASSERT(usableLen >= nLen);
 
@@ -85,7 +86,7 @@ class CFX_StringDataTemplate {
   // Since the count increments with each new pointer, the largest value is
   // the number of pointers that can fit into the address space. The size of
   // the address space itself is a good upper bound on it.
-  intptr_t m_nRefs;  // Would prefer ssize_t, but no windows support.
+  intptr_t m_nRefs;
 
   // |FX_STRSIZE| is currently typedef'd as |int|.
   // TODO(palmer): It should be a |size_t|, or at least unsigned.

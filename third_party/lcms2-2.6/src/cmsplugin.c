@@ -179,8 +179,12 @@ cmsBool CMSEXPORT  _cmsReadFloat32Number(cmsIOHANDLER* io, cmsFloat32Number* n)
 
         tmp = _cmsAdjustEndianess32(tmp);
         *n = *(cmsFloat32Number*) &tmp;
+        if (isnan(*n))
+            return FALSE;
     }
-    return TRUE;
+
+    // fpclassify() required by C99
+    return (fpclassify(*n) == FP_ZERO) || (fpclassify(*n) == FP_NORMAL);
 }
 
 

@@ -11,30 +11,29 @@
 #include "fpdfsdk/javascript/JS_Define.h"
 #include "fpdfsdk/javascript/JS_Object.h"
 #include "fpdfsdk/javascript/JS_Value.h"
-#include "fpdfsdk/javascript/cjs_context.h"
+#include "fpdfsdk/javascript/cjs_event_context.h"
 #include "fpdfsdk/javascript/cjs_runtime.h"
 
-CJS_EventHandler::CJS_EventHandler(CJS_Context* pContext)
-    : m_pJSContext(pContext),
+CJS_EventHandler::CJS_EventHandler(CJS_EventContext* pContext)
+    : m_pJSEventContext(pContext),
       m_eEventType(JET_UNKNOWN),
-      m_bValid(FALSE),
+      m_bValid(false),
       m_pWideStrChange(nullptr),
       m_nCommitKey(-1),
-      m_bKeyDown(FALSE),
-      m_bModifier(FALSE),
-      m_bShift(FALSE),
+      m_bKeyDown(false),
+      m_bModifier(false),
+      m_bShift(false),
       m_pISelEnd(nullptr),
       m_nSelEndDu(0),
       m_pISelStart(nullptr),
       m_nSelStartDu(0),
-      m_bWillCommit(FALSE),
+      m_bWillCommit(false),
       m_pValue(nullptr),
-      m_bFieldFull(FALSE),
+      m_bFieldFull(false),
       m_pbRc(nullptr),
-      m_bRcDu(FALSE),
-      m_pSourceDoc(nullptr),
+      m_bRcDu(false),
       m_pTargetBookMark(nullptr),
-      m_pTargetDoc(nullptr),
+      m_pTargetFormFillEnv(nullptr),
       m_pTargetAnnot(nullptr) {}
 
 CJS_EventHandler::~CJS_EventHandler() {}
@@ -43,69 +42,67 @@ void CJS_EventHandler::OnApp_Init() {
   Initial(JET_APP_INIT);
 }
 
-void CJS_EventHandler::OnDoc_Open(CPDFSDK_Document* pDoc,
+void CJS_EventHandler::OnDoc_Open(CPDFSDK_FormFillEnvironment* pFormFillEnv,
                                   const CFX_WideString& strTargetName) {
   Initial(JET_DOC_OPEN);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
   m_strTargetName = strTargetName;
 }
 
-void CJS_EventHandler::OnDoc_WillPrint(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnDoc_WillPrint(
+    CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_DOC_WILLPRINT);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnDoc_DidPrint(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnDoc_DidPrint(
+    CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_DOC_DIDPRINT);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnDoc_WillSave(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnDoc_WillSave(
+    CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_DOC_WILLSAVE);
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnDoc_DidSave(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnDoc_DidSave(
+    CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_DOC_DIDSAVE);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnDoc_WillClose(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnDoc_WillClose(
+    CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_DOC_WILLCLOSE);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnPage_Open(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnPage_Open(CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_PAGE_OPEN);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnPage_Close(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnPage_Close(CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_PAGE_CLOSE);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnPage_InView(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnPage_InView(
+    CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_PAGE_INVIEW);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnPage_OutView(CPDFSDK_Document* pDoc) {
+void CJS_EventHandler::OnPage_OutView(
+    CPDFSDK_FormFillEnvironment* pFormFillEnv) {
   Initial(JET_PAGE_OUTVIEW);
-
-  m_pTargetDoc = pDoc;
+  m_pTargetFormFillEnv.Reset(pFormFillEnv);
 }
 
-void CJS_EventHandler::OnField_MouseEnter(FX_BOOL bModifier,
-                                          FX_BOOL bShift,
+void CJS_EventHandler::OnField_MouseEnter(bool bModifier,
+                                          bool bShift,
                                           CPDF_FormField* pTarget) {
   Initial(JET_FIELD_MOUSEENTER);
 
@@ -115,8 +112,8 @@ void CJS_EventHandler::OnField_MouseEnter(FX_BOOL bModifier,
   m_strTargetName = pTarget->GetFullName();
 }
 
-void CJS_EventHandler::OnField_MouseExit(FX_BOOL bModifier,
-                                         FX_BOOL bShift,
+void CJS_EventHandler::OnField_MouseExit(bool bModifier,
+                                         bool bShift,
                                          CPDF_FormField* pTarget) {
   Initial(JET_FIELD_MOUSEEXIT);
 
@@ -125,8 +122,8 @@ void CJS_EventHandler::OnField_MouseExit(FX_BOOL bModifier,
   m_strTargetName = pTarget->GetFullName();
 }
 
-void CJS_EventHandler::OnField_MouseDown(FX_BOOL bModifier,
-                                         FX_BOOL bShift,
+void CJS_EventHandler::OnField_MouseDown(bool bModifier,
+                                         bool bShift,
                                          CPDF_FormField* pTarget) {
   Initial(JET_FIELD_MOUSEDOWN);
   m_eEventType = JET_FIELD_MOUSEDOWN;
@@ -136,8 +133,8 @@ void CJS_EventHandler::OnField_MouseDown(FX_BOOL bModifier,
   m_strTargetName = pTarget->GetFullName();
 }
 
-void CJS_EventHandler::OnField_MouseUp(FX_BOOL bModifier,
-                                       FX_BOOL bShift,
+void CJS_EventHandler::OnField_MouseUp(bool bModifier,
+                                       bool bShift,
                                        CPDF_FormField* pTarget) {
   Initial(JET_FIELD_MOUSEUP);
 
@@ -146,8 +143,8 @@ void CJS_EventHandler::OnField_MouseUp(FX_BOOL bModifier,
   m_strTargetName = pTarget->GetFullName();
 }
 
-void CJS_EventHandler::OnField_Focus(FX_BOOL bModifier,
-                                     FX_BOOL bShift,
+void CJS_EventHandler::OnField_Focus(bool bModifier,
+                                     bool bShift,
                                      CPDF_FormField* pTarget,
                                      const CFX_WideString& Value) {
   Initial(JET_FIELD_FOCUS);
@@ -158,8 +155,8 @@ void CJS_EventHandler::OnField_Focus(FX_BOOL bModifier,
   m_pValue = (CFX_WideString*)&Value;
 }
 
-void CJS_EventHandler::OnField_Blur(FX_BOOL bModifier,
-                                    FX_BOOL bShift,
+void CJS_EventHandler::OnField_Blur(bool bModifier,
+                                    bool bShift,
                                     CPDF_FormField* pTarget,
                                     const CFX_WideString& Value) {
   Initial(JET_FIELD_BLUR);
@@ -172,16 +169,16 @@ void CJS_EventHandler::OnField_Blur(FX_BOOL bModifier,
 
 void CJS_EventHandler::OnField_Keystroke(CFX_WideString& strChange,
                                          const CFX_WideString& strChangeEx,
-                                         FX_BOOL KeyDown,
-                                         FX_BOOL bModifier,
+                                         bool KeyDown,
+                                         bool bModifier,
                                          int& nSelEnd,
                                          int& nSelStart,
-                                         FX_BOOL bShift,
+                                         bool bShift,
                                          CPDF_FormField* pTarget,
                                          CFX_WideString& Value,
-                                         FX_BOOL bWillCommit,
-                                         FX_BOOL bFieldFull,
-                                         FX_BOOL& bRc) {
+                                         bool bWillCommit,
+                                         bool bFieldFull,
+                                         bool& bRc) {
   Initial(JET_FIELD_KEYSTROKE);
 
   m_nCommitKey = 0;
@@ -201,12 +198,12 @@ void CJS_EventHandler::OnField_Keystroke(CFX_WideString& strChange,
 
 void CJS_EventHandler::OnField_Validate(CFX_WideString& strChange,
                                         const CFX_WideString& strChangeEx,
-                                        FX_BOOL bKeyDown,
-                                        FX_BOOL bModifier,
-                                        FX_BOOL bShift,
+                                        bool bKeyDown,
+                                        bool bModifier,
+                                        bool bShift,
                                         CPDF_FormField* pTarget,
                                         CFX_WideString& Value,
-                                        FX_BOOL& bRc) {
+                                        bool& bRc) {
   Initial(JET_FIELD_VALIDATE);
 
   m_pWideStrChange = &strChange;
@@ -222,7 +219,7 @@ void CJS_EventHandler::OnField_Validate(CFX_WideString& strChange,
 void CJS_EventHandler::OnField_Calculate(CPDF_FormField* pSource,
                                          CPDF_FormField* pTarget,
                                          CFX_WideString& Value,
-                                         FX_BOOL& bRc) {
+                                         bool& bRc) {
   Initial(JET_FIELD_CALCULATE);
 
   if (pSource)
@@ -234,7 +231,7 @@ void CJS_EventHandler::OnField_Calculate(CPDF_FormField* pSource,
 
 void CJS_EventHandler::OnField_Format(CPDF_FormField* pTarget,
                                       CFX_WideString& Value,
-                                      FX_BOOL bWillCommit) {
+                                      bool bWillCommit) {
   Initial(JET_FIELD_FORMAT);
 
   m_nCommitKey = 0;
@@ -243,123 +240,120 @@ void CJS_EventHandler::OnField_Format(CPDF_FormField* pTarget,
   m_bWillCommit = bWillCommit;
 }
 
-void CJS_EventHandler::OnScreen_Focus(FX_BOOL bModifier,
-                                      FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_Focus(bool bModifier,
+                                      bool bShift,
                                       CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_FOCUS);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_Blur(FX_BOOL bModifier,
-                                     FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_Blur(bool bModifier,
+                                     bool bShift,
                                      CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_BLUR);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_Open(FX_BOOL bModifier,
-                                     FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_Open(bool bModifier,
+                                     bool bShift,
                                      CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_OPEN);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_Close(FX_BOOL bModifier,
-                                      FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_Close(bool bModifier,
+                                      bool bShift,
                                       CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_CLOSE);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_MouseDown(FX_BOOL bModifier,
-                                          FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_MouseDown(bool bModifier,
+                                          bool bShift,
                                           CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_MOUSEDOWN);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_MouseUp(FX_BOOL bModifier,
-                                        FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_MouseUp(bool bModifier,
+                                        bool bShift,
                                         CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_MOUSEUP);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_MouseEnter(FX_BOOL bModifier,
-                                           FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_MouseEnter(bool bModifier,
+                                           bool bShift,
                                            CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_MOUSEENTER);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_MouseExit(FX_BOOL bModifier,
-                                          FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_MouseExit(bool bModifier,
+                                          bool bShift,
                                           CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_MOUSEEXIT);
 
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_InView(FX_BOOL bModifier,
-                                       FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_InView(bool bModifier,
+                                       bool bShift,
                                        CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_INVIEW);
-
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnScreen_OutView(FX_BOOL bModifier,
-                                        FX_BOOL bShift,
+void CJS_EventHandler::OnScreen_OutView(bool bModifier,
+                                        bool bShift,
                                         CPDFSDK_Annot* pScreen) {
   Initial(JET_SCREEN_OUTVIEW);
-
   m_bModifier = bModifier;
   m_bShift = bShift;
-  m_pTargetAnnot = pScreen;
+  m_pTargetAnnot.Reset(pScreen);
 }
 
-void CJS_EventHandler::OnLink_MouseUp(CPDFSDK_Document* pTarget) {
+void CJS_EventHandler::OnLink_MouseUp(
+    CPDFSDK_FormFillEnvironment* pTargetFormFillEnv) {
   Initial(JET_LINK_MOUSEUP);
-
-  m_pTargetDoc = pTarget;
+  m_pTargetFormFillEnv.Reset(pTargetFormFillEnv);
 }
 
 void CJS_EventHandler::OnBookmark_MouseUp(CPDF_Bookmark* pBookMark) {
   Initial(JET_BOOKMARK_MOUSEUP);
-
   m_pTargetBookMark = pBookMark;
 }
 
-void CJS_EventHandler::OnMenu_Exec(CPDFSDK_Document* pTarget,
-                                   const CFX_WideString& strTargetName) {
+void CJS_EventHandler::OnMenu_Exec(
+    CPDFSDK_FormFillEnvironment* pTargetFormFillEnv,
+    const CFX_WideString& strTargetName) {
   Initial(JET_MENU_EXEC);
-
-  m_pTargetDoc = pTarget;
+  m_pTargetFormFillEnv.Reset(pTargetFormFillEnv);
   m_strTargetName = strTargetName;
 }
 
@@ -367,10 +361,10 @@ void CJS_EventHandler::OnExternal_Exec() {
   Initial(JET_EXTERNAL_EXEC);
 }
 
-void CJS_EventHandler::OnBatchExec(CPDFSDK_Document* pTarget) {
+void CJS_EventHandler::OnBatchExec(
+    CPDFSDK_FormFillEnvironment* pTargetFormFillEnv) {
   Initial(JET_BATCH_EXEC);
-
-  m_pTargetDoc = pTarget;
+  m_pTargetFormFillEnv.Reset(pTargetFormFillEnv);
 }
 
 void CJS_EventHandler::OnConsole_Exec() {
@@ -386,32 +380,31 @@ void CJS_EventHandler::Initial(JS_EVENT_T type) {
   m_WideStrChangeDu = L"";
   m_WideStrChangeEx = L"";
   m_nCommitKey = -1;
-  m_bKeyDown = FALSE;
-  m_bModifier = FALSE;
-  m_bShift = FALSE;
+  m_bKeyDown = false;
+  m_bModifier = false;
+  m_bShift = false;
   m_pISelEnd = nullptr;
   m_nSelEndDu = 0;
   m_pISelStart = nullptr;
   m_nSelStartDu = 0;
-  m_bWillCommit = FALSE;
+  m_bWillCommit = false;
   m_pValue = nullptr;
-  m_bFieldFull = FALSE;
+  m_bFieldFull = false;
   m_pbRc = nullptr;
-  m_bRcDu = FALSE;
+  m_bRcDu = false;
 
-  m_pSourceDoc = nullptr;
   m_pTargetBookMark = nullptr;
-  m_pTargetDoc = nullptr;
-  m_pTargetAnnot = nullptr;
+  m_pTargetFormFillEnv.Reset();
+  m_pTargetAnnot.Reset();
 
-  m_bValid = TRUE;
+  m_bValid = true;
 }
 
 void CJS_EventHandler::Destroy() {
-  m_bValid = FALSE;
+  m_bValid = false;
 }
 
-FX_BOOL CJS_EventHandler::IsValid() {
+bool CJS_EventHandler::IsValid() {
   return m_bValid;
 }
 
@@ -430,15 +423,15 @@ int CJS_EventHandler::CommitKey() {
   return m_nCommitKey;
 }
 
-FX_BOOL CJS_EventHandler::FieldFull() {
+bool CJS_EventHandler::FieldFull() {
   return m_bFieldFull;
 }
 
-FX_BOOL CJS_EventHandler::KeyDown() {
+bool CJS_EventHandler::KeyDown() {
   return m_bKeyDown;
 }
 
-FX_BOOL CJS_EventHandler::Modifier() {
+bool CJS_EventHandler::Modifier() {
   return m_bModifier;
 }
 
@@ -568,7 +561,7 @@ const FX_WCHAR* CJS_EventHandler::Type() {
   }
 }
 
-FX_BOOL& CJS_EventHandler::Rc() {
+bool& CJS_EventHandler::Rc() {
   if (m_pbRc) {
     return *m_pbRc;
   }
@@ -589,52 +582,60 @@ int& CJS_EventHandler::SelStart() {
   return m_nSelStartDu;
 }
 
-FX_BOOL CJS_EventHandler::Shift() {
+bool CJS_EventHandler::Shift() {
   return m_bShift;
 }
 
 Field* CJS_EventHandler::Source() {
-  CJS_Runtime* pRuntime = m_pJSContext->GetJSRuntime();
-  v8::Local<v8::Object> pDocObj = FXJS_NewFxDynamicObj(
-      pRuntime->GetIsolate(), pRuntime, CJS_Document::g_nObjDefnID);
-  ASSERT(!pDocObj.IsEmpty());
+  CJS_Runtime* pRuntime = m_pJSEventContext->GetJSRuntime();
+  v8::Local<v8::Object> pDocObj =
+      pRuntime->NewFxDynamicObj(CJS_Document::g_nObjDefnID);
+  if (pDocObj.IsEmpty())
+    return nullptr;
 
-  v8::Local<v8::Object> pFieldObj = FXJS_NewFxDynamicObj(
-      pRuntime->GetIsolate(), pRuntime, CJS_Field::g_nObjDefnID);
-  ASSERT(!pFieldObj.IsEmpty());
+  v8::Local<v8::Object> pFieldObj =
+      pRuntime->NewFxDynamicObj(CJS_Field::g_nObjDefnID);
+  if (pFieldObj.IsEmpty())
+    return nullptr;
 
   CJS_Document* pJSDocument =
-      (CJS_Document*)FXJS_GetPrivate(pRuntime->GetIsolate(), pDocObj);
-  Document* pDocument = (Document*)pJSDocument->GetEmbedObject();
-  pDocument->AttachDoc(m_pTargetDoc ? m_pTargetDoc
-                                    : m_pJSContext->GetReaderDocument());
-
+      static_cast<CJS_Document*>(pRuntime->GetObjectPrivate(pDocObj));
   CJS_Field* pJSField =
-      (CJS_Field*)FXJS_GetPrivate(pRuntime->GetIsolate(), pFieldObj);
-  Field* pField = (Field*)pJSField->GetEmbedObject();
+      static_cast<CJS_Field*>(pRuntime->GetObjectPrivate(pFieldObj));
+
+  Document* pDocument = static_cast<Document*>(pJSDocument->GetEmbedObject());
+  pDocument->SetFormFillEnv(m_pTargetFormFillEnv
+                                ? m_pTargetFormFillEnv.Get()
+                                : m_pJSEventContext->GetFormFillEnv());
+
+  Field* pField = static_cast<Field*>(pJSField->GetEmbedObject());
   pField->AttachField(pDocument, m_strSourceName);
   return pField;
 }
 
 Field* CJS_EventHandler::Target_Field() {
-  CJS_Runtime* pRuntime = m_pJSContext->GetJSRuntime();
-  v8::Local<v8::Object> pDocObj = FXJS_NewFxDynamicObj(
-      pRuntime->GetIsolate(), pRuntime, CJS_Document::g_nObjDefnID);
-  ASSERT(!pDocObj.IsEmpty());
+  CJS_Runtime* pRuntime = m_pJSEventContext->GetJSRuntime();
+  v8::Local<v8::Object> pDocObj =
+      pRuntime->NewFxDynamicObj(CJS_Document::g_nObjDefnID);
+  if (pDocObj.IsEmpty())
+    return nullptr;
 
-  v8::Local<v8::Object> pFieldObj = FXJS_NewFxDynamicObj(
-      pRuntime->GetIsolate(), pRuntime, CJS_Field::g_nObjDefnID);
-  ASSERT(!pFieldObj.IsEmpty());
+  v8::Local<v8::Object> pFieldObj =
+      pRuntime->NewFxDynamicObj(CJS_Field::g_nObjDefnID);
+  if (pFieldObj.IsEmpty())
+    return nullptr;
 
   CJS_Document* pJSDocument =
-      (CJS_Document*)FXJS_GetPrivate(pRuntime->GetIsolate(), pDocObj);
-  Document* pDocument = (Document*)pJSDocument->GetEmbedObject();
-  pDocument->AttachDoc(m_pTargetDoc ? m_pTargetDoc
-                                    : m_pJSContext->GetReaderDocument());
-
+      static_cast<CJS_Document*>(pRuntime->GetObjectPrivate(pDocObj));
   CJS_Field* pJSField =
-      (CJS_Field*)FXJS_GetPrivate(pRuntime->GetIsolate(), pFieldObj);
-  Field* pField = (Field*)pJSField->GetEmbedObject();
+      static_cast<CJS_Field*>(pRuntime->GetObjectPrivate(pFieldObj));
+
+  Document* pDocument = static_cast<Document*>(pJSDocument->GetEmbedObject());
+  pDocument->SetFormFillEnv(m_pTargetFormFillEnv
+                                ? m_pTargetFormFillEnv.Get()
+                                : m_pJSEventContext->GetFormFillEnv());
+
+  Field* pField = static_cast<Field*>(pJSField->GetEmbedObject());
   pField->AttachField(pDocument, m_strTargetName);
   return pField;
 }
@@ -643,7 +644,7 @@ CFX_WideString& CJS_EventHandler::Value() {
   return *m_pValue;
 }
 
-FX_BOOL CJS_EventHandler::WillCommit() {
+bool CJS_EventHandler::WillCommit() {
   return m_bWillCommit;
 }
 

@@ -2,9 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "core/fxge/include/fx_ge.h"
+#include "core/fxge/cfx_fxgedevice.h"
+#include "core/fxge/cfx_graphstatedata.h"
+#include "core/fxge/cfx_pathdata.h"
+#include "core/fxge/cfx_renderdevice.h"
 #include "core/fxge/skia/fx_skia_device.h"
-#include "fpdfsdk/include/fsdk_define.h"
+#include "fpdfsdk/fsdk_define.h"
 #include "public/fpdfview.h"
 #include "testing/fx_string_testhelpers.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -32,10 +35,13 @@ void EmptyTest(CFX_SkiaDeviceDriver* driver, const State&) {
 }
 
 void CommonTest(CFX_SkiaDeviceDriver* driver, const State& state) {
-  FXTEXT_CHARPOS charPos[] = {{1, 0, 1, 4, false, {0, 0, 0, 0}, false}};
+  FXTEXT_CHARPOS charPos[1];
+  charPos[0].m_Origin = CFX_PointF(0, 1);
+  charPos[0].m_GlyphIndex = 1;
+  charPos[0].m_FontCharWidth = 4;
+
   CFX_Font font;
   FX_FLOAT fontSize = 1;
-  CFX_FontCache cache;
   CFX_PathData clipPath, clipPath2;
   clipPath.AppendRect(0, 0, 3, 1);
   clipPath2.AppendRect(0, 0, 2, 1);
@@ -44,7 +50,9 @@ void CommonTest(CFX_SkiaDeviceDriver* driver, const State& state) {
   driver->SaveState();
   CFX_PathData path1;
   path1.AppendRect(0, 0, 1, 2);
-  CFX_Matrix matrix, matrix2;
+
+  CFX_Matrix matrix;
+  CFX_Matrix matrix2;
   matrix2.Translate(1, 0);
   CFX_GraphStateData graphState;
   if (state.m_save == State::Save::kYes)
@@ -55,8 +63,8 @@ void CommonTest(CFX_SkiaDeviceDriver* driver, const State& state) {
     driver->DrawPath(&path1, &matrix, &graphState, 0xFF112233, 0,
                      FXFILL_WINDING, 0);
   } else if (state.m_graphic == State::Graphic::kText) {
-    driver->DrawDeviceText(SK_ARRAY_COUNT(charPos), charPos, &font, &cache,
-                           &matrix, fontSize, 0xFF445566);
+    driver->DrawDeviceText(SK_ARRAY_COUNT(charPos), charPos, &font, &matrix,
+                           fontSize, 0xFF445566);
   }
   if (state.m_save == State::Save::kYes)
     driver->RestoreState(true);
@@ -78,8 +86,8 @@ void CommonTest(CFX_SkiaDeviceDriver* driver, const State& state) {
     driver->DrawPath(&path2, &matrix2, &graphState, 0xFF112233, 0,
                      FXFILL_WINDING, 0);
   } else if (state.m_graphic == State::Graphic::kText) {
-    driver->DrawDeviceText(SK_ARRAY_COUNT(charPos), charPos, &font, &cache,
-                           &matrix2, fontSize, 0xFF445566);
+    driver->DrawDeviceText(SK_ARRAY_COUNT(charPos), charPos, &font, &matrix2,
+                           fontSize, 0xFF445566);
   }
   if (state.m_save == State::Save::kYes)
     driver->RestoreState(false);
@@ -151,6 +159,7 @@ TEST(fxge, SkiaStatePath) {
                         State::Graphic::kPath, 0xFF112233});
 }
 
+#ifdef _SKIA_SUPPORT_
 TEST(fxge, SkiaStateText) {
   Harness(&CommonTest,
           {State::Change::kNo, State::Save::kYes, State::Clip::kDifferentMatrix,
@@ -158,6 +167,7 @@ TEST(fxge, SkiaStateText) {
   Harness(&CommonTest, {State::Change::kNo, State::Save::kYes,
                         State::Clip::kSame, State::Graphic::kText, 0xFF445566});
 }
+#endif
 
 TEST(fxge, SkiaStateOOSClip) {
   Harness(&OutOfSequenceClipTest, {});

@@ -7,7 +7,7 @@
 #ifndef XFA_FXFA_PARSER_CXFA_FONT_H_
 #define XFA_FXFA_PARSER_CXFA_FONT_H_
 
-#include "core/fxge/include/fx_dib.h"
+#include "core/fxge/fx_dib.h"
 #include "xfa/fxfa/parser/cxfa_data.h"
 
 class CXFA_Node;
@@ -26,8 +26,8 @@ class CXFA_Font : public CXFA_Data {
   FX_FLOAT GetFontSize();
   void GetTypeface(CFX_WideStringC& wsTypeFace);
 
-  FX_BOOL IsBold();
-  FX_BOOL IsItalic();
+  bool IsBold();
+  bool IsItalic();
 
   FX_ARGB GetColor();
   void SetColor(FX_ARGB color);

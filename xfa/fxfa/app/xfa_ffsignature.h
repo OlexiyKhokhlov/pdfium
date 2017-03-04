@@ -11,33 +11,32 @@
 
 class CXFA_FFSignature final : public CXFA_FFField {
  public:
-  CXFA_FFSignature(CXFA_FFPageView* pPageView, CXFA_WidgetAcc* pDataAcc);
+  explicit CXFA_FFSignature(CXFA_WidgetAcc* pDataAcc);
   ~CXFA_FFSignature() override;
 
   // CXFA_FFField
   void RenderWidget(CFX_Graphics* pGS,
                     CFX_Matrix* pMatrix,
                     uint32_t dwStatus) override;
-  FX_BOOL LoadWidget() override;
-  FX_BOOL OnMouseEnter() override;
-  FX_BOOL OnMouseExit() override;
-  FX_BOOL OnLButtonDown(uint32_t dwFlags, FX_FLOAT fx, FX_FLOAT fy) override;
-  FX_BOOL OnLButtonUp(uint32_t dwFlags, FX_FLOAT fx, FX_FLOAT fy) override;
-  FX_BOOL OnLButtonDblClk(uint32_t dwFlags, FX_FLOAT fx, FX_FLOAT fy) override;
-  FX_BOOL OnMouseMove(uint32_t dwFlags, FX_FLOAT fx, FX_FLOAT fy) override;
-  FX_BOOL OnMouseWheel(uint32_t dwFlags,
-                       int16_t zDelta,
-                       FX_FLOAT fx,
-                       FX_FLOAT fy) override;
-  FX_BOOL OnRButtonDown(uint32_t dwFlags, FX_FLOAT fx, FX_FLOAT fy) override;
-  FX_BOOL OnRButtonUp(uint32_t dwFlags, FX_FLOAT fx, FX_FLOAT fy) override;
-  FX_BOOL OnRButtonDblClk(uint32_t dwFlags, FX_FLOAT fx, FX_FLOAT fy) override;
+  bool LoadWidget() override;
+  bool OnMouseEnter() override;
+  bool OnMouseExit() override;
+  bool OnLButtonDown(uint32_t dwFlags, const CFX_PointF& point) override;
+  bool OnLButtonUp(uint32_t dwFlags, const CFX_PointF& point) override;
+  bool OnLButtonDblClk(uint32_t dwFlags, const CFX_PointF& point) override;
+  bool OnMouseMove(uint32_t dwFlags, const CFX_PointF& point) override;
+  bool OnMouseWheel(uint32_t dwFlags,
+                    int16_t zDelta,
+                    const CFX_PointF& pointy) override;
+  bool OnRButtonDown(uint32_t dwFlags, const CFX_PointF& point) override;
+  bool OnRButtonUp(uint32_t dwFlags, const CFX_PointF& point) override;
+  bool OnRButtonDblClk(uint32_t dwFlags, const CFX_PointF& point) override;
 
-  FX_BOOL OnKeyDown(uint32_t dwKeyCode, uint32_t dwFlags) override;
-  FX_BOOL OnKeyUp(uint32_t dwKeyCode, uint32_t dwFlags) override;
-  FX_BOOL OnChar(uint32_t dwChar, uint32_t dwFlags) override;
-  FWL_WidgetHit OnHitTest(FX_FLOAT fx, FX_FLOAT fy) override;
-  FX_BOOL OnSetCursor(FX_FLOAT fx, FX_FLOAT fy) override;
+  bool OnKeyDown(uint32_t dwKeyCode, uint32_t dwFlags) override;
+  bool OnKeyUp(uint32_t dwKeyCode, uint32_t dwFlags) override;
+  bool OnChar(uint32_t dwChar, uint32_t dwFlags) override;
+  FWL_WidgetHit OnHitTest(const CFX_PointF& point) override;
+  bool OnSetCursor(const CFX_PointF& point) override;
 };
 
 #endif  // XFA_FXFA_APP_XFA_FFSIGNATURE_H_

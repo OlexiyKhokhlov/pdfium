@@ -25,57 +25,71 @@
 #include <algorithm>
 #include <memory>
 
+#include "core/fxge/cfx_fxgedevice.h"
+#include "core/fxge/cfx_gemodule.h"
+#include "core/fxge/cfx_graphstatedata.h"
+#include "core/fxge/cfx_pathdata.h"
+#include "core/fxge/cfx_renderdevice.h"
+#include "core/fxge/cfx_unicodeencodingex.h"
+#include "third_party/base/ptr_util.h"
 #include "xfa/fxbarcode/BC_Writer.h"
 #include "xfa/fxbarcode/common/BC_CommonBitMatrix.h"
 
 CBC_OneDimWriter::CBC_OneDimWriter() {
   m_locTextLoc = BC_TEXT_LOC_BELOWEMBED;
-  m_bPrintChecksum = TRUE;
+  m_bPrintChecksum = true;
   m_iDataLenth = 0;
-  m_bCalcChecksum = FALSE;
+  m_bCalcChecksum = false;
   m_pFont = nullptr;
   m_fFontSize = 10;
   m_iFontStyle = 0;
   m_fontColor = 0xff000000;
   m_iContentLen = 0;
-  m_bLeftPadding = FALSE;
-  m_bRightPadding = FALSE;
-  m_output = nullptr;
+  m_bLeftPadding = false;
+  m_bRightPadding = false;
 }
-CBC_OneDimWriter::~CBC_OneDimWriter() {
-  delete m_output;
-}
-void CBC_OneDimWriter::SetPrintChecksum(FX_BOOL checksum) {
+
+CBC_OneDimWriter::~CBC_OneDimWriter() {}
+
+void CBC_OneDimWriter::SetPrintChecksum(bool checksum) {
   m_bPrintChecksum = checksum;
 }
+
 void CBC_OneDimWriter::SetDataLength(int32_t length) {
   m_iDataLenth = length;
 }
-void CBC_OneDimWriter::SetCalcChecksum(int32_t state) {
+
+void CBC_OneDimWriter::SetCalcChecksum(bool state) {
   m_bCalcChecksum = state;
 }
-FX_BOOL CBC_OneDimWriter::SetFont(CFX_Font* cFont) {
+
+bool CBC_OneDimWriter::SetFont(CFX_Font* cFont) {
   if (!cFont)
-    return FALSE;
+    return false;
 
   m_pFont = cFont;
-  return TRUE;
+  return true;
 }
+
 void CBC_OneDimWriter::SetFontSize(FX_FLOAT size) {
   m_fFontSize = size;
 }
+
 void CBC_OneDimWriter::SetFontStyle(int32_t style) {
   m_iFontStyle = style;
 }
+
 void CBC_OneDimWriter::SetFontColor(FX_ARGB color) {
   m_fontColor = color;
 }
+
 FX_WCHAR CBC_OneDimWriter::Upper(FX_WCHAR ch) {
   if (ch >= 'a' && ch <= 'z') {
     ch = ch - ('a' - 'A');
   }
   return ch;
 }
+
 uint8_t* CBC_OneDimWriter::Encode(const CFX_ByteString& contents,
                                   BCFORMAT format,
                                   int32_t& outWidth,
@@ -89,16 +103,19 @@ uint8_t* CBC_OneDimWriter::Encode(const CFX_ByteString& contents,
   } else {
     ret = Encode(contents, outWidth, e);
   }
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   return ret;
 }
+
 uint8_t* CBC_OneDimWriter::Encode(const CFX_ByteString& contents,
                                   BCFORMAT format,
                                   int32_t& outWidth,
                                   int32_t& outHeight,
                                   int32_t& e) {
   uint8_t* ret = Encode(contents, format, outWidth, outHeight, 0, e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   return ret;
 }
 
@@ -160,8 +177,7 @@ void CBC_OneDimWriter::CalcTextInfo(const CFX_ByteString& text,
       (FX_FLOAT)FXSYS_abs(cFont->GetDescent()) * (FX_FLOAT)fontSize / 1000.0f;
   FX_FLOAT left = leftPositon;
   FX_FLOAT top = 0.0;
-  charPos[0].m_OriginX = penX + left;
-  charPos[0].m_OriginY = penY + top;
+  charPos[0].m_Origin = CFX_PointF(penX + left, penY + top);
   charPos[0].m_GlyphIndex = encoding->GlyphFromCharCode(pCharCode[0]);
   charPos[0].m_FontCharWidth = cFont->GetGlyphWidth(charPos[0].m_GlyphIndex);
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_APPLE_
@@ -169,8 +185,7 @@ void CBC_OneDimWriter::CalcTextInfo(const CFX_ByteString& text,
 #endif
   penX += (FX_FLOAT)(charPos[0].m_FontCharWidth) * (FX_FLOAT)fontSize / 1000.0f;
   for (int32_t i = 1; i < length; i++) {
-    charPos[i].m_OriginX = penX + left;
-    charPos[i].m_OriginY = penY + top;
+    charPos[i].m_Origin = CFX_PointF(penX + left, penY + top);
     charPos[i].m_GlyphIndex = encoding->GlyphFromCharCode(pCharCode[i]);
     charPos[i].m_FontCharWidth = cFont->GetGlyphWidth(charPos[i].m_GlyphIndex);
 #if _FXM_PLATFORM_ == _FXM_PLATFORM_APPLE_
@@ -181,6 +196,7 @@ void CBC_OneDimWriter::CalcTextInfo(const CFX_ByteString& text,
   }
   FX_Free(pCharCode);
 }
+
 void CBC_OneDimWriter::ShowDeviceChars(CFX_RenderDevice* device,
                                        const CFX_Matrix* matrix,
                                        const CFX_ByteString str,
@@ -197,16 +213,16 @@ void CBC_OneDimWriter::ShowDeviceChars(CFX_RenderDevice* device,
     rect.right -= 1;
   }
   matrix->TransformRect(rect);
-  FX_RECT re = rect.GetOutterRect();
+  FX_RECT re = rect.GetOuterRect();
   device->FillRect(&re, m_backgroundColor);
   CFX_Matrix affine_matrix(1.0, 0.0, 0.0, -1.0, (FX_FLOAT)locX,
                            (FX_FLOAT)(locY + iFontSize));
   if (matrix) {
     affine_matrix.Concat(*matrix);
   }
-  device->DrawNormalText(
-      str.GetLength(), pCharPos, m_pFont, CFX_GEModule::Get()->GetFontCache(),
-      (FX_FLOAT)iFontSize, &affine_matrix, m_fontColor, FXTEXT_CLEARTYPE);
+  device->DrawNormalText(str.GetLength(), pCharPos, m_pFont,
+                         static_cast<FX_FLOAT>(iFontSize), &affine_matrix,
+                         m_fontColor, FXTEXT_CLEARTYPE);
 }
 
 void CBC_OneDimWriter::ShowBitmapChars(CFX_DIBitmap* pOutBitmap,
@@ -222,10 +238,11 @@ void CBC_OneDimWriter::ShowBitmapChars(CFX_DIBitmap* pOutBitmap,
   ge.Create((int)geWidth, iTextHeight, m_colorSpace, nullptr);
   FX_RECT geRect(0, 0, (int)geWidth, iTextHeight);
   ge.FillRect(&geRect, m_backgroundColor);
-  CFX_Matrix affine_matrix(1.0, 0.0, 0.0, -1.0, 0.0, (FX_FLOAT)iFontSize);
+  CFX_Matrix affine_matrix(1.0, 0.0, 0.0, -1.0, 0.0,
+                           static_cast<FX_FLOAT>(iFontSize));
   ge.DrawNormalText(str.GetLength(), pCharPos, m_pFont,
-                    CFX_GEModule::Get()->GetFontCache(), (FX_FLOAT)iFontSize,
-                    &affine_matrix, m_fontColor, FXTEXT_CLEARTYPE);
+                    static_cast<FX_FLOAT>(iFontSize), &affine_matrix,
+                    m_fontColor, FXTEXT_CLEARTYPE);
   CFX_FxgeDevice geBitmap;
   geBitmap.Attach(pOutBitmap, false, nullptr, false);
   geBitmap.SetDIBits(ge.GetBitmap(), (int)locX, (int)locY);
@@ -304,7 +321,8 @@ void CBC_OneDimWriter::RenderBitmapResult(CFX_DIBitmap*& pOutBitmap,
                                           const CFX_WideStringC& contents,
                                           int32_t& e) {
   if (!m_output)
-    BC_EXCEPTION_CHECK_ReturnVoid(e);
+    if (e != BCExceptionNO)
+      return;
 
   pOutBitmap = CreateDIBitmap(m_output->GetWidth(), m_output->GetHeight());
   pOutBitmap->Clear(m_backgroundColor);
@@ -327,11 +345,13 @@ void CBC_OneDimWriter::RenderBitmapResult(CFX_DIBitmap*& pOutBitmap,
   if (m_locTextLoc != BC_TEXT_LOC_NONE && i < contents.GetLength()) {
     ShowChars(contents, pOutBitmap, nullptr, nullptr, m_barWidth, m_multiple,
               e);
-    BC_EXCEPTION_CHECK_ReturnVoid(e);
+    if (e != BCExceptionNO)
+      return;
   }
-  CFX_DIBitmap* pStretchBitmap = pOutBitmap->StretchTo(m_Width, m_Height);
+  std::unique_ptr<CFX_DIBitmap> pStretchBitmap =
+      pOutBitmap->StretchTo(m_Width, m_Height);
   delete pOutBitmap;
-  pOutBitmap = pStretchBitmap;
+  pOutBitmap = pStretchBitmap.release();
 }
 
 void CBC_OneDimWriter::RenderDeviceResult(CFX_RenderDevice* device,
@@ -339,7 +359,8 @@ void CBC_OneDimWriter::RenderDeviceResult(CFX_RenderDevice* device,
                                           const CFX_WideStringC& contents,
                                           int32_t& e) {
   if (!m_output)
-    BC_EXCEPTION_CHECK_ReturnVoid(e);
+    if (e != BCExceptionNO)
+      return;
 
   CFX_GraphStateData stateData;
   CFX_PathData path;
@@ -366,17 +387,19 @@ void CBC_OneDimWriter::RenderDeviceResult(CFX_RenderDevice* device,
     }
   if (m_locTextLoc != BC_TEXT_LOC_NONE && i < contents.GetLength()) {
     ShowChars(contents, nullptr, device, matrix, m_barWidth, m_multiple, e);
-    BC_EXCEPTION_CHECK_ReturnVoid(e);
+    if (e != BCExceptionNO)
+      return;
   }
 }
 
 void CBC_OneDimWriter::RenderResult(const CFX_WideStringC& contents,
                                     uint8_t* code,
                                     int32_t codeLength,
-                                    FX_BOOL isDevice,
+                                    bool isDevice,
                                     int32_t& e) {
   if (codeLength < 1) {
-    BC_EXCEPTION_CHECK_ReturnVoid(e);
+    if (e != BCExceptionNO)
+      return;
   }
   if (m_ModuleHeight < 20.0) {
     m_ModuleHeight = 20;
@@ -427,7 +450,7 @@ void CBC_OneDimWriter::RenderResult(const CFX_WideStringC& contents,
   if (!isDevice) {
     m_barWidth = codeLength * m_multiple;
   }
-  m_output = new CBC_CommonBitMatrix;
+  m_output = pdfium::MakeUnique<CBC_CommonBitMatrix>();
   m_output->Init(outputWidth, outputHeight);
   int32_t outputX = leftPadding * m_multiple;
   for (int32_t inputX = 0; inputX < codeOldLength; inputX++) {
@@ -440,15 +463,15 @@ void CBC_OneDimWriter::RenderResult(const CFX_WideStringC& contents,
         break;
       }
       m_output->SetRegion(outputX, 0, m_multiple, outputHeight, e);
-      BC_EXCEPTION_CHECK_ReturnVoid(e);
+      if (e != BCExceptionNO)
+        return;
     }
     outputX += m_multiple;
   }
 }
 
-FX_BOOL CBC_OneDimWriter::CheckContentValidity(
-    const CFX_WideStringC& contents) {
-  return TRUE;
+bool CBC_OneDimWriter::CheckContentValidity(const CFX_WideStringC& contents) {
+  return true;
 }
 
 CFX_WideString CBC_OneDimWriter::FilterContents(

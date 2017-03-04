@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "core/fxcrt/include/fx_string.h"
+#include "core/fxcrt/fx_string.h"
 #include "testing/fx_string_testhelpers.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -649,6 +649,7 @@ TEST(fxcrt, ByteStringGetBuffer) {
   {
     CFX_ByteString str;
     FX_CHAR* buffer = str.GetBuffer(12);
+    // NOLINTNEXTLINE(runtime/printf)
     strcpy(buffer, "clams");
     str.ReleaseBuffer();
     EXPECT_EQ("clams", str);
@@ -656,6 +657,7 @@ TEST(fxcrt, ByteStringGetBuffer) {
   {
     CFX_ByteString str("cl");
     FX_CHAR* buffer = str.GetBuffer(12);
+    // NOLINTNEXTLINE(runtime/printf)
     strcpy(buffer + 2, "ams");
     str.ReleaseBuffer();
     EXPECT_EQ("clams", str);

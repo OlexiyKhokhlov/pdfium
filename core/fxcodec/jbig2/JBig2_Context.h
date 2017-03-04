@@ -12,9 +12,8 @@
 #include <utility>
 #include <vector>
 
-#include "core/fpdfapi/fpdf_parser/include/cpdf_object.h"
-#include "core/fxcodec/include/fx_codec_def.h"
-#include "core/fxcodec/jbig2/JBig2_List.h"
+#include "core/fpdfapi/parser/cpdf_object.h"
+#include "core/fxcodec/fx_codec_def.h"
 #include "core/fxcodec/jbig2/JBig2_Page.h"
 #include "core/fxcodec/jbig2/JBig2_Segment.h"
 
@@ -25,8 +24,8 @@ class IFX_Pause;
 
 // Cache is keyed by the ObjNum of a stream and an index within the stream.
 using CJBig2_CacheKey = std::pair<uint32_t, uint32_t>;
-// NB: CJBig2_SymbolDict* is owned.
-using CJBig2_CachePair = std::pair<CJBig2_CacheKey, CJBig2_SymbolDict*>;
+using CJBig2_CachePair =
+    std::pair<CJBig2_CacheKey, std::unique_ptr<CJBig2_SymbolDict>>;
 
 #define JBIG2_SUCCESS 0
 #define JBIG2_FAILED -1
@@ -89,8 +88,8 @@ class CJBig2_Context {
 
   std::unique_ptr<CJBig2_Context> m_pGlobalContext;
   std::unique_ptr<CJBig2_BitStream> m_pStream;
-  CJBig2_List<CJBig2_Segment> m_SegmentList;
-  CJBig2_List<JBig2PageInfo> m_PageInfoList;
+  std::vector<std::unique_ptr<CJBig2_Segment>> m_SegmentList;
+  std::vector<std::unique_ptr<JBig2PageInfo>> m_PageInfoList;
   std::unique_ptr<CJBig2_Image> m_pPage;
   size_t m_nSegmentDecoded;
   bool m_bInPage;

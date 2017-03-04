@@ -44,7 +44,7 @@ CBC_BarcodeMatrix::~CBC_BarcodeMatrix() {
 void CBC_BarcodeMatrix::set(int32_t x, int32_t y, uint8_t value) {
   m_matrix[y]->set(x, value);
 }
-void CBC_BarcodeMatrix::setMatrix(int32_t x, int32_t y, FX_BOOL black) {
+void CBC_BarcodeMatrix::setMatrix(int32_t x, int32_t y, bool black) {
   set(x, y, (uint8_t)(black ? 1 : 0));
 }
 void CBC_BarcodeMatrix::startRow() {
@@ -59,16 +59,16 @@ int32_t CBC_BarcodeMatrix::getWidth() {
 int32_t CBC_BarcodeMatrix::getHeight() {
   return m_outHeight;
 }
-CFX_ByteArray& CBC_BarcodeMatrix::getMatrix() {
+CFX_ArrayTemplate<uint8_t>& CBC_BarcodeMatrix::getMatrix() {
   return getScaledMatrix(1, 1);
 }
-CFX_ByteArray& CBC_BarcodeMatrix::getScaledMatrix(int32_t scale) {
+CFX_ArrayTemplate<uint8_t>& CBC_BarcodeMatrix::getScaledMatrix(int32_t scale) {
   return getScaledMatrix(scale, scale);
 }
-CFX_ByteArray& CBC_BarcodeMatrix::getScaledMatrix(int32_t xScale,
-                                                  int32_t yScale) {
+CFX_ArrayTemplate<uint8_t>& CBC_BarcodeMatrix::getScaledMatrix(int32_t xScale,
+                                                               int32_t yScale) {
   int32_t yMax = m_height * yScale;
-  CFX_ByteArray bytearray;
+  CFX_ArrayTemplate<uint8_t> bytearray;
   bytearray.Copy(m_matrix[0]->getScaledRow(xScale));
   int32_t xMax = bytearray.GetSize();
   m_matrixOut.SetSize(xMax * yMax);

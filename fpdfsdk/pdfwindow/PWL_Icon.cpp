@@ -6,8 +6,10 @@
 
 #include "fpdfsdk/pdfwindow/PWL_Icon.h"
 
-#include "core/fpdfapi/fpdf_parser/include/cpdf_array.h"
-#include "core/fpdfapi/fpdf_parser/include/cpdf_stream.h"
+#include <algorithm>
+
+#include "core/fpdfapi/parser/cpdf_array.h"
+#include "core/fpdfapi/parser/cpdf_stream.h"
 #include "fpdfsdk/pdfwindow/PWL_Utils.h"
 #include "fpdfsdk/pdfwindow/PWL_Wnd.h"
 
@@ -39,8 +41,8 @@ CFX_ByteString CPWL_Image::GetImageAppStream() {
 
     sAppStream << fHScale << " 0 0 " << fVScale << " " << rcPlate.left + fx
                << " " << rcPlate.bottom + fy << " cm\n";
-    sAppStream << mt.GetA() << " " << mt.GetB() << " " << mt.GetC() << " "
-               << mt.GetD() << " " << mt.GetE() << " " << mt.GetF() << " cm\n";
+    sAppStream << mt.a << " " << mt.b << " " << mt.c << " " << mt.d << " "
+               << mt.e << " " << mt.f << " cm\n";
 
     sAppStream << "0 g 0 G 1 w /" << sAlias.AsStringC() << " Do\n"
                << "Q\n";
@@ -63,7 +65,7 @@ void CPWL_Image::GetImageSize(FX_FLOAT& fWidth, FX_FLOAT& fHeight) {
 
   if (m_pPDFStream) {
     if (CPDF_Dictionary* pDict = m_pPDFStream->GetDict()) {
-      CFX_FloatRect rect = pDict->GetRectBy("BBox");
+      CFX_FloatRect rect = pDict->GetRectFor("BBox");
 
       fWidth = rect.right - rect.left;
       fHeight = rect.top - rect.bottom;
@@ -74,7 +76,7 @@ void CPWL_Image::GetImageSize(FX_FLOAT& fWidth, FX_FLOAT& fHeight) {
 CFX_Matrix CPWL_Image::GetImageMatrix() {
   if (m_pPDFStream) {
     if (CPDF_Dictionary* pDict = m_pPDFStream->GetDict()) {
-      return pDict->GetMatrixBy("Matrix");
+      return pDict->GetMatrixFor("Matrix");
     }
   }
 
@@ -87,7 +89,7 @@ CFX_ByteString CPWL_Image::GetImageAlias() {
 
   if (m_pPDFStream) {
     if (CPDF_Dictionary* pDict = m_pPDFStream->GetDict()) {
-      return pDict->GetStringBy("Name");
+      return pDict->GetStringFor("Name");
     }
   }
 
@@ -123,11 +125,11 @@ int32_t CPWL_Icon::GetScaleMethod() {
   return 0;
 }
 
-FX_BOOL CPWL_Icon::IsProportionalScale() {
+bool CPWL_Icon::IsProportionalScale() {
   if (m_pIconFit)
     return m_pIconFit->IsProportionalScale();
 
-  return FALSE;
+  return false;
 }
 
 void CPWL_Icon::GetIconPosition(FX_FLOAT& fLeft, FX_FLOAT& fBottom) {
@@ -135,7 +137,7 @@ void CPWL_Icon::GetIconPosition(FX_FLOAT& fLeft, FX_FLOAT& fBottom) {
     fLeft = 0.0f;
     fBottom = 0.0f;
     CPDF_Array* pA = m_pIconFit->GetDict()
-                         ? m_pIconFit->GetDict()->GetArrayBy("A")
+                         ? m_pIconFit->GetDict()->GetArrayFor("A")
                          : nullptr;
     if (pA) {
       size_t dwCount = pA->GetCount();
@@ -169,20 +171,20 @@ void CPWL_Icon::GetScale(FX_FLOAT& fHScale, FX_FLOAT& fVScale) {
     switch (nScaleMethod) {
       default:
       case 0:
-        fHScale = fPlateWidth / PWL_MAX(fImageWidth, 1.0f);
-        fVScale = fPlateHeight / PWL_MAX(fImageHeight, 1.0f);
+        fHScale = fPlateWidth / std::max(fImageWidth, 1.0f);
+        fVScale = fPlateHeight / std::max(fImageHeight, 1.0f);
         break;
       case 1:
         if (fPlateWidth < fImageWidth)
-          fHScale = fPlateWidth / PWL_MAX(fImageWidth, 1.0f);
+          fHScale = fPlateWidth / std::max(fImageWidth, 1.0f);
         if (fPlateHeight < fImageHeight)
-          fVScale = fPlateHeight / PWL_MAX(fImageHeight, 1.0f);
+          fVScale = fPlateHeight / std::max(fImageHeight, 1.0f);
         break;
       case 2:
         if (fPlateWidth > fImageWidth)
-          fHScale = fPlateWidth / PWL_MAX(fImageWidth, 1.0f);
+          fHScale = fPlateWidth / std::max(fImageWidth, 1.0f);
         if (fPlateHeight > fImageHeight)
-          fVScale = fPlateHeight / PWL_MAX(fImageHeight, 1.0f);
+          fVScale = fPlateHeight / std::max(fImageHeight, 1.0f);
         break;
       case 3:
         break;
@@ -190,7 +192,7 @@ void CPWL_Icon::GetScale(FX_FLOAT& fHScale, FX_FLOAT& fVScale) {
 
     FX_FLOAT fMinScale;
     if (IsProportionalScale()) {
-      fMinScale = PWL_MIN(fHScale, fVScale);
+      fMinScale = std::min(fHScale, fVScale);
       fHScale = fMinScale;
       fVScale = fMinScale;
     }

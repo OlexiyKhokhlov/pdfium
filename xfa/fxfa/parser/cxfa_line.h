@@ -7,7 +7,7 @@
 #ifndef XFA_FXFA_PARSER_CXFA_LINE_H_
 #define XFA_FXFA_PARSER_CXFA_LINE_H_
 
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 #include "xfa/fxfa/parser/cxfa_data.h"
 #include "xfa/fxfa/parser/cxfa_edge.h"
 
@@ -18,7 +18,7 @@ class CXFA_Line : public CXFA_Data {
   explicit CXFA_Line(CXFA_Node* pNode) : CXFA_Data(pNode) {}
 
   int32_t GetHand();
-  FX_BOOL GetSlop();
+  bool GetSlope();
   CXFA_Edge GetEdge();
 };
 

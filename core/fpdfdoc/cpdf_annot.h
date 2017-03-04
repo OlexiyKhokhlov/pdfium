@@ -10,9 +10,10 @@
 #include <map>
 #include <memory>
 
-#include "core/fxcrt/include/fx_coordinates.h"
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/cfx_maybe_owned.h"
+#include "core/fxcrt/fx_coordinates.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/fx_system.h"
 
 class CFX_RenderDevice;
 class CPDF_Dictionary;
@@ -36,35 +37,94 @@ class CPDF_Stream;
 class CPDF_Annot {
  public:
   enum AppearanceMode { Normal, Rollover, Down };
+  enum class Subtype {
+    UNKNOWN = 0,
+    TEXT,
+    LINK,
+    FREETEXT,
+    LINE,
+    SQUARE,
+    CIRCLE,
+    POLYGON,
+    POLYLINE,
+    HIGHLIGHT,
+    UNDERLINE,
+    SQUIGGLY,
+    STRIKEOUT,
+    STAMP,
+    CARET,
+    INK,
+    POPUP,
+    FILEATTACHMENT,
+    SOUND,
+    MOVIE,
+    WIDGET,
+    SCREEN,
+    PRINTERMARK,
+    TRAPNET,
+    WATERMARK,
+    THREED,
+    RICHMEDIA,
+    XFAWIDGET
+  };
 
+  static bool IsAnnotationHidden(CPDF_Dictionary* pAnnotDict);
+  static CPDF_Annot::Subtype StringToAnnotSubtype(
+      const CFX_ByteString& sSubtype);
+  static CFX_ByteString AnnotSubtypeToString(CPDF_Annot::Subtype nSubtype);
+  static CFX_FloatRect RectFromQuadPoints(CPDF_Dictionary* pAnnotDict);
+
+  // The second constructor does not take ownership of the dictionary.
+  CPDF_Annot(std::unique_ptr<CPDF_Dictionary> pDict, CPDF_Document* pDocument);
   CPDF_Annot(CPDF_Dictionary* pDict, CPDF_Document* pDocument);
   ~CPDF_Annot();
 
-  CFX_ByteString GetSubType() const;
+  CPDF_Annot::Subtype GetSubtype() const;
   uint32_t GetFlags() const;
-  void GetRect(CFX_FloatRect& rect) const;
-  const CPDF_Dictionary* GetAnnotDict() const { return m_pAnnotDict; }
-  CPDF_Dictionary* GetAnnotDict() { return m_pAnnotDict; }
-  FX_BOOL DrawAppearance(CPDF_Page* pPage,
-                         CFX_RenderDevice* pDevice,
-                         const CFX_Matrix* pUser2Device,
-                         AppearanceMode mode,
-                         const CPDF_RenderOptions* pOptions);
-  FX_BOOL DrawInContext(const CPDF_Page* pPage,
-                        CPDF_RenderContext* pContext,
-                        const CFX_Matrix* pUser2Device,
-                        AppearanceMode mode);
+  CFX_FloatRect GetRect() const;
+  CPDF_Document* GetDocument() const { return m_pDocument; }
+  CPDF_Dictionary* GetAnnotDict() const { return m_pAnnotDict.Get(); }
+
+  bool DrawAppearance(CPDF_Page* pPage,
+                      CFX_RenderDevice* pDevice,
+                      const CFX_Matrix* pUser2Device,
+                      AppearanceMode mode,
+                      const CPDF_RenderOptions* pOptions);
+  bool DrawInContext(const CPDF_Page* pPage,
+                     CPDF_RenderContext* pContext,
+                     const CFX_Matrix* pUser2Device,
+                     AppearanceMode mode);
+
   void ClearCachedAP();
   void DrawBorder(CFX_RenderDevice* pDevice,
                   const CFX_Matrix* pUser2Device,
                   const CPDF_RenderOptions* pOptions);
   CPDF_Form* GetAPForm(const CPDF_Page* pPage, AppearanceMode mode);
+  void SetOpenState(bool bOpenState) { m_bOpenState = bOpenState; }
+  CPDF_Annot* GetPopupAnnot() const { return m_pPopupAnnot; }
+  void SetPopupAnnot(CPDF_Annot* pAnnot) { m_pPopupAnnot = pAnnot; }
 
  private:
-  CPDF_Dictionary* const m_pAnnotDict;
+  void Init();
+  void GenerateAPIfNeeded();
+  bool ShouldDrawAnnotation();
+
+  CFX_FloatRect RectForDrawing() const;
+
+  CFX_MaybeOwned<CPDF_Dictionary> m_pAnnotDict;
   CPDF_Document* const m_pDocument;
-  const CFX_ByteString m_sSubtype;
-  std::map<CPDF_Stream*, CPDF_Form*> m_APMap;
+  CPDF_Annot::Subtype m_nSubtype;
+  std::map<CPDF_Stream*, std::unique_ptr<CPDF_Form>> m_APMap;
+  // |m_bOpenState| is only set for popup annotations.
+  bool m_bOpenState = false;
+  bool m_bHasGeneratedAP;
+  bool m_bIsTextMarkupAnnotation;
+  // Not owned. If there is a valid pointer in |m_pPopupAnnot|,
+  // then this annot is never a popup.
+  CPDF_Annot* m_pPopupAnnot = nullptr;
 };
+
+CPDF_Stream* FPDFDOC_GetAnnotAP(CPDF_Dictionary* pAnnotDict,
+                                CPDF_Annot::AppearanceMode mode);
 
 #endif  // CORE_FPDFDOC_CPDF_ANNOT_H_

@@ -10,10 +10,10 @@
 #include <memory>
 #include <vector>
 
-#include "core/fxcrt/include/fx_basic.h"
+#include "core/fxcrt/fx_basic.h"
 #include "fpdfsdk/javascript/JS_KeyValue.h"
 
-class CPDFDoc_Environment;
+class CPDFSDK_FormFillEnvironment;
 
 class CJS_GlobalData_Element {
  public:
@@ -21,12 +21,12 @@ class CJS_GlobalData_Element {
   ~CJS_GlobalData_Element() {}
 
   CJS_KeyValue data;
-  FX_BOOL bPersistent;
+  bool bPersistent;
 };
 
 class CJS_GlobalData {
  public:
-  static CJS_GlobalData* GetRetainedInstance(CPDFDoc_Environment* pApp);
+  static CJS_GlobalData* GetRetainedInstance(CPDFSDK_FormFillEnvironment* pApp);
   void Release();
 
   void SetGlobalVariableNumber(const CFX_ByteString& propname, double dData);
@@ -36,9 +36,9 @@ class CJS_GlobalData {
   void SetGlobalVariableObject(const CFX_ByteString& propname,
                                const CJS_GlobalVariableArray& array);
   void SetGlobalVariableNull(const CFX_ByteString& propname);
-  FX_BOOL SetGlobalVariablePersistent(const CFX_ByteString& propname,
-                                      FX_BOOL bPersistent);
-  FX_BOOL DeleteGlobalVariable(const CFX_ByteString& propname);
+  bool SetGlobalVariablePersistent(const CFX_ByteString& propname,
+                                   bool bPersistent);
+  bool DeleteGlobalVariable(const CFX_ByteString& propname);
 
   int32_t GetSize() const;
   CJS_GlobalData_Element* GetAt(int index) const;

@@ -7,9 +7,9 @@
 #ifndef XFA_FXBARCODE_CBC_DATAMATRIX_H_
 #define XFA_FXBARCODE_CBC_DATAMATRIX_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxcrt/include/fx_system.h"
-#include "core/fxge/include/fx_dib.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/fx_dib.h"
 #include "xfa/fxbarcode/cbc_codebase.h"
 
 class CBC_DataMatrix : public CBC_CodeBase {
@@ -18,13 +18,13 @@ class CBC_DataMatrix : public CBC_CodeBase {
   ~CBC_DataMatrix() override;
 
   // CBC_OneCode:
-  FX_BOOL Encode(const CFX_WideStringC& contents,
-                 FX_BOOL isDevice,
-                 int32_t& e) override;
-  FX_BOOL RenderDevice(CFX_RenderDevice* device,
-                       const CFX_Matrix* matrix,
-                       int32_t& e) override;
-  FX_BOOL RenderBitmap(CFX_DIBitmap*& pOutBitmap, int32_t& e) override;
+  bool Encode(const CFX_WideStringC& contents,
+              bool isDevice,
+              int32_t& e) override;
+  bool RenderDevice(CFX_RenderDevice* device,
+                    const CFX_Matrix* matrix,
+                    int32_t& e) override;
+  bool RenderBitmap(CFX_DIBitmap*& pOutBitmap, int32_t& e) override;
   BC_TYPE GetType() override;
 };
 

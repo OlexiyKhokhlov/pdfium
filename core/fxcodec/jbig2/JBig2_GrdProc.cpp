@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include "core/fxcodec/include/fx_codec.h"
+#include "core/fxcodec/fx_codec.h"
 #include "core/fxcodec/jbig2/JBig2_ArithDecoder.h"
 #include "core/fxcodec/jbig2/JBig2_BitStream.h"
 #include "core/fxcodec/jbig2/JBig2_Image.h"
@@ -18,7 +18,7 @@ CJBig2_GRDProc::CJBig2_GRDProc()
       m_pLine(nullptr),
       m_pPause(nullptr),
       m_DecodeType(0),
-      m_LTP(FALSE) {
+      m_LTP(0) {
   m_ReplaceRect.left = 0;
   m_ReplaceRect.bottom = 0;
   m_ReplaceRect.top = 0;
@@ -69,9 +69,9 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_opt3(
   if (!GBREG->m_pData)
     return nullptr;
 
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   uint8_t* pLine = GBREG->m_pData;
-  int32_t nStride = GBREG->m_nStride;
+  int32_t nStride = GBREG->stride();
   int32_t nStride2 = nStride << 1;
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
@@ -93,7 +93,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_opt3(
           line2 = (line2 << 8) | (*pLine2++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = (((CONTEXT & 0x7bf7) << 1) | bVal |
                        ((line1 >> k) & 0x0800) | ((line2 >> k) & 0x0010));
@@ -104,7 +104,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT =
               (((CONTEXT & 0x7bf7) << 1) | bVal |
@@ -121,7 +121,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_opt3(
           }
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT =
                 (((CONTEXT & 0x7bf7) << 1) | bVal | ((line2 >> k) & 0x0010));
@@ -131,7 +131,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = (((CONTEXT & 0x7bf7) << 1) | bVal |
                      (((line2 >> (7 - k))) & 0x0010));
@@ -147,7 +147,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_opt3(
 CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_unopt(
     CJBig2_ArithDecoder* pArithDecoder,
     JBig2ArithCtx* gbContext) {
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   std::unique_ptr<CJBig2_Image> GBREG(new CJBig2_Image(GBW, GBH));
   GBREG->fill(0);
   for (uint32_t h = 0; h < GBH; h++) {
@@ -163,7 +163,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template0_unopt(
       line2 |= GBREG->getPixel(0, h - 1) << 2;
       uint32_t line3 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, h)) {
           bVal = 0;
         } else {
@@ -195,9 +195,9 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_opt3(
   if (!GBREG->m_pData)
     return nullptr;
 
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   uint8_t* pLine = GBREG->m_pData;
-  int32_t nStride = GBREG->m_nStride;
+  int32_t nStride = GBREG->stride();
   int32_t nStride2 = nStride << 1;
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
@@ -218,7 +218,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_opt3(
           line2 = (line2 << 8) | (*pLine2++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x0efb) << 1) | bVal |
                       ((line1 >> k) & 0x0200) | ((line2 >> (k + 1)) & 0x0008);
@@ -229,7 +229,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x0efb) << 1) | bVal |
                     ((line1 >> (7 - k)) & 0x0200) |
@@ -246,7 +246,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_opt3(
           }
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x0efb) << 1) | bVal |
                       ((line2 >> (k + 1)) & 0x0008);
@@ -256,7 +256,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT =
               ((CONTEXT & 0x0efb) << 1) | bVal | ((line2 >> (8 - k)) & 0x0008);
@@ -272,7 +272,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_opt3(
 CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_unopt(
     CJBig2_ArithDecoder* pArithDecoder,
     JBig2ArithCtx* gbContext) {
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   std::unique_ptr<CJBig2_Image> GBREG(new CJBig2_Image(GBW, GBH));
   GBREG->fill(0);
   for (uint32_t h = 0; h < GBH; h++) {
@@ -289,7 +289,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template1_unopt(
       line2 |= GBREG->getPixel(0, h - 1) << 2;
       uint32_t line3 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, h)) {
           bVal = 0;
         } else {
@@ -318,9 +318,9 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_opt3(
   if (!GBREG->m_pData)
     return nullptr;
 
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   uint8_t* pLine = GBREG->m_pData;
-  int32_t nStride = GBREG->m_nStride;
+  int32_t nStride = GBREG->stride();
   int32_t nStride2 = nStride << 1;
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
@@ -341,7 +341,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_opt3(
           line2 = (line2 << 8) | (*pLine2++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                       ((line1 >> k) & 0x0080) | ((line2 >> (k + 3)) & 0x0004);
@@ -352,7 +352,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                     ((line1 >> (7 - k)) & 0x0080) |
@@ -369,7 +369,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_opt3(
           }
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                       ((line2 >> (k + 3)) & 0x0004);
@@ -379,7 +379,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                     (((line2 >> (10 - k))) & 0x0004);
@@ -395,7 +395,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_opt3(
 CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_unopt(
     CJBig2_ArithDecoder* pArithDecoder,
     JBig2ArithCtx* gbContext) {
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   std::unique_ptr<CJBig2_Image> GBREG(new CJBig2_Image(GBW, GBH));
   GBREG->fill(0);
   for (uint32_t h = 0; h < GBH; h++) {
@@ -410,7 +410,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template2_unopt(
       line2 |= GBREG->getPixel(0, h - 1) << 1;
       uint32_t line3 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, h)) {
           bVal = 0;
         } else {
@@ -439,9 +439,9 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_opt3(
   if (!GBREG->m_pData)
     return nullptr;
 
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   uint8_t* pLine = GBREG->m_pData;
-  int32_t nStride = GBREG->m_nStride;
+  int32_t nStride = GBREG->stride();
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
   for (uint32_t h = 0; h < GBH; h++) {
@@ -458,7 +458,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_opt3(
           line1 = (line1 << 8) | (*pLine1++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01f7) << 1) | bVal |
                       ((line1 >> (k + 1)) & 0x0010);
@@ -468,7 +468,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_opt3(
         line1 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT =
               ((CONTEXT & 0x01f7) << 1) | bVal | ((line1 >> (8 - k)) & 0x0010);
@@ -479,7 +479,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_opt3(
         for (int32_t cc = 0; cc < nLineBytes; cc++) {
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01f7) << 1) | bVal;
           }
@@ -487,7 +487,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_opt3(
         }
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x01f7) << 1) | bVal;
         }
@@ -502,7 +502,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_opt3(
 CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_unopt(
     CJBig2_ArithDecoder* pArithDecoder,
     JBig2ArithCtx* gbContext) {
-  FX_BOOL LTP = FALSE;
+  int LTP = 0;
   std::unique_ptr<CJBig2_Image> GBREG(new CJBig2_Image(GBW, GBH));
   GBREG->fill(0);
   for (uint32_t h = 0; h < GBH; h++) {
@@ -515,7 +515,7 @@ CJBig2_Image* CJBig2_GRDProc::decode_Arith_Template3_unopt(
       line1 |= GBREG->getPixel(0, h - 1) << 1;
       uint32_t line2 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, h)) {
           bVal = 0;
         } else {
@@ -559,7 +559,7 @@ FXCODEC_STATUS CJBig2_GRDProc::Start_decode_Arith(
   (*m_pImage)->fill(0);
   m_pArithDecoder = pArithDecoder;
   m_gbContext = gbContext;
-  m_LTP = FALSE;
+  m_LTP = 0;
   m_pLine = nullptr;
   m_loopIndex = 0;
   return decode_Arith(pPause);
@@ -602,7 +602,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith(IFX_Pause* pPause) {
     }
   }
   m_ReplaceRect.left = 0;
-  m_ReplaceRect.right = pImage->m_nWidth;
+  m_ReplaceRect.right = pImage->width();
   m_ReplaceRect.top = iline;
   m_ReplaceRect.bottom = m_loopIndex;
   if (m_ProssiveStatus == FXCODEC_STATUS_DECODE_FINISH) {
@@ -624,9 +624,9 @@ FXCODEC_STATUS CJBig2_GRDProc::Start_decode_MMR(CJBig2_Image** pImage,
   }
   bitpos = (int)pStream->getBitPos();
   FaxG4Decode(pStream->getBuf(), pStream->getLength(), &bitpos,
-              (*pImage)->m_pData, GBW, GBH, (*pImage)->m_nStride);
+              (*pImage)->m_pData, GBW, GBH, (*pImage)->stride());
   pStream->setBitPos(bitpos);
-  for (i = 0; (uint32_t)i < (*pImage)->m_nStride * GBH; i++) {
+  for (i = 0; (uint32_t)i < (*pImage)->stride() * GBH; i++) {
     (*pImage)->m_pData[i] = ~(*pImage)->m_pData[i];
   }
   m_ProssiveStatus = FXCODEC_STATUS_DECODE_FINISH;
@@ -653,7 +653,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template0_opt3(
   if (!m_pLine) {
     m_pLine = pImage->m_pData;
   }
-  int32_t nStride = pImage->m_nStride;
+  int32_t nStride = pImage->stride();
   int32_t nStride2 = nStride << 1;
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
@@ -675,7 +675,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template0_opt3(
           line2 = (line2 << 8) | (*pLine2++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = (((CONTEXT & 0x7bf7) << 1) | bVal |
                        ((line1 >> k) & 0x0800) | ((line2 >> k) & 0x0010));
@@ -686,7 +686,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template0_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT =
               (((CONTEXT & 0x7bf7) << 1) | bVal |
@@ -703,7 +703,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template0_opt3(
           }
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT =
                 (((CONTEXT & 0x7bf7) << 1) | bVal | ((line2 >> k) & 0x0010));
@@ -713,7 +713,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template0_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = (((CONTEXT & 0x7bf7) << 1) | bVal |
                      ((line2 >> (7 - k)) & 0x0010));
@@ -750,7 +750,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template0_unopt(
       line2 |= pImage->getPixel(0, m_loopIndex - 1) << 2;
       uint32_t line3 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, m_loopIndex)) {
           bVal = 0;
         } else {
@@ -791,7 +791,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template1_opt3(
   if (!m_pLine) {
     m_pLine = pImage->m_pData;
   }
-  int32_t nStride = pImage->m_nStride;
+  int32_t nStride = pImage->stride();
   int32_t nStride2 = nStride << 1;
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
@@ -812,7 +812,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template1_opt3(
           line2 = (line2 << 8) | (*pLine2++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x0efb) << 1) | bVal |
                       ((line1 >> k) & 0x0200) | ((line2 >> (k + 1)) & 0x0008);
@@ -823,7 +823,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template1_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x0efb) << 1) | bVal |
                     ((line1 >> (7 - k)) & 0x0200) |
@@ -840,7 +840,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template1_opt3(
           }
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x0efb) << 1) | bVal |
                       ((line2 >> (k + 1)) & 0x0008);
@@ -850,7 +850,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template1_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT =
               ((CONTEXT & 0x0efb) << 1) | bVal | ((line2 >> (8 - k)) & 0x0008);
@@ -888,7 +888,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template1_unopt(
       line2 |= pImage->getPixel(0, h - 1) << 2;
       uint32_t line3 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, h)) {
           bVal = 0;
         } else {
@@ -924,7 +924,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template2_opt3(
   if (!m_pLine) {
     m_pLine = pImage->m_pData;
   }
-  int32_t nStride = pImage->m_nStride;
+  int32_t nStride = pImage->stride();
   int32_t nStride2 = nStride << 1;
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
@@ -945,7 +945,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template2_opt3(
           line2 = (line2 << 8) | (*pLine2++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                       ((line1 >> k) & 0x0080) | ((line2 >> (k + 3)) & 0x0004);
@@ -956,7 +956,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template2_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                     ((line1 >> (7 - k)) & 0x0080) |
@@ -973,7 +973,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template2_opt3(
           }
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                       ((line2 >> (k + 3)) & 0x0004);
@@ -983,7 +983,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template2_opt3(
         line2 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x01bd) << 1) | bVal |
                     (((line2 >> (10 - k))) & 0x0004);
@@ -1019,7 +1019,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template2_unopt(
       line2 |= pImage->getPixel(0, m_loopIndex - 1) << 1;
       uint32_t line3 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, m_loopIndex)) {
           bVal = 0;
         } else {
@@ -1057,7 +1057,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template3_opt3(
   if (!m_pLine)
     m_pLine = pImage->m_pData;
 
-  int32_t nStride = pImage->m_nStride;
+  int32_t nStride = pImage->stride();
   int32_t nLineBytes = ((GBW + 7) >> 3) - 1;
   int32_t nBitsLeft = GBW - (nLineBytes << 3);
   for (; m_loopIndex < GBH; m_loopIndex++) {
@@ -1074,7 +1074,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template3_opt3(
           line1 = (line1 << 8) | (*pLine1++);
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01f7) << 1) | bVal |
                       ((line1 >> (k + 1)) & 0x0010);
@@ -1084,7 +1084,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template3_opt3(
         line1 <<= 8;
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT =
               ((CONTEXT & 0x01f7) << 1) | bVal | ((line1 >> (8 - k)) & 0x0010);
@@ -1095,7 +1095,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template3_opt3(
         for (int32_t cc = 0; cc < nLineBytes; cc++) {
           uint8_t cVal = 0;
           for (int32_t k = 7; k >= 0; k--) {
-            FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+            int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
             cVal |= bVal << k;
             CONTEXT = ((CONTEXT & 0x01f7) << 1) | bVal;
           }
@@ -1103,7 +1103,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template3_opt3(
         }
         uint8_t cVal1 = 0;
         for (int32_t k = 0; k < nBitsLeft; k++) {
-          FX_BOOL bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
+          int bVal = pArithDecoder->DECODE(&gbContext[CONTEXT]);
           cVal1 |= bVal << (7 - k);
           CONTEXT = ((CONTEXT & 0x01f7) << 1) | bVal;
         }
@@ -1136,7 +1136,7 @@ FXCODEC_STATUS CJBig2_GRDProc::decode_Arith_Template3_unopt(
       line1 |= pImage->getPixel(0, m_loopIndex - 1) << 1;
       uint32_t line2 = 0;
       for (uint32_t w = 0; w < GBW; w++) {
-        FX_BOOL bVal;
+        int bVal;
         if (USESKIP && SKIP->getPixel(w, m_loopIndex)) {
           bVal = 0;
         } else {

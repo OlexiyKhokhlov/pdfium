@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 
+// NOLINTNEXTLINE(build/include)
 #include "fpdfview.h"
 
 #define FPDF_ARGB(a, r, g, b)                                      \
@@ -26,6 +27,9 @@
 #define FPDF_PAGEOBJ_SHADING 4
 #define FPDF_PAGEOBJ_FORM 5
 
+#define FPDF_FILLMODE_ALTERNATE 1
+#define FPDF_FILLMODE_WINDING 2
+
 #ifdef __cplusplus
 extern "C" {
 #endif  // __cplusplus
@@ -38,13 +42,16 @@ DLLEXPORT FPDF_DOCUMENT STDCALL FPDF_CreateNewDocument();
 // Create a new PDF page.
 //
 //   document   - handle to document.
-//   page_index - the index of the page to create.
+//   page_index - suggested index of the page to create. If it is larger than
+//                document's current last index(L), the created page index is
+//                the next available index -- L+1.
 //   width      - the page width.
 //   height     - the page height.
 //
 // Returns the handle to the new page.
 //
-// The page should be deleted with |FPDFPage_Delete| when finished.
+// The page should be closed with CPDF_ClosePage() when finished as
+// with any other page in the document.
 DLLEXPORT FPDF_PAGE STDCALL FPDFPage_New(FPDF_DOCUMENT document,
                                          int page_index,
                                          double width,
@@ -197,6 +204,28 @@ FPDFImageObj_LoadJpegFile(FPDF_PAGE* pages,
                           FPDF_PAGEOBJECT image_object,
                           FPDF_FILEACCESS* fileAccess);
 
+// Load an image from a JPEG image file and then set it into |image_object|.
+//
+//   pages        - pointer to the start of all loaded pages, may be NULL.
+//   nCount       - number of |pages|, may be 0.
+//   image_object - handle to an image object.
+//   fileAccess   - file access handler which specifies the JPEG image file.
+//
+// Returns TRUE on success.
+//
+// The image object might already have an associated image, which is shared and
+// cached by the loaded pages. In that case, we need to clear the cached image
+// for all the loaded pages. Pass |pages| and page count (|nCount|) to this API
+// to clear the image cache. If the image is not previously shared, or NULL is a
+// valid |pages| value. This function loads the JPEG image inline, so the image
+// content is copied to the file. This allows |fileAccess| and its associated
+// data to be deleted after this function returns.
+DLLEXPORT FPDF_BOOL STDCALL
+FPDFImageObj_LoadJpegFileInline(FPDF_PAGE* pages,
+                                int nCount,
+                                FPDF_PAGEOBJECT image_object,
+                                FPDF_FILEACCESS* fileAccess);
+
 // Set the transform matrix of |image_object|.
 //
 //   image_object - handle to an image object.
@@ -233,6 +262,161 @@ DLLEXPORT FPDF_BOOL STDCALL FPDFImageObj_SetBitmap(FPDF_PAGE* pages,
                                                    int nCount,
                                                    FPDF_PAGEOBJECT image_object,
                                                    FPDF_BITMAP bitmap);
+
+// Create a new path object at an initial position.
+//
+//   x - initial horizontal position.
+//   y - initial vertical position.
+//
+// Returns a handle to a new path object.
+DLLEXPORT FPDF_PAGEOBJECT STDCALL FPDFPageObj_CreateNewPath(float x, float y);
+
+// Create a closed path consisting of a rectangle.
+//
+//   x - horizontal position for the left boundary of the rectangle.
+//   y - vertical position for the bottom boundary of the rectangle.
+//   w - width of the rectangle.
+//   h - height of the rectangle.
+//
+// Returns a handle to the new path object.
+DLLEXPORT FPDF_PAGEOBJECT STDCALL FPDFPageObj_CreateNewRect(float x,
+                                                            float y,
+                                                            float w,
+                                                            float h);
+
+// Set the stroke RGBA of a path. Range of values: 0 - 255.
+//
+// path   - the handle to the path object.
+// R      - the red component for the path stroke color.
+// G      - the green component for the path stroke color.
+// B      - the blue component for the path stroke color.
+// A      - the stroke alpha for the path.
+//
+// Returns TRUE on success.
+DLLEXPORT FPDF_BOOL FPDFPath_SetStrokeColor(FPDF_PAGEOBJECT path,
+                                            unsigned int R,
+                                            unsigned int G,
+                                            unsigned int B,
+                                            unsigned int A);
+
+// Set the stroke width of a path.
+//
+// path   - the handle to the path object.
+// width  - the width of the stroke.
+//
+// Returns TRUE on success
+DLLEXPORT FPDF_BOOL FPDFPath_SetStrokeWidth(FPDF_PAGEOBJECT path, float width);
+
+// Set the fill RGBA of a path. Range of values: 0 - 255.
+//
+// path   - the handle to the path object.
+// R      - the red component for the path fill color.
+// G      - the green component for the path fill color.
+// B      - the blue component for the path fill color.
+// A      - the fill alpha for the path.
+//
+// Returns TRUE on success.
+DLLEXPORT FPDF_BOOL FPDFPath_SetFillColor(FPDF_PAGEOBJECT path,
+                                          unsigned int R,
+                                          unsigned int G,
+                                          unsigned int B,
+                                          unsigned int A);
+
+// Move a path's current point.
+//
+// path   - the handle to the path object.
+// x      - the horizontal position of the new current point.
+// y      - the vertical position of the new current point.
+//
+// Note that no line will be created between the previous current point and the
+// new one.
+//
+// Returns TRUE on success
+DLLEXPORT FPDF_BOOL FPDFPath_MoveTo(FPDF_PAGEOBJECT path, float x, float y);
+
+// Add a line between the current point and a new point in the path.
+//
+// path   - the handle to the path object.
+// x      - the horizontal position of the new point.
+// y      - the vertical position of the new point.
+//
+// The path's current point is changed to (x, y).
+//
+// Returns TRUE on success
+DLLEXPORT FPDF_BOOL FPDFPath_LineTo(FPDF_PAGEOBJECT path, float x, float y);
+
+// Add a cubic Bezier curve to the given path, starting at the current point.
+//
+// path   - the handle to the path object.
+// x1     - the horizontal position of the first Bezier control point.
+// y1     - the vertical position of the first Bezier control point.
+// x2     - the horizontal position of the second Bezier control point.
+// y2     - the vertical position of the second Bezier control point.
+// x3     - the horizontal position of the ending point of the Bezier curve.
+// y3     - the vertical position of the ending point of the Bezier curve.
+//
+// Returns TRUE on success
+DLLEXPORT FPDF_BOOL FPDFPath_BezierTo(FPDF_PAGEOBJECT path,
+                                      float x1,
+                                      float y1,
+                                      float x2,
+                                      float y2,
+                                      float x3,
+                                      float y3);
+
+// Close the current subpath of a given path.
+//
+// path   - the handle to the path object.
+//
+// This will add a line between the current point and the initial point of the
+// subpath, thus terminating the current subpath.
+//
+// Returns TRUE on success
+DLLEXPORT FPDF_BOOL FPDFPath_Close(FPDF_PAGEOBJECT path);
+
+// Set the drawing mode of a path.
+//
+// path     - the handle to the path object.
+// fillmode - the filling mode to be set: 0 for no fill, 1 for alternate, 2 for
+// winding.
+// stroke   - a boolean specifying if the path should be stroked or not.
+//
+// Returns TRUE on success
+DLLEXPORT FPDF_BOOL FPDFPath_SetDrawMode(FPDF_PAGEOBJECT path,
+                                         int fillmode,
+                                         FPDF_BOOL stroke);
+
+// Create a new text object using one of the standard PDF fonts.
+//
+// document   - handle to the document.
+// font       - string containing the font name, without spaces.
+// font_size  - the font size for the new text object.
+//
+// Returns a handle to a new text object, or NULL on failure
+DLLEXPORT FPDF_PAGEOBJECT STDCALL FPDFPageObj_NewTextObj(FPDF_DOCUMENT document,
+                                                         FPDF_BYTESTRING font,
+                                                         float font_size);
+
+// Set the text for a textobject. If it had text, it will be replaced.
+//
+// text_object  - handle to the text object.
+// text         - string containing the text to be added.
+//
+// Returns TRUE on success
+DLLEXPORT FPDF_BOOL STDCALL FPDFText_SetText(FPDF_PAGEOBJECT text_object,
+                                             FPDF_BYTESTRING text);
+
+// Returns a type 1 font object loaded from a stream of data. The font is loaded
+// into the document. The caller does not need to free the returned object.
+//
+// document - handle to the document.
+// data     - the stream of data, which will be copied by the font object.
+// size     - size of the stream, in bytes.
+//
+// Returns NULL on failure
+DLLEXPORT FPDF_FONT STDCALL FPDFText_LoadType1Font(FPDF_DOCUMENT document,
+                                                   const uint8_t* data,
+                                                   uint32_t size);
 
 #ifdef __cplusplus
 }  // extern "C"

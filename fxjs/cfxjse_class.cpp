@@ -4,10 +4,12 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "fxjs/include/cfxjse_class.h"
+#include "fxjs/cfxjse_class.h"
 
-#include "fxjs/include/cfxjse_context.h"
-#include "fxjs/include/cfxjse_value.h"
+#include <memory>
+
+#include "fxjs/cfxjse_context.h"
+#include "fxjs/cfxjse_value.h"
 
 namespace {
 
@@ -151,7 +153,7 @@ void DynPropGetterAdapter(const FXJSE_CLASS_DESCRIPTOR* lpClass,
   int32_t nPropType =
       lpClass->dynPropTypeGetter == nullptr
           ? FXJSE_ClassPropType_Property
-          : lpClass->dynPropTypeGetter(pObject, szPropName, FALSE);
+          : lpClass->dynPropTypeGetter(pObject, szPropName, false);
   if (nPropType == FXJSE_ClassPropType_Property) {
     if (lpClass->dynPropGetter)
       lpClass->dynPropGetter(pObject, szPropName, pValue);
@@ -187,38 +189,38 @@ void DynPropSetterAdapter(const FXJSE_CLASS_DESCRIPTOR* lpClass,
   int32_t nPropType =
       lpClass->dynPropTypeGetter == nullptr
           ? FXJSE_ClassPropType_Property
-          : lpClass->dynPropTypeGetter(pObject, szPropName, FALSE);
+          : lpClass->dynPropTypeGetter(pObject, szPropName, false);
   if (nPropType != FXJSE_ClassPropType_Method) {
     if (lpClass->dynPropSetter)
       lpClass->dynPropSetter(pObject, szPropName, pValue);
   }
 }
 
-FX_BOOL DynPropQueryAdapter(const FXJSE_CLASS_DESCRIPTOR* lpClass,
-                            CFXJSE_Value* pObject,
-                            const CFX_ByteStringC& szPropName) {
+bool DynPropQueryAdapter(const FXJSE_CLASS_DESCRIPTOR* lpClass,
+                         CFXJSE_Value* pObject,
+                         const CFX_ByteStringC& szPropName) {
   ASSERT(lpClass);
   int32_t nPropType =
       lpClass->dynPropTypeGetter == nullptr
           ? FXJSE_ClassPropType_Property
-          : lpClass->dynPropTypeGetter(pObject, szPropName, TRUE);
+          : lpClass->dynPropTypeGetter(pObject, szPropName, true);
   return nPropType != FXJSE_ClassPropType_None;
 }
 
-FX_BOOL DynPropDeleterAdapter(const FXJSE_CLASS_DESCRIPTOR* lpClass,
-                              CFXJSE_Value* pObject,
-                              const CFX_ByteStringC& szPropName) {
+bool DynPropDeleterAdapter(const FXJSE_CLASS_DESCRIPTOR* lpClass,
+                           CFXJSE_Value* pObject,
+                           const CFX_ByteStringC& szPropName) {
   ASSERT(lpClass);
   int32_t nPropType =
       lpClass->dynPropTypeGetter == nullptr
           ? FXJSE_ClassPropType_Property
-          : lpClass->dynPropTypeGetter(pObject, szPropName, FALSE);
+          : lpClass->dynPropTypeGetter(pObject, szPropName, false);
   if (nPropType != FXJSE_ClassPropType_Method) {
     if (lpClass->dynPropDeleter)
       return lpClass->dynPropDeleter(pObject, szPropName);
-    return nPropType == FXJSE_ClassPropType_Property ? FALSE : TRUE;
+    return nPropType != FXJSE_ClassPropType_Property;
   }
-  return FALSE;
+  return false;
 }
 
 void NamedPropertyQueryCallback(
@@ -289,9 +291,10 @@ void NamedPropertySetterCallback(
       new CFXJSE_Value(info.GetIsolate()));
   lpThisValue->ForceSetValue(thisObject);
 
-  CFXJSE_Value* lpNewValue = new CFXJSE_Value(info.GetIsolate());
+  std::unique_ptr<CFXJSE_Value> lpNewValue(new CFXJSE_Value(info.GetIsolate()));
   lpNewValue->ForceSetValue(value);
-  DynPropSetterAdapter(lpClass, lpThisValue.get(), szFxPropName, lpNewValue);
+  DynPropSetterAdapter(lpClass, lpThisValue.get(), szFxPropName,
+                       lpNewValue.get());
   info.GetReturnValue().Set(value);
 }
 
@@ -314,7 +317,7 @@ void NamedPropertyEnumeratorCallback(
 CFXJSE_Class* CFXJSE_Class::Create(
     CFXJSE_Context* lpContext,
     const FXJSE_CLASS_DESCRIPTOR* lpClassDefinition,
-    FX_BOOL bIsJSGlobal) {
+    bool bIsJSGlobal) {
   if (!lpContext || !lpClassDefinition)
     return nullptr;
 

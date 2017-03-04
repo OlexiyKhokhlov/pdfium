@@ -7,37 +7,35 @@
 #ifndef FPDFSDK_JAVASCRIPT_IJS_RUNTIME_H_
 #define FPDFSDK_JAVASCRIPT_IJS_RUNTIME_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/fx_system.h"
 
 #ifdef PDF_ENABLE_XFA
-#include "fxjs/include/fxjse.h"
+#include "fxjs/fxjse.h"
 #endif  // PDF_ENABLE_XFA
 
-class CPDFDoc_Environment;
-class CPDFSDK_Document;
-class IJS_Context;
+class CPDFSDK_FormFillEnvironment;
+class IJS_EventContext;
 
 // Owns the FJXS objects needed to actually execute JS.
 class IJS_Runtime {
  public:
   static void Initialize(unsigned int slot, void* isolate);
   static void Destroy();
-  static IJS_Runtime* Create(CPDFDoc_Environment* pEnv);
+  static IJS_Runtime* Create(CPDFSDK_FormFillEnvironment* pFormFillEnv);
   virtual ~IJS_Runtime() {}
 
-  virtual IJS_Context* NewContext() = 0;
-  virtual void ReleaseContext(IJS_Context* pContext) = 0;
-  virtual IJS_Context* GetCurrentContext() = 0;
-  virtual void SetReaderDocument(CPDFSDK_Document* pReaderDoc) = 0;
-  virtual CPDFSDK_Document* GetReaderDocument() = 0;
-  virtual int Execute(const CFX_WideString& script, CFX_WideString* info) = 0;
+  virtual IJS_EventContext* NewEventContext() = 0;
+  virtual void ReleaseEventContext(IJS_EventContext* pContext) = 0;
+  virtual CPDFSDK_FormFillEnvironment* GetFormFillEnv() const = 0;
+  virtual int ExecuteScript(const CFX_WideString& script,
+                            CFX_WideString* info) = 0;
 
 #ifdef PDF_ENABLE_XFA
-  virtual FX_BOOL GetValueByName(const CFX_ByteStringC& utf8Name,
-                                 CFXJSE_Value* pValue) = 0;
-  virtual FX_BOOL SetValueByName(const CFX_ByteStringC& utf8Name,
-                                 CFXJSE_Value* pValue) = 0;
+  virtual bool GetValueByName(const CFX_ByteStringC& utf8Name,
+                              CFXJSE_Value* pValue) = 0;
+  virtual bool SetValueByName(const CFX_ByteStringC& utf8Name,
+                              CFXJSE_Value* pValue) = 0;
 #endif  // PDF_ENABLE_XFA
 
  protected:

@@ -7,7 +7,7 @@
 #ifndef CORE_FXCODEC_JBIG2_JBIG2_PAGE_H_
 #define CORE_FXCODEC_JBIG2_JBIG2_PAGE_H_
 
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 
 struct JBig2PageInfo {
   uint32_t m_dwWidth;
@@ -15,7 +15,7 @@ struct JBig2PageInfo {
   uint32_t m_dwResolutionX;
   uint32_t m_dwResolutionY;
   uint8_t m_cFlags;
-  FX_BOOL m_bIsStriped;
+  bool m_bIsStriped;
   uint16_t m_wMaxStripeSize;
 };
 

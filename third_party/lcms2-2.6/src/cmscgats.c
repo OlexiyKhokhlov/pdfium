@@ -150,23 +150,24 @@ typedef struct {
         SUBALLOCATOR   Allocator;             // String suballocator -- just to keep it fast
 
         // Parser state machine
-        SYMBOL         sy;                    // Current symbol
-        int            ch;                    // Current character
+        SYMBOL             sy;                // Current symbol
+        int                ch;                // Current character
 
-        int            inum;                  // integer value
-        cmsFloat64Number         dnum;                  // real value
+        cmsInt32Number     inum;              // integer value
+        cmsFloat64Number   dnum;              // real value
+
         char           id[MAXID];             // identifier
         char           str[MAXSTR];           // string
 
         // Allowed keywords & datasets. They have visibility on whole stream
-        KEYVALUE*     ValidKeywords;
-        KEYVALUE*     ValidSampleID;
+        KEYVALUE*      ValidKeywords;
+        KEYVALUE*      ValidSampleID;
 
         char*          Source;                // Points to loc. being parsed
-        int            lineno;                // line counter for error reporting
+        cmsInt32Number lineno;                // line counter for error reporting
 
         FILECTX*       FileStack[MAXINCLUDE]; // Stack of files being parsed
-        int            IncludeSP;             // Include Stack Pointer
+        cmsInt32Number IncludeSP;             // Include Stack Pointer
 
         char*          MemoryBlock;           // The stream if holded in memory
 
@@ -258,7 +259,7 @@ static PROPERTY PredefinedProperties[] = {
                                // needed.
 
         {"SAMPLE_BACKING",   WRITE_STRINGIFY},   // Identifies the backing material used behind the sample during
-                               // measurement. Allowed values are “black? “white? or {"na".
+                               // measurement. Allowed values are "black" "white" or "na".
 
         {"CHISQ_DOF",        WRITE_STRINGIFY},   // Degrees of freedom associated with the Chi squared statistic
 
@@ -274,7 +275,7 @@ static PROPERTY PredefinedProperties[] = {
                                // denote the use of filters such as none, D65, Red, Green or Blue.
 
        {"POLARIZATION",      WRITE_STRINGIFY},   // Identifies the use of a physical polarization filter during measurement. Allowed
-                               // values are {"yes? “white? “none?or “na?
+                               // values are "yes" "white" "none" or "na"
 
        {"WEIGHTING_FUNCTION", WRITE_PAIR},   // Indicates such functions as: the CIE standard observer functions used in the
                                // calculation of various data parameters (2 degree and 10 degree), CIE standard
@@ -568,8 +569,8 @@ void ReadReal(cmsIT8* it8, int inum)
     // Exponent, example 34.00E+20
     if (toupper(it8->ch) == 'E') {
 
-        int e;
-        int sgn;
+        cmsInt32Number e;
+        cmsInt32Number sgn;
 
         NextCh(it8); sgn = 1;
 
@@ -587,7 +588,7 @@ void ReadReal(cmsIT8* it8, int inum)
             e = 0;
             while (isdigit(it8->ch)) {
 
-                if ((cmsFloat64Number) e * 10L < INT_MAX)
+                if ((cmsFloat64Number) e * 10L < (cmsFloat64Number) +2147483647.0)
                     e = e * 10 + (it8->ch - '0');
 
                 NextCh(it8);
@@ -777,7 +778,7 @@ void InSymbol(cmsIT8* it8)
 
                 while (isdigit(it8->ch)) {
 
-                    if ((long) it8->inum * 10L > (long) INT_MAX) {
+                    if ((cmsFloat64Number) it8->inum * 10L > (cmsFloat64Number) +2147483647.0) {
                         ReadReal(it8, it8->inum);
                         it8->sy = SDNUM;
                         it8->dnum *= sign;

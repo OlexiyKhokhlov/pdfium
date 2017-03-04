@@ -32,35 +32,35 @@ struct JSGlobalData {
 
 class JSGlobalAlternate : public CJS_EmbedObj {
  public:
-  JSGlobalAlternate(CJS_Object* pJSObject);
+  explicit JSGlobalAlternate(CJS_Object* pJSObject);
   ~JSGlobalAlternate() override;
 
-  FX_BOOL setPersistent(IJS_Context* cc,
-                        const std::vector<CJS_Value>& params,
-                        CJS_Value& vRet,
-                        CFX_WideString& sError);
-  FX_BOOL QueryProperty(const FX_WCHAR* propname);
-  FX_BOOL DoProperty(IJS_Context* cc,
-                     const FX_WCHAR* propname,
-                     CJS_PropValue& vp,
+  bool setPersistent(CJS_Runtime* pRuntime,
+                     const std::vector<CJS_Value>& params,
+                     CJS_Value& vRet,
                      CFX_WideString& sError);
-  FX_BOOL DelProperty(IJS_Context* cc,
-                      const FX_WCHAR* propname,
-                      CFX_WideString& sError);
-  void Initial(CPDFDoc_Environment* pApp);
+  bool QueryProperty(const FX_WCHAR* propname);
+  bool DoProperty(CJS_Runtime* pRuntime,
+                  const FX_WCHAR* propname,
+                  CJS_PropValue& vp,
+                  CFX_WideString& sError);
+  bool DelProperty(CJS_Runtime* pRuntime,
+                   const FX_WCHAR* propname,
+                   CFX_WideString& sError);
+  void Initial(CPDFSDK_FormFillEnvironment* pFormFillEnv);
 
  private:
   void UpdateGlobalPersistentVariables();
-  void CommitGlobalPersisitentVariables(IJS_Context* cc);
+  void CommitGlobalPersisitentVariables(CJS_Runtime* pRuntime);
   void DestroyGlobalPersisitentVariables();
-  FX_BOOL SetGlobalVariables(const CFX_ByteString& propname,
-                             JS_GlobalDataType nType,
-                             double dData,
-                             bool bData,
-                             const CFX_ByteString& sData,
-                             v8::Local<v8::Object> pData,
-                             bool bDefaultPersistent);
-  void ObjectToArray(IJS_Context* cc,
+  bool SetGlobalVariables(const CFX_ByteString& propname,
+                          JS_GlobalDataType nType,
+                          double dData,
+                          bool bData,
+                          const CFX_ByteString& sData,
+                          v8::Local<v8::Object> pData,
+                          bool bDefaultPersistent);
+  void ObjectToArray(CJS_Runtime* pRuntime,
                      v8::Local<v8::Object> pObj,
                      CJS_GlobalVariableArray& array);
   void PutObjectProperty(v8::Local<v8::Object> obj, CJS_KeyValue* pData);
@@ -68,7 +68,7 @@ class JSGlobalAlternate : public CJS_EmbedObj {
   std::map<CFX_ByteString, JSGlobalData*> m_mapGlobal;
   CFX_WideString m_sFilePath;
   CJS_GlobalData* m_pGlobalData;
-  CPDFDoc_Environment* m_pApp;
+  CPDFSDK_FormFillEnvironment::ObservedPtr m_pFormFillEnv;
 };
 
 class CJS_Global : public CJS_Object {

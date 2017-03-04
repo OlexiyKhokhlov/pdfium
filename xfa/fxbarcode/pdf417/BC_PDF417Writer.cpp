@@ -29,19 +29,19 @@
 #include "xfa/fxbarcode/pdf417/BC_PDF417Writer.h"
 
 CBC_PDF417Writer::CBC_PDF417Writer() {
-  m_bFixedSize = FALSE;
+  m_bFixedSize = false;
 }
 CBC_PDF417Writer::~CBC_PDF417Writer() {
-  m_bTruncated = TRUE;
+  m_bTruncated = true;
 }
-FX_BOOL CBC_PDF417Writer::SetErrorCorrectionLevel(int32_t level) {
+bool CBC_PDF417Writer::SetErrorCorrectionLevel(int32_t level) {
   if (level < 0 || level > 8) {
-    return FALSE;
+    return false;
   }
   m_iCorrectLevel = level;
-  return TRUE;
+  return true;
 }
-void CBC_PDF417Writer::SetTruncated(FX_BOOL truncated) {
+void CBC_PDF417Writer::SetTruncated(bool truncated) {
   m_bTruncated = truncated;
 }
 uint8_t* CBC_PDF417Writer::Encode(const CFX_WideString& contents,
@@ -59,21 +59,22 @@ uint8_t* CBC_PDF417Writer::Encode(const CFX_WideString& contents,
     encoder.setDimensions(30, 1, row, row);
   }
   encoder.generateBarcodeLogic(contents, m_iCorrectLevel, e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   int32_t lineThickness = 2;
   int32_t aspectRatio = 4;
   CBC_BarcodeMatrix* barcodeMatrix = encoder.getBarcodeMatrix();
-  CFX_ByteArray originalScale;
+  CFX_ArrayTemplate<uint8_t> originalScale;
   originalScale.Copy(barcodeMatrix->getScaledMatrix(
       lineThickness, aspectRatio * lineThickness));
   int32_t width = outWidth;
   int32_t height = outHeight;
   outWidth = barcodeMatrix->getWidth();
   outHeight = barcodeMatrix->getHeight();
-  FX_BOOL rotated = FALSE;
+  bool rotated = false;
   if ((height > width) ^ (outWidth < outHeight)) {
     rotateArray(originalScale, outHeight, outWidth);
-    rotated = TRUE;
+    rotated = true;
     int32_t temp = outHeight;
     outHeight = outWidth;
     outWidth = temp;
@@ -101,10 +102,10 @@ uint8_t* CBC_PDF417Writer::Encode(const CFX_WideString& contents,
   FXSYS_memcpy(result, originalScale.GetData(), outHeight * outWidth);
   return result;
 }
-void CBC_PDF417Writer::rotateArray(CFX_ByteArray& bitarray,
+void CBC_PDF417Writer::rotateArray(CFX_ArrayTemplate<uint8_t>& bitarray,
                                    int32_t height,
                                    int32_t width) {
-  CFX_ByteArray temp;
+  CFX_ArrayTemplate<uint8_t> temp;
   temp.Copy(bitarray);
   for (int32_t ii = 0; ii < height; ii++) {
     int32_t inverseii = height - ii - 1;

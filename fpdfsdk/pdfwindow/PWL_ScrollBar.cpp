@@ -6,14 +6,10 @@
 
 #include "fpdfsdk/pdfwindow/PWL_ScrollBar.h"
 
-#include "core/fxge/include/fx_ge.h"
+#include "core/fxge/cfx_pathdata.h"
+#include "core/fxge/cfx_renderdevice.h"
 #include "fpdfsdk/pdfwindow/PWL_Utils.h"
 #include "fpdfsdk/pdfwindow/PWL_Wnd.h"
-
-#define IsFloatZero(f) ((f) < 0.0001 && (f) > -0.0001)
-#define IsFloatBigger(fa, fb) ((fa) > (fb) && !IsFloatZero((fa) - (fb)))
-#define IsFloatSmaller(fa, fb) ((fa) < (fb) && !IsFloatZero((fa) - (fb)))
-#define IsFloatEqual(fa, fb) IsFloatZero((fa) - (fb))
 
 PWL_FLOATRANGE::PWL_FLOATRANGE() {
   Default();
@@ -38,7 +34,7 @@ void PWL_FLOATRANGE::Set(FX_FLOAT min, FX_FLOAT max) {
   }
 }
 
-FX_BOOL PWL_FLOATRANGE::In(FX_FLOAT x) const {
+bool PWL_FLOATRANGE::In(FX_FLOAT x) const {
   return (IsFloatBigger(x, fMin) || IsFloatEqual(x, fMin)) &&
          (IsFloatSmaller(x, fMax) || IsFloatEqual(x, fMax));
 }
@@ -80,12 +76,12 @@ void PWL_SCROLL_PRIVATEDATA::SetBigStep(FX_FLOAT step) {
   fBigStep = step;
 }
 
-FX_BOOL PWL_SCROLL_PRIVATEDATA::SetPos(FX_FLOAT pos) {
+bool PWL_SCROLL_PRIVATEDATA::SetPos(FX_FLOAT pos) {
   if (ScrollRange.In(pos)) {
     fScrollPos = pos;
-    return TRUE;
+    return true;
   }
-  return FALSE;
+  return false;
 }
 
 void PWL_SCROLL_PRIVATEDATA::AddSmall() {
@@ -113,7 +109,7 @@ CPWL_SBButton::CPWL_SBButton(PWL_SCROLLBAR_TYPE eScrollBarType,
   m_eScrollBarType = eScrollBarType;
   m_eSBButtonType = eButtonType;
 
-  m_bMouseDown = FALSE;
+  m_bMouseDown = false;
 }
 
 CPWL_SBButton::~CPWL_SBButton() {}
@@ -141,18 +137,17 @@ void CPWL_SBButton::GetThisAppearanceStream(CFX_ByteTextBuf& sAppStream) {
 
   sAppStream << "q\n";
 
-  CFX_FloatPoint ptCenter = GetCenterPoint();
+  CFX_PointF ptCenter = GetCenterPoint();
 
   switch (m_eScrollBarType) {
     case SBT_HSCROLL:
       switch (m_eSBButtonType) {
         case PSBT_MIN: {
-          CFX_FloatPoint pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y);
-          CFX_FloatPoint pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y + PWL_TRIANGLE_HALFLEN);
-          CFX_FloatPoint pt3(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y - PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f, ptCenter.y);
+          CFX_PointF pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y + PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt3(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y - PWL_TRIANGLE_HALFLEN);
 
           if (rectWnd.right - rectWnd.left > PWL_TRIANGLE_HALFLEN * 2 &&
               rectWnd.top - rectWnd.bottom > PWL_TRIANGLE_HALFLEN) {
@@ -166,12 +161,11 @@ void CPWL_SBButton::GetThisAppearanceStream(CFX_ByteTextBuf& sAppStream) {
           }
         } break;
         case PSBT_MAX: {
-          CFX_FloatPoint pt1(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y);
-          CFX_FloatPoint pt2(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y + PWL_TRIANGLE_HALFLEN);
-          CFX_FloatPoint pt3(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y - PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt1(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f, ptCenter.y);
+          CFX_PointF pt2(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y + PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt3(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y - PWL_TRIANGLE_HALFLEN);
 
           if (rectWnd.right - rectWnd.left > PWL_TRIANGLE_HALFLEN * 2 &&
               rectWnd.top - rectWnd.bottom > PWL_TRIANGLE_HALFLEN) {
@@ -191,12 +185,11 @@ void CPWL_SBButton::GetThisAppearanceStream(CFX_ByteTextBuf& sAppStream) {
     case SBT_VSCROLL:
       switch (m_eSBButtonType) {
         case PSBT_MIN: {
-          CFX_FloatPoint pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN,
-                             ptCenter.y - PWL_TRIANGLE_HALFLEN * 0.5f);
-          CFX_FloatPoint pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN,
-                             ptCenter.y - PWL_TRIANGLE_HALFLEN * 0.5f);
-          CFX_FloatPoint pt3(ptCenter.x,
-                             ptCenter.y + PWL_TRIANGLE_HALFLEN * 0.5f);
+          CFX_PointF pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN,
+                         ptCenter.y - PWL_TRIANGLE_HALFLEN * 0.5f);
+          CFX_PointF pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN,
+                         ptCenter.y - PWL_TRIANGLE_HALFLEN * 0.5f);
+          CFX_PointF pt3(ptCenter.x, ptCenter.y + PWL_TRIANGLE_HALFLEN * 0.5f);
 
           if (rectWnd.right - rectWnd.left > PWL_TRIANGLE_HALFLEN * 2 &&
               rectWnd.top - rectWnd.bottom > PWL_TRIANGLE_HALFLEN) {
@@ -210,12 +203,11 @@ void CPWL_SBButton::GetThisAppearanceStream(CFX_ByteTextBuf& sAppStream) {
           }
         } break;
         case PSBT_MAX: {
-          CFX_FloatPoint pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN,
-                             ptCenter.y + PWL_TRIANGLE_HALFLEN * 0.5f);
-          CFX_FloatPoint pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN,
-                             ptCenter.y + PWL_TRIANGLE_HALFLEN * 0.5f);
-          CFX_FloatPoint pt3(ptCenter.x,
-                             ptCenter.y - PWL_TRIANGLE_HALFLEN * 0.5f);
+          CFX_PointF pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN,
+                         ptCenter.y + PWL_TRIANGLE_HALFLEN * 0.5f);
+          CFX_PointF pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN,
+                         ptCenter.y + PWL_TRIANGLE_HALFLEN * 0.5f);
+          CFX_PointF pt3(ptCenter.x, ptCenter.y - PWL_TRIANGLE_HALFLEN * 0.5f);
 
           if (rectWnd.right - rectWnd.left > PWL_TRIANGLE_HALFLEN * 2 &&
               rectWnd.top - rectWnd.bottom > PWL_TRIANGLE_HALFLEN) {
@@ -248,58 +240,50 @@ void CPWL_SBButton::DrawThisAppearance(CFX_RenderDevice* pDevice,
   if (rectWnd.IsEmpty())
     return;
 
-  CFX_FloatPoint ptCenter = GetCenterPoint();
-  int32_t nTransparancy = GetTransparency();
+  CFX_PointF ptCenter = GetCenterPoint();
+  int32_t nTransparency = GetTransparency();
 
   switch (m_eScrollBarType) {
     case SBT_HSCROLL:
       CPWL_Wnd::DrawThisAppearance(pDevice, pUser2Device);
       switch (m_eSBButtonType) {
         case PSBT_MIN: {
-          CFX_FloatPoint pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y);
-          CFX_FloatPoint pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y + PWL_TRIANGLE_HALFLEN);
-          CFX_FloatPoint pt3(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y - PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt1(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f, ptCenter.y);
+          CFX_PointF pt2(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y + PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt3(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y - PWL_TRIANGLE_HALFLEN);
 
           if (rectWnd.right - rectWnd.left > PWL_TRIANGLE_HALFLEN * 2 &&
               rectWnd.top - rectWnd.bottom > PWL_TRIANGLE_HALFLEN) {
             CFX_PathData path;
-
-            path.SetPointCount(4);
-            path.SetPoint(0, pt1.x, pt1.y, FXPT_MOVETO);
-            path.SetPoint(1, pt2.x, pt2.y, FXPT_LINETO);
-            path.SetPoint(2, pt3.x, pt3.y, FXPT_LINETO);
-            path.SetPoint(3, pt1.x, pt1.y, FXPT_LINETO);
+            path.AppendPoint(pt1, FXPT_TYPE::MoveTo, false);
+            path.AppendPoint(pt2, FXPT_TYPE::LineTo, false);
+            path.AppendPoint(pt3, FXPT_TYPE::LineTo, false);
+            path.AppendPoint(pt1, FXPT_TYPE::LineTo, false);
 
             pDevice->DrawPath(&path, pUser2Device, nullptr,
-                              CPWL_Utils::PWLColorToFXColor(
-                                  PWL_DEFAULT_BLACKCOLOR, nTransparancy),
+                              PWL_DEFAULT_BLACKCOLOR.ToFXColor(nTransparency),
                               0, FXFILL_ALTERNATE);
           }
         } break;
         case PSBT_MAX: {
-          CFX_FloatPoint pt1(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y);
-          CFX_FloatPoint pt2(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y + PWL_TRIANGLE_HALFLEN);
-          CFX_FloatPoint pt3(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
-                             ptCenter.y - PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt1(ptCenter.x + PWL_TRIANGLE_HALFLEN * 0.5f, ptCenter.y);
+          CFX_PointF pt2(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y + PWL_TRIANGLE_HALFLEN);
+          CFX_PointF pt3(ptCenter.x - PWL_TRIANGLE_HALFLEN * 0.5f,
+                         ptCenter.y - PWL_TRIANGLE_HALFLEN);
 
           if (rectWnd.right - rectWnd.left > PWL_TRIANGLE_HALFLEN * 2 &&
               rectWnd.top - rectWnd.bottom > PWL_TRIANGLE_HALFLEN) {
             CFX_PathData path;
-
-            path.SetPointCount(4);
-            path.SetPoint(0, pt1.x, pt1.y, FXPT_MOVETO);
-            path.SetPoint(1, pt2.x, pt2.y, FXPT_LINETO);
-            path.SetPoint(2, pt3.x, pt3.y, FXPT_LINETO);
-            path.SetPoint(3, pt1.x, pt1.y, FXPT_LINETO);
+            path.AppendPoint(pt1, FXPT_TYPE::MoveTo, false);
+            path.AppendPoint(pt2, FXPT_TYPE::LineTo, false);
+            path.AppendPoint(pt3, FXPT_TYPE::LineTo, false);
+            path.AppendPoint(pt1, FXPT_TYPE::LineTo, false);
 
             pDevice->DrawPath(&path, pUser2Device, nullptr,
-                              CPWL_Utils::PWLColorToFXColor(
-                                  PWL_DEFAULT_BLACKCOLOR, nTransparancy),
+                              PWL_DEFAULT_BLACKCOLOR.ToFXColor(nTransparency),
                               0, FXFILL_ALTERNATE);
           }
         } break;
@@ -313,13 +297,13 @@ void CPWL_SBButton::DrawThisAppearance(CFX_RenderDevice* pDevice,
           // draw border
           CFX_FloatRect rcDraw = rectWnd;
           CPWL_Utils::DrawStrokeRect(pDevice, pUser2Device, rcDraw,
-                                     ArgbEncode(nTransparancy, 100, 100, 100),
+                                     ArgbEncode(nTransparency, 100, 100, 100),
                                      0.0f);
 
           // draw inner border
           rcDraw = CPWL_Utils::DeflateRect(rectWnd, 0.5f);
           CPWL_Utils::DrawStrokeRect(pDevice, pUser2Device, rcDraw,
-                                     ArgbEncode(nTransparancy, 255, 255, 255),
+                                     ArgbEncode(nTransparency, 255, 255, 255),
                                      1.0f);
 
           // draw background
@@ -327,8 +311,8 @@ void CPWL_SBButton::DrawThisAppearance(CFX_RenderDevice* pDevice,
           rcDraw = CPWL_Utils::DeflateRect(rectWnd, 1.0f);
 
           if (IsEnabled())
-            CPWL_Utils::DrawShadow(pDevice, pUser2Device, TRUE, FALSE, rcDraw,
-                                   nTransparancy, 80, 220);
+            CPWL_Utils::DrawShadow(pDevice, pUser2Device, true, false, rcDraw,
+                                   nTransparency, 80, 220);
           else
             CPWL_Utils::DrawFillRect(pDevice, pUser2Device, rcDraw,
                                      ArgbEncode(255, 255, 255, 255));
@@ -338,42 +322,42 @@ void CPWL_SBButton::DrawThisAppearance(CFX_RenderDevice* pDevice,
           if (rectWnd.top - rectWnd.bottom > 6.0f) {
             FX_FLOAT fX = rectWnd.left + 1.5f;
             FX_FLOAT fY = rectWnd.bottom;
-            CFX_FloatPoint pts[7] = {CFX_FloatPoint(fX + 2.5f, fY + 4.0f),
-                                     CFX_FloatPoint(fX + 2.5f, fY + 3.0f),
-                                     CFX_FloatPoint(fX + 4.5f, fY + 5.0f),
-                                     CFX_FloatPoint(fX + 6.5f, fY + 3.0f),
-                                     CFX_FloatPoint(fX + 6.5f, fY + 4.0f),
-                                     CFX_FloatPoint(fX + 4.5f, fY + 6.0f),
-                                     CFX_FloatPoint(fX + 2.5f, fY + 4.0f)};
+            CFX_PointF pts[7] = {CFX_PointF(fX + 2.5f, fY + 4.0f),
+                                 CFX_PointF(fX + 2.5f, fY + 3.0f),
+                                 CFX_PointF(fX + 4.5f, fY + 5.0f),
+                                 CFX_PointF(fX + 6.5f, fY + 3.0f),
+                                 CFX_PointF(fX + 6.5f, fY + 4.0f),
+                                 CFX_PointF(fX + 4.5f, fY + 6.0f),
+                                 CFX_PointF(fX + 2.5f, fY + 4.0f)};
 
             if (IsEnabled())
               CPWL_Utils::DrawFillArea(
                   pDevice, pUser2Device, pts, 7,
-                  ArgbEncode(nTransparancy, 255, 255, 255));
+                  ArgbEncode(nTransparency, 255, 255, 255));
             else
-              CPWL_Utils::DrawFillArea(pDevice, pUser2Device, pts, 7,
-                                       CPWL_Utils::PWLColorToFXColor(
-                                           PWL_DEFAULT_HEAVYGRAYCOLOR, 255));
+              CPWL_Utils::DrawFillArea(
+                  pDevice, pUser2Device, pts, 7,
+                  PWL_DEFAULT_HEAVYGRAYCOLOR.ToFXColor(255));
           }
         } break;
         case PSBT_MAX: {
           // draw border
           CFX_FloatRect rcDraw = rectWnd;
           CPWL_Utils::DrawStrokeRect(pDevice, pUser2Device, rcDraw,
-                                     ArgbEncode(nTransparancy, 100, 100, 100),
+                                     ArgbEncode(nTransparency, 100, 100, 100),
                                      0.0f);
 
           // draw inner border
           rcDraw = CPWL_Utils::DeflateRect(rectWnd, 0.5f);
           CPWL_Utils::DrawStrokeRect(pDevice, pUser2Device, rcDraw,
-                                     ArgbEncode(nTransparancy, 255, 255, 255),
+                                     ArgbEncode(nTransparency, 255, 255, 255),
                                      1.0f);
 
           // draw background
           rcDraw = CPWL_Utils::DeflateRect(rectWnd, 1.0f);
           if (IsEnabled())
-            CPWL_Utils::DrawShadow(pDevice, pUser2Device, TRUE, FALSE, rcDraw,
-                                   nTransparancy, 80, 220);
+            CPWL_Utils::DrawShadow(pDevice, pUser2Device, true, false, rcDraw,
+                                   nTransparency, 80, 220);
           else
             CPWL_Utils::DrawFillRect(pDevice, pUser2Device, rcDraw,
                                      ArgbEncode(255, 255, 255, 255));
@@ -384,113 +368,112 @@ void CPWL_SBButton::DrawThisAppearance(CFX_RenderDevice* pDevice,
             FX_FLOAT fX = rectWnd.left + 1.5f;
             FX_FLOAT fY = rectWnd.bottom;
 
-            CFX_FloatPoint pts[7] = {CFX_FloatPoint(fX + 2.5f, fY + 5.0f),
-                                     CFX_FloatPoint(fX + 2.5f, fY + 6.0f),
-                                     CFX_FloatPoint(fX + 4.5f, fY + 4.0f),
-                                     CFX_FloatPoint(fX + 6.5f, fY + 6.0f),
-                                     CFX_FloatPoint(fX + 6.5f, fY + 5.0f),
-                                     CFX_FloatPoint(fX + 4.5f, fY + 3.0f),
-                                     CFX_FloatPoint(fX + 2.5f, fY + 5.0f)};
+            CFX_PointF pts[7] = {CFX_PointF(fX + 2.5f, fY + 5.0f),
+                                 CFX_PointF(fX + 2.5f, fY + 6.0f),
+                                 CFX_PointF(fX + 4.5f, fY + 4.0f),
+                                 CFX_PointF(fX + 6.5f, fY + 6.0f),
+                                 CFX_PointF(fX + 6.5f, fY + 5.0f),
+                                 CFX_PointF(fX + 4.5f, fY + 3.0f),
+                                 CFX_PointF(fX + 2.5f, fY + 5.0f)};
 
             if (IsEnabled())
               CPWL_Utils::DrawFillArea(
                   pDevice, pUser2Device, pts, 7,
-                  ArgbEncode(nTransparancy, 255, 255, 255));
+                  ArgbEncode(nTransparency, 255, 255, 255));
             else
-              CPWL_Utils::DrawFillArea(pDevice, pUser2Device, pts, 7,
-                                       CPWL_Utils::PWLColorToFXColor(
-                                           PWL_DEFAULT_HEAVYGRAYCOLOR, 255));
+              CPWL_Utils::DrawFillArea(
+                  pDevice, pUser2Device, pts, 7,
+                  PWL_DEFAULT_HEAVYGRAYCOLOR.ToFXColor(255));
           }
         } break;
         case PSBT_POS: {
           // draw border
           CFX_FloatRect rcDraw = rectWnd;
           CPWL_Utils::DrawStrokeRect(pDevice, pUser2Device, rcDraw,
-                                     ArgbEncode(nTransparancy, 100, 100, 100),
+                                     ArgbEncode(nTransparency, 100, 100, 100),
                                      0.0f);
 
           // draw inner border
           rcDraw = CPWL_Utils::DeflateRect(rectWnd, 0.5f);
           CPWL_Utils::DrawStrokeRect(pDevice, pUser2Device, rcDraw,
-                                     ArgbEncode(nTransparancy, 255, 255, 255),
+                                     ArgbEncode(nTransparency, 255, 255, 255),
                                      1.0f);
 
           if (IsEnabled()) {
             // draw shadow effect
 
-            CFX_FloatPoint ptTop =
-                CFX_FloatPoint(rectWnd.left, rectWnd.top - 1.0f);
-            CFX_FloatPoint ptBottom =
-                CFX_FloatPoint(rectWnd.left, rectWnd.bottom + 1.0f);
+            CFX_PointF ptTop = CFX_PointF(rectWnd.left, rectWnd.top - 1.0f);
+            CFX_PointF ptBottom =
+                CFX_PointF(rectWnd.left, rectWnd.bottom + 1.0f);
 
             ptTop.x += 1.5f;
             ptBottom.x += 1.5f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 210, 210, 210),
+                                       ArgbEncode(nTransparency, 210, 210, 210),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 220, 220, 220),
+                                       ArgbEncode(nTransparency, 220, 220, 220),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 240, 240, 240),
+                                       ArgbEncode(nTransparency, 240, 240, 240),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 240, 240, 240),
+                                       ArgbEncode(nTransparency, 240, 240, 240),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 210, 210, 210),
+                                       ArgbEncode(nTransparency, 210, 210, 210),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 180, 180, 180),
+                                       ArgbEncode(nTransparency, 180, 180, 180),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 150, 150, 150),
+                                       ArgbEncode(nTransparency, 150, 150, 150),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 150, 150, 150),
+                                       ArgbEncode(nTransparency, 150, 150, 150),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 180, 180, 180),
+                                       ArgbEncode(nTransparency, 180, 180, 180),
                                        1.0f);
 
             ptTop.x += 1.0f;
             ptBottom.x += 1.0f;
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptTop, ptBottom,
-                                       ArgbEncode(nTransparancy, 210, 210, 210),
+                                       ArgbEncode(nTransparency, 210, 210, 210),
                                        1.0f);
           } else {
             CPWL_Utils::DrawFillRect(pDevice, pUser2Device, rcDraw,
@@ -500,20 +483,19 @@ void CPWL_SBButton::DrawThisAppearance(CFX_RenderDevice* pDevice,
           // draw friction
 
           if (rectWnd.Height() > 8.0f) {
-            FX_COLORREF crStroke = ArgbEncode(nTransparancy, 120, 120, 120);
+            FX_COLORREF crStroke = ArgbEncode(nTransparency, 120, 120, 120);
             if (!IsEnabled())
-              crStroke = CPWL_Utils::PWLColorToFXColor(
-                  PWL_DEFAULT_HEAVYGRAYCOLOR, 255);
+              crStroke = PWL_DEFAULT_HEAVYGRAYCOLOR.ToFXColor(255);
 
             FX_FLOAT nFrictionWidth = 5.0f;
             FX_FLOAT nFrictionHeight = 5.5f;
 
-            CFX_FloatPoint ptLeft =
-                CFX_FloatPoint(ptCenter.x - nFrictionWidth / 2.0f,
-                               ptCenter.y - nFrictionHeight / 2.0f + 0.5f);
-            CFX_FloatPoint ptRight =
-                CFX_FloatPoint(ptCenter.x + nFrictionWidth / 2.0f,
-                               ptCenter.y - nFrictionHeight / 2.0f + 0.5f);
+            CFX_PointF ptLeft =
+                CFX_PointF(ptCenter.x - nFrictionWidth / 2.0f,
+                           ptCenter.y - nFrictionHeight / 2.0f + 0.5f);
+            CFX_PointF ptRight =
+                CFX_PointF(ptCenter.x + nFrictionWidth / 2.0f,
+                           ptCenter.y - nFrictionHeight / 2.0f + 0.5f);
 
             CPWL_Utils::DrawStrokeLine(pDevice, pUser2Device, ptLeft, ptRight,
                                        crStroke, 1.0f);
@@ -540,41 +522,38 @@ void CPWL_SBButton::DrawThisAppearance(CFX_RenderDevice* pDevice,
   }
 }
 
-FX_BOOL CPWL_SBButton::OnLButtonDown(const CFX_FloatPoint& point,
-                                     uint32_t nFlag) {
+bool CPWL_SBButton::OnLButtonDown(const CFX_PointF& point, uint32_t nFlag) {
   CPWL_Wnd::OnLButtonDown(point, nFlag);
 
   if (CPWL_Wnd* pParent = GetParentWindow())
     pParent->OnNotify(this, PNM_LBUTTONDOWN, 0, (intptr_t)&point);
 
-  m_bMouseDown = TRUE;
+  m_bMouseDown = true;
   SetCapture();
 
-  return TRUE;
+  return true;
 }
 
-FX_BOOL CPWL_SBButton::OnLButtonUp(const CFX_FloatPoint& point,
-                                   uint32_t nFlag) {
+bool CPWL_SBButton::OnLButtonUp(const CFX_PointF& point, uint32_t nFlag) {
   CPWL_Wnd::OnLButtonUp(point, nFlag);
 
   if (CPWL_Wnd* pParent = GetParentWindow())
     pParent->OnNotify(this, PNM_LBUTTONUP, 0, (intptr_t)&point);
 
-  m_bMouseDown = FALSE;
+  m_bMouseDown = false;
   ReleaseCapture();
 
-  return TRUE;
+  return true;
 }
 
-FX_BOOL CPWL_SBButton::OnMouseMove(const CFX_FloatPoint& point,
-                                   uint32_t nFlag) {
+bool CPWL_SBButton::OnMouseMove(const CFX_PointF& point, uint32_t nFlag) {
   CPWL_Wnd::OnMouseMove(point, nFlag);
 
   if (CPWL_Wnd* pParent = GetParentWindow()) {
     pParent->OnNotify(this, PNM_MOUSEMOVE, 0, (intptr_t)&point);
   }
 
-  return TRUE;
+  return true;
 }
 
 CPWL_ScrollBar::CPWL_ScrollBar(PWL_SCROLLBAR_TYPE sbType)
@@ -582,9 +561,9 @@ CPWL_ScrollBar::CPWL_ScrollBar(PWL_SCROLLBAR_TYPE sbType)
       m_pMinButton(nullptr),
       m_pMaxButton(nullptr),
       m_pPosButton(nullptr),
-      m_bMouseDown(FALSE),
-      m_bMinOrMax(FALSE),
-      m_bNotifyForever(TRUE) {}
+      m_bMouseDown(false),
+      m_bMinOrMax(false),
+      m_bNotifyForever(true) {}
 
 CPWL_ScrollBar::~CPWL_ScrollBar() {}
 
@@ -623,7 +602,7 @@ void CPWL_ScrollBar::RePosChildWnd() {
           rcMaxButton = CFX_FloatRect(rcClient.right - fBWidth, rcClient.bottom,
                                       rcClient.right, rcClient.top);
         } else {
-          SetVisible(FALSE);
+          SetVisible(false);
         }
       }
       break;
@@ -649,17 +628,17 @@ void CPWL_ScrollBar::RePosChildWnd() {
               CFX_FloatRect(rcClient.left, rcClient.bottom, rcClient.right,
                             rcClient.bottom + fBWidth);
         } else {
-          SetVisible(FALSE);
+          SetVisible(false);
         }
       }
       break;
   }
 
   if (m_pMinButton)
-    m_pMinButton->Move(rcMinButton, TRUE, FALSE);
+    m_pMinButton->Move(rcMinButton, true, false);
   if (m_pMaxButton)
-    m_pMaxButton->Move(rcMaxButton, TRUE, FALSE);
-  MovePosButton(FALSE);
+    m_pMaxButton->Move(rcMaxButton, true, false);
+  MovePosButton(false);
 }
 
 void CPWL_ScrollBar::GetThisAppearanceStream(CFX_ByteTextBuf& sAppStream) {
@@ -670,7 +649,7 @@ void CPWL_ScrollBar::GetThisAppearanceStream(CFX_ByteTextBuf& sAppStream) {
 
     sButton << "q\n";
     sButton << "0 w\n"
-            << CPWL_Utils::GetColorAppStream(GetBackgroundColor(), TRUE)
+            << CPWL_Utils::GetColorAppStream(GetBackgroundColor(), true)
                    .AsStringC();
     sButton << rectWnd.left << " " << rectWnd.bottom << " "
             << rectWnd.right - rectWnd.left << " "
@@ -690,20 +669,19 @@ void CPWL_ScrollBar::DrawThisAppearance(CFX_RenderDevice* pDevice,
 
     CPWL_Utils::DrawStrokeLine(
         pDevice, pUser2Device,
-        CFX_FloatPoint(rectWnd.left + 2.0f, rectWnd.top - 2.0f),
-        CFX_FloatPoint(rectWnd.left + 2.0f, rectWnd.bottom + 2.0f),
+        CFX_PointF(rectWnd.left + 2.0f, rectWnd.top - 2.0f),
+        CFX_PointF(rectWnd.left + 2.0f, rectWnd.bottom + 2.0f),
         ArgbEncode(GetTransparency(), 100, 100, 100), 1.0f);
 
     CPWL_Utils::DrawStrokeLine(
         pDevice, pUser2Device,
-        CFX_FloatPoint(rectWnd.right - 2.0f, rectWnd.top - 2.0f),
-        CFX_FloatPoint(rectWnd.right - 2.0f, rectWnd.bottom + 2.0f),
+        CFX_PointF(rectWnd.right - 2.0f, rectWnd.top - 2.0f),
+        CFX_PointF(rectWnd.right - 2.0f, rectWnd.bottom + 2.0f),
         ArgbEncode(GetTransparency(), 100, 100, 100), 1.0f);
   }
 }
 
-FX_BOOL CPWL_ScrollBar::OnLButtonDown(const CFX_FloatPoint& point,
-                                      uint32_t nFlag) {
+bool CPWL_ScrollBar::OnLButtonDown(const CFX_PointF& point, uint32_t nFlag) {
   CPWL_Wnd::OnLButtonDown(point, nFlag);
 
   if (HasFlag(PWS_AUTOTRANSPARENT)) {
@@ -742,37 +720,36 @@ FX_BOOL CPWL_ScrollBar::OnLButtonDown(const CFX_FloatPoint& point,
     rcMinArea.Normalize();
     rcMaxArea.Normalize();
 
-    if (rcMinArea.Contains(point.x, point.y)) {
+    if (rcMinArea.Contains(point)) {
       m_sData.SubBig();
-      MovePosButton(TRUE);
+      MovePosButton(true);
       NotifyScrollWindow();
     }
 
-    if (rcMaxArea.Contains(point.x, point.y)) {
+    if (rcMaxArea.Contains(point)) {
       m_sData.AddBig();
-      MovePosButton(TRUE);
+      MovePosButton(true);
       NotifyScrollWindow();
     }
   }
 
-  return TRUE;
+  return true;
 }
 
-FX_BOOL CPWL_ScrollBar::OnLButtonUp(const CFX_FloatPoint& point,
-                                    uint32_t nFlag) {
+bool CPWL_ScrollBar::OnLButtonUp(const CFX_PointF& point, uint32_t nFlag) {
   CPWL_Wnd::OnLButtonUp(point, nFlag);
 
   if (HasFlag(PWS_AUTOTRANSPARENT)) {
-    if (GetTransparency() != PWL_SCROLLBAR_TRANSPARANCY) {
-      SetTransparency(PWL_SCROLLBAR_TRANSPARANCY);
+    if (GetTransparency() != PWL_SCROLLBAR_TRANSPARENCY) {
+      SetTransparency(PWL_SCROLLBAR_TRANSPARENCY);
       InvalidateRect();
     }
   }
 
   EndTimer();
-  m_bMouseDown = FALSE;
+  m_bMouseDown = false;
 
-  return TRUE;
+  return true;
 }
 
 void CPWL_ScrollBar::OnNotify(CPWL_Wnd* pWnd,
@@ -784,53 +761,52 @@ void CPWL_ScrollBar::OnNotify(CPWL_Wnd* pWnd,
   switch (msg) {
     case PNM_LBUTTONDOWN:
       if (pWnd == m_pMinButton) {
-        OnMinButtonLBDown(*(CFX_FloatPoint*)lParam);
+        OnMinButtonLBDown(*(CFX_PointF*)lParam);
       }
 
       if (pWnd == m_pMaxButton) {
-        OnMaxButtonLBDown(*(CFX_FloatPoint*)lParam);
+        OnMaxButtonLBDown(*(CFX_PointF*)lParam);
       }
 
       if (pWnd == m_pPosButton) {
-        OnPosButtonLBDown(*(CFX_FloatPoint*)lParam);
+        OnPosButtonLBDown(*(CFX_PointF*)lParam);
       }
       break;
     case PNM_LBUTTONUP:
       if (pWnd == m_pMinButton) {
-        OnMinButtonLBUp(*(CFX_FloatPoint*)lParam);
+        OnMinButtonLBUp(*(CFX_PointF*)lParam);
       }
 
       if (pWnd == m_pMaxButton) {
-        OnMaxButtonLBUp(*(CFX_FloatPoint*)lParam);
+        OnMaxButtonLBUp(*(CFX_PointF*)lParam);
       }
 
       if (pWnd == m_pPosButton) {
-        OnPosButtonLBUp(*(CFX_FloatPoint*)lParam);
+        OnPosButtonLBUp(*(CFX_PointF*)lParam);
       }
       break;
     case PNM_MOUSEMOVE:
       if (pWnd == m_pMinButton) {
-        OnMinButtonMouseMove(*(CFX_FloatPoint*)lParam);
+        OnMinButtonMouseMove(*(CFX_PointF*)lParam);
       }
 
       if (pWnd == m_pMaxButton) {
-        OnMaxButtonMouseMove(*(CFX_FloatPoint*)lParam);
+        OnMaxButtonMouseMove(*(CFX_PointF*)lParam);
       }
 
       if (pWnd == m_pPosButton) {
-        OnPosButtonMouseMove(*(CFX_FloatPoint*)lParam);
+        OnPosButtonMouseMove(*(CFX_PointF*)lParam);
       }
       break;
     case PNM_SETSCROLLINFO: {
-      if (PWL_SCROLL_INFO* pInfo = (PWL_SCROLL_INFO*)lParam) {
-        if (FXSYS_memcmp(&m_OriginInfo, pInfo, sizeof(PWL_SCROLL_INFO)) != 0) {
-          m_OriginInfo = *pInfo;
-          FX_FLOAT fMax =
-              pInfo->fContentMax - pInfo->fContentMin - pInfo->fPlateWidth;
-          fMax = fMax > 0.0f ? fMax : 0.0f;
-          SetScrollRange(0, fMax, pInfo->fPlateWidth);
-          SetScrollStep(pInfo->fBigStep, pInfo->fSmallStep);
-        }
+      PWL_SCROLL_INFO* pInfo = reinterpret_cast<PWL_SCROLL_INFO*>(lParam);
+      if (pInfo && *pInfo != m_OriginInfo) {
+        m_OriginInfo = *pInfo;
+        FX_FLOAT fMax =
+            pInfo->fContentMax - pInfo->fContentMin - pInfo->fPlateWidth;
+        fMax = fMax > 0.0f ? fMax : 0.0f;
+        SetScrollRange(0, fMax, pInfo->fPlateWidth);
+        SetScrollStep(pInfo->fBigStep, pInfo->fSmallStep);
       }
     } break;
     case PNM_SETSCROLLPOS: {
@@ -869,7 +845,7 @@ void CPWL_ScrollBar::CreateButtons(const PWL_CREATEPARAM& cp) {
 
   if (!m_pPosButton) {
     m_pPosButton = new CPWL_SBButton(m_sbType, PSBT_POS);
-    m_pPosButton->SetVisible(FALSE);
+    m_pPosButton->SetVisible(false);
     m_pPosButton->Create(scp);
   }
 }
@@ -889,10 +865,10 @@ void CPWL_ScrollBar::SetScrollRange(FX_FLOAT fMin,
     m_sData.SetClientWidth(fClientWidth);
 
     if (IsFloatSmaller(m_sData.ScrollRange.GetWidth(), 0.0f)) {
-      m_pPosButton->SetVisible(FALSE);
+      m_pPosButton->SetVisible(false);
     } else {
-      m_pPosButton->SetVisible(TRUE);
-      MovePosButton(TRUE);
+      m_pPosButton->SetVisible(true);
+      MovePosButton(true);
     }
   }
 }
@@ -903,7 +879,7 @@ void CPWL_ScrollBar::SetScrollPos(FX_FLOAT fPos) {
   m_sData.SetPos(fPos);
 
   if (!IsFloatEqual(m_sData.fScrollPos, fOldPos))
-    MovePosButton(TRUE);
+    MovePosButton(true);
 }
 
 void CPWL_ScrollBar::SetScrollStep(FX_FLOAT fBigStep, FX_FLOAT fSmallStep) {
@@ -911,7 +887,7 @@ void CPWL_ScrollBar::SetScrollStep(FX_FLOAT fBigStep, FX_FLOAT fSmallStep) {
   m_sData.SetSmallStep(fSmallStep);
 }
 
-void CPWL_ScrollBar::MovePosButton(FX_BOOL bRefresh) {
+void CPWL_ScrollBar::MovePosButton(bool bRefresh) {
   ASSERT(m_pMinButton);
   ASSERT(m_pMaxButton);
 
@@ -959,42 +935,42 @@ void CPWL_ScrollBar::MovePosButton(FX_BOOL bRefresh) {
         break;
     }
 
-    m_pPosButton->Move(rcPosButton, TRUE, bRefresh);
+    m_pPosButton->Move(rcPosButton, true, bRefresh);
   }
 }
 
-void CPWL_ScrollBar::OnMinButtonLBDown(const CFX_FloatPoint& point) {
+void CPWL_ScrollBar::OnMinButtonLBDown(const CFX_PointF& point) {
   m_sData.SubSmall();
-  MovePosButton(TRUE);
+  MovePosButton(true);
   NotifyScrollWindow();
 
-  m_bMinOrMax = TRUE;
+  m_bMinOrMax = true;
 
   EndTimer();
   BeginTimer(100);
 }
 
-void CPWL_ScrollBar::OnMinButtonLBUp(const CFX_FloatPoint& point) {}
+void CPWL_ScrollBar::OnMinButtonLBUp(const CFX_PointF& point) {}
 
-void CPWL_ScrollBar::OnMinButtonMouseMove(const CFX_FloatPoint& point) {}
+void CPWL_ScrollBar::OnMinButtonMouseMove(const CFX_PointF& point) {}
 
-void CPWL_ScrollBar::OnMaxButtonLBDown(const CFX_FloatPoint& point) {
+void CPWL_ScrollBar::OnMaxButtonLBDown(const CFX_PointF& point) {
   m_sData.AddSmall();
-  MovePosButton(TRUE);
+  MovePosButton(true);
   NotifyScrollWindow();
 
-  m_bMinOrMax = FALSE;
+  m_bMinOrMax = false;
 
   EndTimer();
   BeginTimer(100);
 }
 
-void CPWL_ScrollBar::OnMaxButtonLBUp(const CFX_FloatPoint& point) {}
+void CPWL_ScrollBar::OnMaxButtonLBUp(const CFX_PointF& point) {}
 
-void CPWL_ScrollBar::OnMaxButtonMouseMove(const CFX_FloatPoint& point) {}
+void CPWL_ScrollBar::OnMaxButtonMouseMove(const CFX_PointF& point) {}
 
-void CPWL_ScrollBar::OnPosButtonLBDown(const CFX_FloatPoint& point) {
-  m_bMouseDown = TRUE;
+void CPWL_ScrollBar::OnPosButtonLBDown(const CFX_PointF& point) {
+  m_bMouseDown = true;
 
   if (m_pPosButton) {
     CFX_FloatRect rcPosButton = m_pPosButton->GetWindowRect();
@@ -1012,15 +988,15 @@ void CPWL_ScrollBar::OnPosButtonLBDown(const CFX_FloatPoint& point) {
   }
 }
 
-void CPWL_ScrollBar::OnPosButtonLBUp(const CFX_FloatPoint& point) {
+void CPWL_ScrollBar::OnPosButtonLBUp(const CFX_PointF& point) {
   if (m_bMouseDown) {
     if (!m_bNotifyForever)
       NotifyScrollWindow();
   }
-  m_bMouseDown = FALSE;
+  m_bMouseDown = false;
 }
 
-void CPWL_ScrollBar::OnPosButtonMouseMove(const CFX_FloatPoint& point) {
+void CPWL_ScrollBar::OnPosButtonMouseMove(const CFX_PointF& point) {
   FX_FLOAT fOldScrollPos = m_sData.fScrollPos;
 
   FX_FLOAT fNewPos = 0;
@@ -1069,7 +1045,7 @@ void CPWL_ScrollBar::OnPosButtonMouseMove(const CFX_FloatPoint& point) {
     }
 
     if (!IsFloatEqual(fOldScrollPos, m_sData.fScrollPos)) {
-      MovePosButton(TRUE);
+      MovePosButton(true);
 
       if (m_bNotifyForever)
         NotifyScrollWindow();
@@ -1187,14 +1163,13 @@ void CPWL_ScrollBar::CreateChildWnd(const PWL_CREATEPARAM& cp) {
 
 void CPWL_ScrollBar::TimerProc() {
   PWL_SCROLL_PRIVATEDATA sTemp = m_sData;
-
   if (m_bMinOrMax)
     m_sData.SubSmall();
   else
     m_sData.AddSmall();
 
-  if (FXSYS_memcmp(&m_sData, &sTemp, sizeof(PWL_SCROLL_PRIVATEDATA)) != 0) {
-    MovePosButton(TRUE);
+  if (sTemp != m_sData) {
+    MovePosButton(true);
     NotifyScrollWindow();
   }
 }

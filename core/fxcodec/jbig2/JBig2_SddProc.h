@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "core/fxcodec/jbig2/JBig2_ArithDecoder.h"
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 
 class CJBig2_BitStream;
 class CJBig2_HuffmanTable;
@@ -30,8 +30,8 @@ class CJBig2_SDDProc {
                                     IFX_Pause* pPause);
 
  public:
-  FX_BOOL SDHUFF;
-  FX_BOOL SDREFAGG;
+  bool SDHUFF;
+  bool SDREFAGG;
   uint32_t SDNUMINSYMS;
   CJBig2_Image** SDINSYMS;
   uint32_t SDNUMNEWSYMS;
@@ -42,7 +42,7 @@ class CJBig2_SDDProc {
   CJBig2_HuffmanTable* SDHUFFAGGINST;
   uint8_t SDTEMPLATE;
   int8_t SDAT[8];
-  FX_BOOL SDRTEMPLATE;
+  bool SDRTEMPLATE;
   int8_t SDRAT[4];
 };
 

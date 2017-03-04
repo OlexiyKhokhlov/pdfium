@@ -44,9 +44,9 @@
 
 CBC_DataMatrixWriter::CBC_DataMatrixWriter() {}
 CBC_DataMatrixWriter::~CBC_DataMatrixWriter() {}
-FX_BOOL CBC_DataMatrixWriter::SetErrorCorrectionLevel(int32_t level) {
+bool CBC_DataMatrixWriter::SetErrorCorrectionLevel(int32_t level) {
   m_iCorrectLevel = level;
-  return TRUE;
+  return true;
 }
 uint8_t* CBC_DataMatrixWriter::Encode(const CFX_WideString& contents,
                                       int32_t& outWidth,
@@ -54,7 +54,7 @@ uint8_t* CBC_DataMatrixWriter::Encode(const CFX_WideString& contents,
                                       int32_t& e) {
   if (outWidth < 0 || outHeight < 0) {
     e = BCExceptionHeightAndWidthMustBeAtLeast1;
-    BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+    return nullptr;
   }
   CBC_SymbolShapeHint::SymbolShapeHint shape =
       CBC_SymbolShapeHint::FORCE_SQUARE;
@@ -63,20 +63,25 @@ uint8_t* CBC_DataMatrixWriter::Encode(const CFX_WideString& contents,
   CFX_WideString ecLevel;
   CFX_WideString encoded = CBC_HighLevelEncoder::encodeHighLevel(
       contents, ecLevel, shape, minSize, maxSize, e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   CBC_SymbolInfo* symbolInfo = CBC_SymbolInfo::lookup(
-      encoded.GetLength(), shape, minSize, maxSize, TRUE, e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+      encoded.GetLength(), shape, minSize, maxSize, true, e);
+  if (e != BCExceptionNO)
+    return nullptr;
   CFX_WideString codewords =
       CBC_ErrorCorrection::encodeECC200(encoded, symbolInfo, e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   CBC_DefaultPlacement* placement =
       new CBC_DefaultPlacement(codewords, symbolInfo->getSymbolDataWidth(e),
                                symbolInfo->getSymbolDataHeight(e));
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   placement->place();
   CBC_CommonByteMatrix* bytematrix = encodeLowLevel(placement, symbolInfo, e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   outWidth = bytematrix->GetWidth();
   outHeight = bytematrix->GetHeight();
   uint8_t* result = FX_Alloc2D(uint8_t, outWidth, outHeight);
@@ -90,12 +95,15 @@ CBC_CommonByteMatrix* CBC_DataMatrixWriter::encodeLowLevel(
     CBC_SymbolInfo* symbolInfo,
     int32_t& e) {
   int32_t symbolWidth = symbolInfo->getSymbolDataWidth(e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   int32_t symbolHeight = symbolInfo->getSymbolDataHeight(e);
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   CBC_CommonByteMatrix* matrix = new CBC_CommonByteMatrix(
       symbolInfo->getSymbolWidth(e), symbolInfo->getSymbolHeight(e));
-  BC_EXCEPTION_CHECK_ReturnValue(e, nullptr);
+  if (e != BCExceptionNO)
+    return nullptr;
   matrix->Init();
   int32_t matrixY = 0;
   for (int32_t y = 0; y < symbolHeight; y++) {
@@ -111,7 +119,7 @@ CBC_CommonByteMatrix* CBC_DataMatrixWriter::encodeLowLevel(
     matrixX = 0;
     for (int32_t x = 0; x < symbolWidth; x++) {
       if ((x % symbolInfo->m_matrixWidth) == 0) {
-        matrix->Set(matrixX, matrixY, TRUE);
+        matrix->Set(matrixX, matrixY, true);
         matrixX++;
       }
       matrix->Set(matrixX, matrixY, placement->getBit(x, y));
@@ -125,7 +133,7 @@ CBC_CommonByteMatrix* CBC_DataMatrixWriter::encodeLowLevel(
     if ((y % symbolInfo->m_matrixHeight) == symbolInfo->m_matrixHeight - 1) {
       matrixX = 0;
       for (int32_t x = 0; x < symbolInfo->getSymbolWidth(e); x++) {
-        matrix->Set(matrixX, matrixY, TRUE);
+        matrix->Set(matrixX, matrixY, true);
         matrixX++;
       }
       matrixY++;

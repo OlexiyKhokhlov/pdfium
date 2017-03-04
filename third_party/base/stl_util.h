@@ -6,6 +6,7 @@
 #define PDFIUM_THIRD_PARTY_BASE_STL_UTIL_H_
 
 #include <algorithm>
+#include <memory>
 #include <set>
 
 #include "third_party/base/numerics/safe_conversions.h"
@@ -27,11 +28,20 @@ bool ContainsValue(const Collection& collection, const Value& value) {
          collection.end();
 }
 
+// Means of generating a key for searching STL collections of std::unique_ptr
+// that avoids the side effect of deleting the pointer.
+template <class T>
+class FakeUniquePtr : public std::unique_ptr<T> {
+ public:
+  using std::unique_ptr<T>::unique_ptr;
+  ~FakeUniquePtr() { std::unique_ptr<T>::release(); }
+};
+
 // Convenience routine for "int-fected" code, so that the stl collection
 // size_t size() method return values will be checked.
 template <typename ResultType, typename Collection>
 ResultType CollectionSize(const Collection& collection) {
-  return pdfium::base::checked_cast<ResultType, size_t>(collection.size());
+  return pdfium::base::checked_cast<ResultType>(collection.size());
 }
 
 // Track the addition of an object to a set, removing it automatically when

@@ -4,7 +4,7 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fxcrt/include/fx_ext.h"
+#include "core/fxcrt/fx_ext.h"
 #include "xfa/fgas/crt/fgas_codepage.h"
 #include "xfa/fgas/crt/fgas_language.h"
 
@@ -380,7 +380,7 @@ int32_t FX_DecodeString(uint16_t wCodePage,
                         int32_t* pSrcLen,
                         FX_WCHAR* pDst,
                         int32_t* pDstLen,
-                        FX_BOOL bErrBreak) {
+                        bool bErrBreak) {
   if (wCodePage == FX_CODEPAGE_UTF8) {
     return FX_UTF8Decode(pSrc, pSrcLen, pDst, pDstLen);
   }
@@ -399,7 +399,7 @@ int32_t FX_UTF8Decode(const FX_CHAR* pSrc,
     return 1;
   }
   int32_t iDstLen = *pDstLen;
-  FX_BOOL bValidDst = (pDst && iDstLen > 0);
+  bool bValidDst = (pDst && iDstLen > 0);
   uint32_t dwCode = 0;
   int32_t iPending = 0;
   int32_t iSrcNum = 0, iDstNum = 0;

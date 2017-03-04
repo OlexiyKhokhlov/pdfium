@@ -7,8 +7,8 @@
 #ifndef XFA_FXFA_PARSER_CXFA_SUBMIT_H_
 #define XFA_FXFA_PARSER_CXFA_SUBMIT_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/fx_system.h"
 #include "xfa/fxfa/parser/cxfa_data.h"
 
 class CXFA_Node;
@@ -17,7 +17,7 @@ class CXFA_Submit : public CXFA_Data {
  public:
   explicit CXFA_Submit(CXFA_Node* pNode);
 
-  FX_BOOL IsSubmitEmbedPDF();
+  bool IsSubmitEmbedPDF();
   int32_t GetSubmitFormat();
   void GetSubmitTarget(CFX_WideStringC& wsTarget);
   void GetSubmitXDPContent(CFX_WideStringC& wsContent);

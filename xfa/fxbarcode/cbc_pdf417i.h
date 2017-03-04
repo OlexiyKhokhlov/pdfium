@@ -7,9 +7,9 @@
 #ifndef XFA_FXBARCODE_CBC_PDF417I_H_
 #define XFA_FXBARCODE_CBC_PDF417I_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "core/fxcrt/include/fx_system.h"
-#include "core/fxge/include/fx_dib.h"
+#include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/fx_dib.h"
 #include "xfa/fxbarcode/cbc_codebase.h"
 
 class CBC_PDF417I : public CBC_CodeBase {
@@ -18,17 +18,17 @@ class CBC_PDF417I : public CBC_CodeBase {
   ~CBC_PDF417I() override;
 
   // CBC_CodeBase::
-  FX_BOOL Encode(const CFX_WideStringC& contents,
-                 FX_BOOL isDevice,
-                 int32_t& e) override;
-  FX_BOOL RenderDevice(CFX_RenderDevice* device,
-                       const CFX_Matrix* matrix,
-                       int32_t& e) override;
-  FX_BOOL RenderBitmap(CFX_DIBitmap*& pOutBitmap, int32_t& e) override;
+  bool Encode(const CFX_WideStringC& contents,
+              bool isDevice,
+              int32_t& e) override;
+  bool RenderDevice(CFX_RenderDevice* device,
+                    const CFX_Matrix* matrix,
+                    int32_t& e) override;
+  bool RenderBitmap(CFX_DIBitmap*& pOutBitmap, int32_t& e) override;
   BC_TYPE GetType() override;
 
-  FX_BOOL SetErrorCorrectionLevel(int32_t level);
-  void SetTruncated(FX_BOOL truncated);
+  bool SetErrorCorrectionLevel(int32_t level);
+  void SetTruncated(bool truncated);
 };
 
 #endif  // XFA_FXBARCODE_CBC_PDF417I_H_

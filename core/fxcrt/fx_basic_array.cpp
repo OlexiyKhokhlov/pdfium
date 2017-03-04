@@ -4,7 +4,7 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fxcrt/include/fx_basic.h"
+#include "core/fxcrt/fx_basic.h"
 #include "third_party/base/numerics/safe_math.h"
 
 CFX_BasicArray::CFX_BasicArray(int unit_size)
@@ -18,7 +18,7 @@ CFX_BasicArray::CFX_BasicArray(int unit_size)
 CFX_BasicArray::~CFX_BasicArray() {
   FX_Free(m_pData);
 }
-FX_BOOL CFX_BasicArray::SetSize(int nNewSize) {
+bool CFX_BasicArray::SetSize(int nNewSize) {
   if (nNewSize <= 0) {
     FX_Free(m_pData);
     m_pData = nullptr;
@@ -31,9 +31,10 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize) {
     totalSize *= m_nUnitSize;
     if (!totalSize.IsValid()) {
       m_nSize = m_nMaxSize = 0;
-      return FALSE;
+      return false;
     }
-    m_pData = FX_Alloc(uint8_t, totalSize.ValueOrDie());
+    m_pData =
+        FX_Alloc(uint8_t, pdfium::base::ValueOrDieForType<size_t>(totalSize));
     m_nSize = m_nMaxSize = nNewSize;
   } else if (nNewSize <= m_nMaxSize) {
     if (nNewSize > m_nSize) {
@@ -46,11 +47,12 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize) {
     pdfium::base::CheckedNumeric<int> totalSize = nNewMax;
     totalSize *= m_nUnitSize;
     if (!totalSize.IsValid() || nNewMax < m_nSize) {
-      return FALSE;
+      return false;
     }
-    uint8_t* pNewData = FX_Realloc(uint8_t, m_pData, totalSize.ValueOrDie());
+    uint8_t* pNewData = FX_Realloc(
+        uint8_t, m_pData, pdfium::base::ValueOrDieForType<size_t>(totalSize));
     if (!pNewData) {
-      return FALSE;
+      return false;
     }
     FXSYS_memset(pNewData + m_nSize * m_nUnitSize, 0,
                  (nNewMax - m_nSize) * m_nUnitSize);
@@ -58,27 +60,27 @@ FX_BOOL CFX_BasicArray::SetSize(int nNewSize) {
     m_nSize = nNewSize;
     m_nMaxSize = nNewMax;
   }
-  return TRUE;
+  return true;
 }
-FX_BOOL CFX_BasicArray::Append(const CFX_BasicArray& src) {
+bool CFX_BasicArray::Append(const CFX_BasicArray& src) {
   int nOldSize = m_nSize;
   pdfium::base::CheckedNumeric<int> newSize = m_nSize;
   newSize += src.m_nSize;
   if (m_nUnitSize != src.m_nUnitSize || !newSize.IsValid() ||
       !SetSize(newSize.ValueOrDie())) {
-    return FALSE;
+    return false;
   }
 
   FXSYS_memcpy(m_pData + nOldSize * m_nUnitSize, src.m_pData,
                src.m_nSize * m_nUnitSize);
-  return TRUE;
+  return true;
 }
-FX_BOOL CFX_BasicArray::Copy(const CFX_BasicArray& src) {
+bool CFX_BasicArray::Copy(const CFX_BasicArray& src) {
   if (!SetSize(src.m_nSize)) {
-    return FALSE;
+    return false;
   }
   FXSYS_memcpy(m_pData, src.m_pData, src.m_nSize * m_nUnitSize);
-  return TRUE;
+  return true;
 }
 uint8_t* CFX_BasicArray::InsertSpaceAt(int nIndex, int nCount) {
   if (nIndex < 0 || nCount <= 0) {
@@ -100,9 +102,9 @@ uint8_t* CFX_BasicArray::InsertSpaceAt(int nIndex, int nCount) {
   }
   return m_pData + nIndex * m_nUnitSize;
 }
-FX_BOOL CFX_BasicArray::RemoveAt(int nIndex, int nCount) {
+bool CFX_BasicArray::RemoveAt(int nIndex, int nCount) {
   if (nIndex < 0 || nCount <= 0 || m_nSize < nIndex + nCount) {
-    return FALSE;
+    return false;
   }
   int nMoveCount = m_nSize - (nIndex + nCount);
   if (nMoveCount) {
@@ -111,22 +113,22 @@ FX_BOOL CFX_BasicArray::RemoveAt(int nIndex, int nCount) {
                   nMoveCount * m_nUnitSize);
   }
   m_nSize -= nCount;
-  return TRUE;
+  return true;
 }
-FX_BOOL CFX_BasicArray::InsertAt(int nStartIndex,
-                                 const CFX_BasicArray* pNewArray) {
+bool CFX_BasicArray::InsertAt(int nStartIndex,
+                              const CFX_BasicArray* pNewArray) {
   if (!pNewArray) {
-    return FALSE;
+    return false;
   }
   if (pNewArray->m_nSize == 0) {
-    return TRUE;
+    return true;
   }
   if (!InsertSpaceAt(nStartIndex, pNewArray->m_nSize)) {
-    return FALSE;
+    return false;
   }
   FXSYS_memcpy(m_pData + nStartIndex * m_nUnitSize, pNewArray->m_pData,
                pNewArray->m_nSize * m_nUnitSize);
-  return TRUE;
+  return true;
 }
 const void* CFX_BasicArray::GetDataPtr(int index) const {
   if (index < 0 || index >= m_nSize || !m_pData) {

@@ -7,17 +7,19 @@
 #ifndef XFA_FXBARCODE_COMMON_REEDSOLOMON_BC_REEDSOLOMON_H_
 #define XFA_FXBARCODE_COMMON_REEDSOLOMON_BC_REEDSOLOMON_H_
 
-#include "core/fxcrt/include/fx_basic.h"
+#include "core/fxcrt/fx_basic.h"
 
 class CBC_ReedSolomonGF256;
 class CBC_ReedSolomonGF256Poly;
 
 class CBC_ReedSolomonEncoder {
  public:
-  CBC_ReedSolomonEncoder(CBC_ReedSolomonGF256* field);
+  explicit CBC_ReedSolomonEncoder(CBC_ReedSolomonGF256* field);
   virtual ~CBC_ReedSolomonEncoder();
 
-  void Encode(CFX_Int32Array* toEncode, int32_t ecBytes, int32_t& e);
+  void Encode(CFX_ArrayTemplate<int32_t>* toEncode,
+              int32_t ecBytes,
+              int32_t& e);
   virtual void Init();
 
  private:

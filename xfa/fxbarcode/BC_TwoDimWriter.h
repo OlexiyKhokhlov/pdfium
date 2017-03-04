@@ -7,6 +7,8 @@
 #ifndef XFA_FXBARCODE_BC_TWODIMWRITER_H_
 #define XFA_FXBARCODE_BC_TWODIMWRITER_H_
 
+#include <memory>
+
 #include "xfa/fxbarcode/BC_Writer.h"
 
 class CBC_CommonBitMatrix;
@@ -24,13 +26,14 @@ class CBC_TwoDimWriter : public CBC_Writer {
   virtual void RenderBitmapResult(CFX_DIBitmap*& pOutBitmap, int32_t& e);
   virtual void RenderDeviceResult(CFX_RenderDevice* device,
                                   const CFX_Matrix* matrix);
-  virtual FX_BOOL SetErrorCorrectionLevel(int32_t level) = 0;
-  virtual int32_t GetErrorCorrectionLevel();
+  virtual bool SetErrorCorrectionLevel(int32_t level) = 0;
+
+  int32_t GetErrorCorrectionLevel() const;
 
  protected:
   int32_t m_iCorrectLevel;
-  FX_BOOL m_bFixedSize;
-  CBC_CommonBitMatrix* m_output;
+  bool m_bFixedSize;
+  std::unique_ptr<CBC_CommonBitMatrix> m_output;
 };
 
 #endif  // XFA_FXBARCODE_BC_TWODIMWRITER_H_

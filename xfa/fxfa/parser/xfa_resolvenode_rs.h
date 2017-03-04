@@ -7,8 +7,10 @@
 #ifndef XFA_FXFA_PARSER_XFA_RESOLVENODE_RS_H_
 #define XFA_FXFA_PARSER_XFA_RESOLVENODE_RS_H_
 
-#include "fxjs/include/cfxjse_value.h"
-#include "xfa/fxfa/include/fxfa.h"
+#include <memory>
+
+#include "fxjs/cfxjse_value.h"
+#include "xfa/fxfa/fxfa.h"
 #include "xfa/fxfa/parser/cxfa_valuearray.h"
 
 #define XFA_RESOLVENODE_Children 0x0001
@@ -47,7 +49,7 @@ struct XFA_RESOLVENODE_RS {
       for (int32_t i = 0; i < nodes.GetSize(); i++) {
         std::unique_ptr<CFXJSE_Value> pValue(new CFXJSE_Value(pIsolate));
         (nodes[i]->*(pScriptAttribute->lpfnCallback))(
-            pValue.get(), FALSE, (XFA_ATTRIBUTE)pScriptAttribute->eAttribute);
+            pValue.get(), false, (XFA_ATTRIBUTE)pScriptAttribute->eAttribute);
         valueArray.Add(pValue.release());
       }
     }

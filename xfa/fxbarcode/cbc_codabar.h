@@ -7,9 +7,9 @@
 #ifndef XFA_FXBARCODE_CBC_CODABAR_H_
 #define XFA_FXBARCODE_CBC_CODABAR_H_
 
-#include "core/fxcrt/include/fx_coordinates.h"
-#include "core/fxcrt/include/fx_system.h"
-#include "core/fxge/include/fx_dib.h"
+#include "core/fxcrt/fx_coordinates.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/fx_dib.h"
 #include "xfa/fxbarcode/cbc_onecode.h"
 
 class CBC_Codabar : public CBC_OneCode {
@@ -18,19 +18,19 @@ class CBC_Codabar : public CBC_OneCode {
   ~CBC_Codabar() override;
 
   // CBC_OneCode:
-  FX_BOOL Encode(const CFX_WideStringC& contents,
-                 FX_BOOL isDevice,
-                 int32_t& e) override;
-  FX_BOOL RenderDevice(CFX_RenderDevice* device,
-                       const CFX_Matrix* matrix,
-                       int32_t& e) override;
-  FX_BOOL RenderBitmap(CFX_DIBitmap*& pOutBitmap, int32_t& e) override;
+  bool Encode(const CFX_WideStringC& contents,
+              bool isDevice,
+              int32_t& e) override;
+  bool RenderDevice(CFX_RenderDevice* device,
+                    const CFX_Matrix* matrix,
+                    int32_t& e) override;
+  bool RenderBitmap(CFX_DIBitmap*& pOutBitmap, int32_t& e) override;
   BC_TYPE GetType() override;
 
-  FX_BOOL SetStartChar(FX_CHAR start);
-  FX_BOOL SetEndChar(FX_CHAR end);
-  FX_BOOL SetTextLocation(BC_TEXT_LOC location);
-  FX_BOOL SetWideNarrowRatio(int32_t ratio);
+  bool SetStartChar(FX_CHAR start);
+  bool SetEndChar(FX_CHAR end);
+  bool SetTextLocation(BC_TEXT_LOC location);
+  bool SetWideNarrowRatio(int32_t ratio);
 
  private:
   CFX_WideString m_renderContents;

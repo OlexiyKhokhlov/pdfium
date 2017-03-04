@@ -7,34 +7,24 @@
 #include "core/fxcodec/codec/ccodec_jbig2module.h"
 
 #include <list>
+#include <memory>
 
-#include "core/fpdfapi/fpdf_parser/include/cpdf_stream_acc.h"
+#include "core/fpdfapi/parser/cpdf_stream_acc.h"
+#include "core/fxcodec/JBig2_DocumentContext.h"
 #include "core/fxcodec/jbig2/JBig2_Context.h"
 #include "core/fxcodec/jbig2/JBig2_Image.h"
-#include "core/fxcrt/include/fx_memory.h"
+#include "core/fxcrt/fx_memory.h"
+#include "third_party/base/ptr_util.h"
 
-// Holds per-document JBig2 related data.
-class JBig2DocumentContext : public CFX_Deletable {
- public:
-  std::list<CJBig2_CachePair>* GetSymbolDictCache() {
-    return &m_SymbolDictCache;
-  }
+JBig2_DocumentContext::JBig2_DocumentContext() {}
 
-  ~JBig2DocumentContext() override {
-    for (auto it : m_SymbolDictCache) {
-      delete it.second;
-    }
-  }
+JBig2_DocumentContext::~JBig2_DocumentContext() {}
 
- private:
-  std::list<CJBig2_CachePair> m_SymbolDictCache;
-};
-
-JBig2DocumentContext* GetJBig2DocumentContext(
-    std::unique_ptr<CFX_Deletable>* pContextHolder) {
+JBig2_DocumentContext* GetJBig2DocumentContext(
+    std::unique_ptr<JBig2_DocumentContext>* pContextHolder) {
   if (!pContextHolder->get())
-    pContextHolder->reset(new JBig2DocumentContext());
-  return static_cast<JBig2DocumentContext*>(pContextHolder->get());
+    *pContextHolder = pdfium::MakeUnique<JBig2_DocumentContext>();
+  return pContextHolder->get();
 }
 
 CCodec_Jbig2Context::CCodec_Jbig2Context()
@@ -52,7 +42,7 @@ CCodec_Jbig2Module::~CCodec_Jbig2Module() {}
 
 FXCODEC_STATUS CCodec_Jbig2Module::StartDecode(
     CCodec_Jbig2Context* pJbig2Context,
-    std::unique_ptr<CFX_Deletable>* pContextHolder,
+    std::unique_ptr<JBig2_DocumentContext>* pContextHolder,
     uint32_t width,
     uint32_t height,
     CPDF_StreamAcc* src_stream,
@@ -63,7 +53,7 @@ FXCODEC_STATUS CCodec_Jbig2Module::StartDecode(
   if (!pJbig2Context)
     return FXCODEC_STATUS_ERR_PARAMS;
 
-  JBig2DocumentContext* pJBig2DocumentContext =
+  JBig2_DocumentContext* pJBig2DocumentContext =
       GetJBig2DocumentContext(pContextHolder);
   pJbig2Context->m_width = width;
   pJbig2Context->m_height = height;
@@ -73,9 +63,9 @@ FXCODEC_STATUS CCodec_Jbig2Module::StartDecode(
   pJbig2Context->m_dest_pitch = dest_pitch;
   pJbig2Context->m_pPause = pPause;
   FXSYS_memset(dest_buf, 0, height * dest_pitch);
-  pJbig2Context->m_pContext.reset(new CJBig2_Context(
+  pJbig2Context->m_pContext = pdfium::MakeUnique<CJBig2_Context>(
       global_stream, src_stream, pJBig2DocumentContext->GetSymbolDictCache(),
-      pPause, false));
+      pPause, false);
   if (!pJbig2Context->m_pContext)
     return FXCODEC_STATUS_ERROR;
 

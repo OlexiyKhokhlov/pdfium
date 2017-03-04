@@ -6,7 +6,9 @@
 
 #include "fpdfsdk/javascript/JS_GlobalData.h"
 
-#include "core/fdrm/crypto/include/fx_crypt.h"
+#include <utility>
+
+#include "core/fdrm/crypto/fx_crypt.h"
 #include "third_party/base/stl_util.h"
 
 #define JS_MAXGLOBALDATA (1024 * 4 - 8)
@@ -40,7 +42,8 @@ CJS_GlobalData* g_pInstance = nullptr;
 }  // namespace
 
 // static
-CJS_GlobalData* CJS_GlobalData::GetRetainedInstance(CPDFDoc_Environment* pApp) {
+CJS_GlobalData* CJS_GlobalData::GetRetainedInstance(
+    CPDFSDK_FormFillEnvironment* pApp) {
   if (!g_pInstance) {
     g_pInstance = new CJS_GlobalData();
   }
@@ -178,32 +181,31 @@ void CJS_GlobalData::SetGlobalVariableNull(const CFX_ByteString& propname) {
   m_arrayGlobalData.push_back(std::move(pNewData));
 }
 
-FX_BOOL CJS_GlobalData::SetGlobalVariablePersistent(
-    const CFX_ByteString& propname,
-    FX_BOOL bPersistent) {
+bool CJS_GlobalData::SetGlobalVariablePersistent(const CFX_ByteString& propname,
+                                                 bool bPersistent) {
   CFX_ByteString sPropName(propname);
   if (!TrimPropName(&sPropName))
-    return FALSE;
+    return false;
 
   CJS_GlobalData_Element* pData = GetGlobalVariable(sPropName);
   if (!pData)
-    return FALSE;
+    return false;
 
   pData->bPersistent = bPersistent;
-  return TRUE;
+  return true;
 }
 
-FX_BOOL CJS_GlobalData::DeleteGlobalVariable(const CFX_ByteString& propname) {
+bool CJS_GlobalData::DeleteGlobalVariable(const CFX_ByteString& propname) {
   CFX_ByteString sPropName(propname);
   if (!TrimPropName(&sPropName))
-    return FALSE;
+    return false;
 
   auto iter = FindGlobalVariable(sPropName);
   if (iter == m_arrayGlobalData.end())
-    return FALSE;
+    return false;
 
   m_arrayGlobalData.erase(iter);
-  return TRUE;
+  return true;
 }
 
 int32_t CJS_GlobalData::GetSize() const {
@@ -273,13 +275,13 @@ void CJS_GlobalData::LoadGlobalPersistentVariables() {
                 } break;
               }
               SetGlobalVariableNumber(sEntry, dData);
-              SetGlobalVariablePersistent(sEntry, TRUE);
+              SetGlobalVariablePersistent(sEntry, true);
             } break;
             case JS_GlobalDataType::BOOLEAN: {
               uint16_t wData = *((uint16_t*)p);
               p += sizeof(uint16_t);
               SetGlobalVariableBoolean(sEntry, (bool)(wData == 1));
-              SetGlobalVariablePersistent(sEntry, TRUE);
+              SetGlobalVariablePersistent(sEntry, true);
             } break;
             case JS_GlobalDataType::STRING: {
               uint32_t dwLength = *((uint32_t*)p);
@@ -289,12 +291,12 @@ void CJS_GlobalData::LoadGlobalPersistentVariables() {
                 break;
 
               SetGlobalVariableString(sEntry, CFX_ByteString(p, dwLength));
-              SetGlobalVariablePersistent(sEntry, TRUE);
+              SetGlobalVariablePersistent(sEntry, true);
               p += sizeof(char) * dwLength;
             } break;
             case JS_GlobalDataType::NULLOBJ: {
               SetGlobalVariableNull(sEntry);
-              SetGlobalVariablePersistent(sEntry, TRUE);
+              SetGlobalVariablePersistent(sEntry, true);
             }
             case JS_GlobalDataType::OBJECT:
               break;

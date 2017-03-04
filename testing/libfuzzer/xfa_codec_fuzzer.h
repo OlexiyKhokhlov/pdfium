@@ -7,20 +7,28 @@
 
 #include <memory>
 
-#include "core/fxcodec/codec/include/ccodec_progressivedecoder.h"
-#include "core/fxcodec/include/fx_codec.h"
-#include "core/fxcrt/include/fx_stream.h"
+#include "core/fxcodec/codec/ccodec_bmpmodule.h"
+#include "core/fxcodec/codec/ccodec_gifmodule.h"
+#include "core/fxcodec/codec/ccodec_pngmodule.h"
+#include "core/fxcodec/codec/ccodec_progressivedecoder.h"
+#include "core/fxcodec/codec/ccodec_tiffmodule.h"
+#include "core/fxcodec/fx_codec.h"
+#include "core/fxcrt/fx_stream.h"
+#include "third_party/base/ptr_util.h"
 
 class XFACodecFuzzer {
  public:
   static int Fuzz(const uint8_t* data, size_t size, FXCODEC_IMAGE_TYPE type) {
-    std::unique_ptr<CCodec_ModuleMgr> mgr(new CCodec_ModuleMgr());
-    std::unique_ptr<CCodec_ProgressiveDecoder> decoder(
-        mgr->CreateProgressiveDecoder());
-    Reader source(data, size);
+    auto mgr = pdfium::MakeUnique<CCodec_ModuleMgr>();
+    mgr->SetBmpModule(pdfium::MakeUnique<CCodec_BmpModule>());
+    mgr->SetGifModule(pdfium::MakeUnique<CCodec_GifModule>());
+    mgr->SetPngModule(pdfium::MakeUnique<CCodec_PngModule>());
+    mgr->SetTiffModule(pdfium::MakeUnique<CCodec_TiffModule>());
 
-    FXCODEC_STATUS status =
-        decoder->LoadImageInfo(&source, type, nullptr, true);
+    std::unique_ptr<CCodec_ProgressiveDecoder> decoder =
+        mgr->CreateProgressiveDecoder();
+    CFX_RetainPtr<Reader> source(new Reader(data, size));
+    FXCODEC_STATUS status = decoder->LoadImageInfo(source, type, nullptr, true);
     if (status != FXCODEC_STATUS_FRAME_READY)
       return 0;
 
@@ -41,18 +49,21 @@ class XFACodecFuzzer {
   }
 
  private:
-  class Reader : public IFX_FileRead {
+  class Reader : public IFX_SeekableReadStream {
    public:
     Reader(const uint8_t* data, size_t size) : m_data(data), m_size(size) {}
     ~Reader() {}
 
-    void Release() override {}
-
-    FX_BOOL ReadBlock(void* buffer, FX_FILESIZE offset, size_t size) override {
+    bool ReadBlock(void* buffer, FX_FILESIZE offset, size_t size) override {
+      if (offset < 0 || static_cast<size_t>(offset) >= m_size)
+        return false;
       if (offset + size > m_size)
         size = m_size - offset;
+      if (size == 0)
+        return false;
+
       memcpy(buffer, m_data + offset, size);
-      return TRUE;
+      return true;
     }
 
     FX_FILESIZE GetSize() override { return static_cast<FX_FILESIZE>(m_size); }

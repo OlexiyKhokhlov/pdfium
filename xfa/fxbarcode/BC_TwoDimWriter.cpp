@@ -6,20 +6,19 @@
 
 #include <algorithm>
 
-#include "core/fxge/include/fx_ge.h"
+#include "core/fxge/cfx_graphstatedata.h"
+#include "core/fxge/cfx_pathdata.h"
+#include "core/fxge/cfx_renderdevice.h"
 #include "third_party/base/numerics/safe_math.h"
+#include "third_party/base/ptr_util.h"
 #include "xfa/fxbarcode/BC_TwoDimWriter.h"
 #include "xfa/fxbarcode/BC_Writer.h"
 #include "xfa/fxbarcode/common/BC_CommonBitMatrix.h"
 
-CBC_TwoDimWriter::CBC_TwoDimWriter() {
-  m_iCorrectLevel = 1;
-  m_bFixedSize = TRUE;
-  m_output = nullptr;
-}
-CBC_TwoDimWriter::~CBC_TwoDimWriter() {
-  delete m_output;
-}
+CBC_TwoDimWriter::CBC_TwoDimWriter() : m_iCorrectLevel(1), m_bFixedSize(true) {}
+
+CBC_TwoDimWriter::~CBC_TwoDimWriter() {}
+
 void CBC_TwoDimWriter::RenderDeviceResult(CFX_RenderDevice* device,
                                           const CFX_Matrix* matrix) {
   CFX_GraphStateData stateData;
@@ -54,7 +53,7 @@ void CBC_TwoDimWriter::RenderDeviceResult(CFX_RenderDevice* device,
   }
 }
 
-int32_t CBC_TwoDimWriter::GetErrorCorrectionLevel() {
+int32_t CBC_TwoDimWriter::GetErrorCorrectionLevel() const {
   return m_iCorrectLevel;
 }
 
@@ -84,9 +83,10 @@ void CBC_TwoDimWriter::RenderBitmapResult(CFX_DIBitmap*& pOutBitmap,
     }
   }
   if (!m_bFixedSize) {
-    CFX_DIBitmap* pStretchBitmap = pOutBitmap->StretchTo(m_Width, m_Height);
+    std::unique_ptr<CFX_DIBitmap> pStretchBitmap =
+        pOutBitmap->StretchTo(m_Width, m_Height);
     delete pOutBitmap;
-    pOutBitmap = pStretchBitmap;
+    pOutBitmap = pStretchBitmap.release();
   }
 }
 
@@ -135,7 +135,7 @@ void CBC_TwoDimWriter::RenderResult(uint8_t* code,
   if (topPadding < 0) {
     topPadding = 0;
   }
-  m_output = new CBC_CommonBitMatrix;
+  m_output = pdfium::MakeUnique<CBC_CommonBitMatrix>();
   m_output->Init(outputWidth, outputHeight);
   for (int32_t inputY = 0, outputY = topPadding;
        (inputY < inputHeight) && (outputY < outputHeight - multiY);
@@ -145,7 +145,8 @@ void CBC_TwoDimWriter::RenderResult(uint8_t* code,
          inputX++, outputX += multiX) {
       if (code[inputX + inputY * inputWidth] == 1) {
         m_output->SetRegion(outputX, outputY, multiX, multiY, e);
-        BC_EXCEPTION_CHECK_ReturnVoid(e);
+        if (e != BCExceptionNO)
+          return;
       }
     }
   }

@@ -1,11 +1,5 @@
-
 /build/*
-/build/Debug
-/build/debug
-/build/Release
-/build/release
-/build/gyp
-
+/base
 /buildtools
 /out
 /testing/corpus
@@ -14,6 +8,7 @@
 /third_party/android_ndk
 /third_party/catapult
 /third_party/icu
+/third_party/instrumented_libraries
 /third_party/llvm
 /third_party/llvm-build
 /third_party/skia

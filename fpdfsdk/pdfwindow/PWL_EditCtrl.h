@@ -7,8 +7,10 @@
 #ifndef FPDFSDK_PDFWINDOW_PWL_EDITCTRL_H_
 #define FPDFSDK_PDFWINDOW_PWL_EDITCTRL_H_
 
-#include "core/fxcrt/include/fx_string.h"
-#include "fpdfsdk/fxedit/include/fx_edit.h"
+#include <memory>
+
+#include "core/fxcrt/fx_string.h"
+#include "fpdfsdk/fxedit/fx_edit.h"
 #include "fpdfsdk/pdfwindow/PWL_Wnd.h"
 
 class CFX_Edit;
@@ -32,7 +34,6 @@ class CPWL_EditCtrl : public CPWL_Wnd {
   ~CPWL_EditCtrl() override;
 
   CFX_FloatRect GetContentRect() const;
-  void GetCaretPos(int32_t& x, int32_t& y) const;
 
   CFX_WideString GetText() const;
   void SetSel(int32_t nStartChar, int32_t nEndChar);
@@ -50,9 +51,9 @@ class CPWL_EditCtrl : public CPWL_Wnd {
 
   void Paint();
 
-  void EnableRefresh(FX_BOOL bRefresh);
-  CFX_FloatPoint GetScrollPos() const;
-  void SetScrollPos(const CFX_FloatPoint& point);
+  void EnableRefresh(bool bRefresh);
+  CFX_PointF GetScrollPos() const;
+  void SetScrollPos(const CFX_PointF& point);
 
   void SetCharSet(uint8_t nCharSet) { m_nCharSet = nCharSet; }
   int32_t GetCharSet() const;
@@ -63,8 +64,8 @@ class CPWL_EditCtrl : public CPWL_Wnd {
   CPDF_Font* GetCaretFont() const;
   FX_FLOAT GetCaretFontSize() const;
 
-  FX_BOOL CanUndo() const;
-  FX_BOOL CanRedo() const;
+  bool CanUndo() const;
+  bool CanRedo() const;
   void Redo();
   void Undo();
 
@@ -73,11 +74,11 @@ class CPWL_EditCtrl : public CPWL_Wnd {
   // CPWL_Wnd
   void OnCreate(PWL_CREATEPARAM& cp) override;
   void OnCreated() override;
-  FX_BOOL OnKeyDown(uint16_t nChar, uint32_t nFlag) override;
-  FX_BOOL OnChar(uint16_t nChar, uint32_t nFlag) override;
-  FX_BOOL OnLButtonDown(const CFX_FloatPoint& point, uint32_t nFlag) override;
-  FX_BOOL OnLButtonUp(const CFX_FloatPoint& point, uint32_t nFlag) override;
-  FX_BOOL OnMouseMove(const CFX_FloatPoint& point, uint32_t nFlag) override;
+  bool OnKeyDown(uint16_t nChar, uint32_t nFlag) override;
+  bool OnChar(uint16_t nChar, uint32_t nFlag) override;
+  bool OnLButtonDown(const CFX_PointF& point, uint32_t nFlag) override;
+  bool OnLButtonUp(const CFX_PointF& point, uint32_t nFlag) override;
+  bool OnMouseMove(const CFX_PointF& point, uint32_t nFlag) override;
   void OnNotify(CPWL_Wnd* pWnd,
                 uint32_t msg,
                 intptr_t wParam = 0,
@@ -95,9 +96,9 @@ class CPWL_EditCtrl : public CPWL_Wnd {
                          FX_FLOAT fSmallStep,
                          FX_FLOAT fBigStep);
   void IOnSetScrollPosY(FX_FLOAT fy);
-  void IOnSetCaret(FX_BOOL bVisible,
-                   const CFX_FloatPoint& ptHead,
-                   const CFX_FloatPoint& ptFoot,
+  void IOnSetCaret(bool bVisible,
+                   const CFX_PointF& ptHead,
+                   const CFX_PointF& ptFoot,
                    const CPVT_WordPlace& place);
   void IOnCaretChange(const CPVT_SecProps& secProps,
                       const CPVT_WordProps& wordProps);
@@ -105,30 +106,30 @@ class CPWL_EditCtrl : public CPWL_Wnd {
   void IOnInvalidateRect(CFX_FloatRect* pRect);
 
  protected:
-  void InsertText(const FX_WCHAR* csText);
-  void SetText(const FX_WCHAR* csText);
+  void InsertText(const CFX_WideString& wsText);
+  void SetText(const CFX_WideString& wsText);
   void CopyText();
   void PasteText();
   void CutText();
-  void ShowVScrollBar(FX_BOOL bShow);
+  void ShowVScrollBar(bool bShow);
   void InsertWord(uint16_t word, int32_t nCharset);
   void InsertReturn();
 
-  FX_BOOL IsWndHorV();
+  bool IsWndHorV();
 
   void Delete();
   void Backspace();
 
-  void GetCaretInfo(CFX_FloatPoint& ptHead, CFX_FloatPoint& ptFoot) const;
-  void SetCaret(FX_BOOL bVisible,
-                const CFX_FloatPoint& ptHead,
-                const CFX_FloatPoint& ptFoot);
+  void GetCaretInfo(CFX_PointF* ptHead, CFX_PointF* ptFoot) const;
+  void SetCaret(bool bVisible,
+                const CFX_PointF& ptHead,
+                const CFX_PointF& ptFoot);
 
-  void SetEditCaret(FX_BOOL bVisible);
+  void SetEditCaret(bool bVisible);
 
   std::unique_ptr<CFX_Edit> m_pEdit;
   CPWL_Caret* m_pEditCaret;
-  FX_BOOL m_bMouseDown;
+  bool m_bMouseDown;
 
  private:
   void CreateEditCaret(const PWL_CREATEPARAM& cp);

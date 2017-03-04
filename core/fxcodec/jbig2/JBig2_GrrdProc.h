@@ -7,7 +7,7 @@
 #ifndef CORE_FXCODEC_JBIG2_JBIG2_GRRDPROC_H_
 #define CORE_FXCODEC_JBIG2_JBIG2_GRRDPROC_H_
 
-#include "core/fxcrt/include/fx_system.h"
+#include "core/fxcrt/fx_system.h"
 
 class CJBig2_ArithDecoder;
 class CJBig2_Image;
@@ -32,11 +32,11 @@ class CJBig2_GRRDProc {
 
   uint32_t GRW;
   uint32_t GRH;
-  FX_BOOL GRTEMPLATE;
+  bool GRTEMPLATE;
   CJBig2_Image* GRREFERENCE;
   int32_t GRREFERENCEDX;
   int32_t GRREFERENCEDY;
-  FX_BOOL TPGRON;
+  bool TPGRON;
   int8_t GRAT[4];
 };
 
