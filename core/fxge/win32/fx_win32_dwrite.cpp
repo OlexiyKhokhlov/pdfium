@@ -5,6 +5,8 @@
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include <dwrite.h>
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/ge/cfx_cliprgn.h"
 
 #ifndef __in
   #define __in
@@ -16,8 +18,6 @@
   #define __in_opt
 #endif
 
-#include "core/fxcrt/fx_system.h"
-#include "core/fxge/ge/cfx_cliprgn.h"
 #include "core/fxge/win32/dwrite_int.h"
 
 typedef HRESULT(__stdcall* FuncType_DWriteCreateFactory)(
