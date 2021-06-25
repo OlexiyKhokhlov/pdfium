@@ -14,6 +14,7 @@ FIND_PATH(OPENJPEG_INCLUDE_DIR openjpeg.h
 /usr/local/include
 /usr/include/openjpeg
 /usr/include/openjpeg-2.1
+/usr/include/openjpeg-2.4
 /usr/include
 )
 
