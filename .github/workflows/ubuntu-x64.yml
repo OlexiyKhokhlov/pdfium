@@ -1,0 +1,33 @@
+name: Ubuntu-x64
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Ubuntu64"
+        default: "World"
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+
+jobs:
+  Ubuntu-x64:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Install LIBS
+      run: sudo apt install -y  libfreetype6-dev libjpeg-turbo8-dev  liblcms2-dev
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: Configure CMake Debug
+      run: |
+        cmake -B ${{github.workspace}}/build-debug \
+        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build-Debug
+      run: cmake --build ${{github.workspace}}/build-debug --config ${{env.BUILD_TYPE}}

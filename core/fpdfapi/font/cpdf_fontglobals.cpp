@@ -93,23 +93,31 @@ void CPDF_FontGlobals::Clear(CPDF_Document* doc) {
 }
 
 void CPDF_FontGlobals::LoadEmbeddedGB1CMaps() {
+#ifdef USE_GB1_MAPS
   SetEmbeddedCharset(CIDSET_GB1, fxcmap::kGB1_cmaps);
   SetEmbeddedToUnicode(CIDSET_GB1, fxcmap::kGB1CID2Unicode_5);
+#endif
 }
 
 void CPDF_FontGlobals::LoadEmbeddedCNS1CMaps() {
+#ifdef USE_CNS1_MAPS
   SetEmbeddedCharset(CIDSET_CNS1, fxcmap::kCNS1_cmaps);
   SetEmbeddedToUnicode(CIDSET_CNS1, fxcmap::kCNS1CID2Unicode_5);
+#endif
 }
 
 void CPDF_FontGlobals::LoadEmbeddedJapan1CMaps() {
+#ifdef USE_JAPAN1_MAPS
   SetEmbeddedCharset(CIDSET_JAPAN1, fxcmap::kJapan1_cmaps);
   SetEmbeddedToUnicode(CIDSET_JAPAN1, fxcmap::kJapan1CID2Unicode_4);
+#endif
 }
 
 void CPDF_FontGlobals::LoadEmbeddedKorea1CMaps() {
+#ifdef USE_KOREA1_MAPS
   SetEmbeddedCharset(CIDSET_KOREA1, fxcmap::kKorea1_cmaps);
   SetEmbeddedToUnicode(CIDSET_KOREA1, fxcmap::kKorea1CID2Unicode_2);
+#endif
 }
 
 RetainPtr<const CPDF_CMap> CPDF_FontGlobals::GetPredefinedCMap(

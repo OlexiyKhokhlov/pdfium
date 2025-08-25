@@ -16,7 +16,7 @@
 #include "core/fxcrt/fx_system.h"
 #include "core/fxcrt/utf16.h"
 #include "core/fxcrt/widestring.h"
-#include "third_party/fast_float/src/include/fast_float/fast_float.h"
+#include <fast_float/fast_float.h>
 
 namespace {
 

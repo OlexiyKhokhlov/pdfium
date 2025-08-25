@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include <fast_float/fast_float.h>
 #include "build/build_config.h"
 #include "core/fxcrt/bytestring.h"
 #include "core/fxcrt/code_point_view.h"
@@ -20,7 +21,14 @@
 #include "core/fxcrt/span.h"
 #include "core/fxcrt/utf16.h"
 #include "core/fxcrt/widestring.h"
-#include "third_party/fast_float/src/include/fast_float/fast_float.h"
+
+#if defined(WCHAR_T_IS_UTF16)
+#define WCHAR_T_IS_16_BIT
+#endif
+
+#if defined(WCHAR_T_IS_UTF32)
+#define WCHAR_T_IS_32_BIT
+#endif
 
 #if !defined(WCHAR_T_IS_16_BIT) && !defined(WCHAR_T_IS_32_BIT)
 #error "Unknown wchar_t size"

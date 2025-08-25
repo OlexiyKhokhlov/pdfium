@@ -17,7 +17,6 @@
 #include "core/fxcrt/compiler_specific.h"
 #include "core/fxcrt/fx_memory_wrappers.h"
 #include "core/fxcrt/fx_safe_types.h"
-#include "third_party/abseil-cpp/absl/container/inlined_vector.h"
 
 namespace {
 
@@ -111,10 +110,8 @@ bool CPDF_SampledFunc::v_Init(const CPDF_Object* pObj, VisitedSet* pVisited) {
 bool CPDF_SampledFunc::v_Call(pdfium::span<const float> inputs,
                               pdfium::span<float> results) const {
   int pos = 0;
-  absl::InlinedVector<float, 16, FxAllocAllocator<float>> encoded_input_buf(
-      inputs_);
-  absl::InlinedVector<uint32_t, 32, FxAllocAllocator<uint32_t>> int_buf(
-      inputs_ * 2);
+  std::vector<float> encoded_input_buf(inputs_);
+  std::vector<uint32_t> int_buf(inputs_ * 2);
   UNSAFE_TODO({
     float* encoded_input = encoded_input_buf.data();
     uint32_t* index = int_buf.data();
