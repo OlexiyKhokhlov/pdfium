@@ -18,7 +18,11 @@
 #include "core/fxcrt/widestring.h"
 
 #if defined(USE_SYSTEM_ICUUC)
+#if defined(COMPILER_MSVC)
+#include <um/icu.h>
+#else
 #include <unicode/uchar.h>
+#endif
 #else
 #include "third_party/icu/source/common/unicode/uchar.h"
 #endif

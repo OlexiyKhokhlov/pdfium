@@ -9,24 +9,30 @@ on:
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Debug
+  BUILD_TYPE: Release
 
 jobs:
   Windows-x64:
-    runs-on: windows-latest
+    runs-on: Windows-2025
+    env:
+      VCVARS_PATH: C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat
 
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        submodules: true
 
     - name: Install deps
       run: |
-        cmake -DPDFIUM_BUILD_DIR=${{github.workspace}}/build-debug -P ${{github.workspace}}/.github/workflows/windows_deps.cmake
+        cmake -DPDFIUM_BUILD_DIR=${{github.workspace}}/build-release -P ${{github.workspace}}/.github/workflows/windows_deps.cmake
 
-    - name: Configure CMake Debug
+    - name: Configure CMake Release
+      shell: cmd
       run: |
-        cmake -B ${{github.workspace}}/build-debug -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        set
+        cmake -B ${{github.workspace}}/build-release -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DZLIB_USE_STATIC_LIBS=ON -DZLIB_ROOT=${{github.workspace}}/build-release/deps/ZLib/ZLib/1.3.1 -DFREETYPE_ROOT=${{github.workspace}}/build-release/deps/freetype-windows-binaries-2.13.3 -Dlibjpeg-turbo_DIR=c:/libjpeg-turbo64/lib/cmake/libjpeg-turbo -DUSE_TURBO_JPEG=ON -DUSE_SYSTEM_LCMS2=OFF
 
-    - name: Build-Debug
-      run: cmake --build ${{github.workspace}}/build-debug --config ${{env.BUILD_TYPE}}
+    - name: Build-Release
+      run: cmake --build ${{github.workspace}}/build-release --config ${{env.BUILD_TYPE}}

@@ -1,5 +1,6 @@
 [![Support Ukraine](https://img.shields.io/badge/Support-Ukraine-FFD500?style=flat&labelColor=005BBB)](https://opensource.facebook.com/support-ukraine)
 [![Ubuntu-x64](https://github.com/OlexiyKhokhlov/PDFium//actions/workflows/ubuntu-x64.yml/badge.svg)](https://github.com/OlexiyKhokhlov/PDFium//actions/workflows/ubuntu-x64.yml)
+[![Windows-x64](https://github.com/OlexiyKhokhlov/PDFium//actions/workflows/windows-x64.yml/badge.svg)](https://github.com/OlexiyKhokhlov/PDFium//actions/workflows/windows-x64.yml)
 
 # PDFium
 PDFium is an open-source project which was developed by Foxit and Google. Google is responsible for
@@ -28,4 +29,4 @@ which replaced codes that was previously closed source
 
 ## Current status
 
-Only Linux builds is supported. In the plans to add Windows, Android, MacOS
+Only Linux and Windows builds are supported. In the plans to add Android, MacOS

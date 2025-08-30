@@ -35,7 +35,7 @@ set(SOURCES
 )
 
 add_library(openjpeg STATIC ${SOURCES})
-target_compile_definitions(openjpeg PRIVATE OPJ_STATIC)
+target_compile_definitions(openjpeg PUBLIC OPJ_STATIC)
 target_include_directories(openjpeg PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set_target_properties(openjpeg PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

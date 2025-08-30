@@ -15,9 +15,16 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fvisibility=hidden -Wno-return-type")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+if(WIN32)
+    add_definitions(-DWIN32_LEAN_AND_MEAN -DNOMINMAX -DUNICODE)
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
+    # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fvisibility=hidden -Wno-return-type")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wl,-z,defs")
+endif()
 
 message(STATUS "System: " ${CMAKE_SYSTEM_NAME} " " ${CMAKE_SYSTEM_VERSION})
 message(STATUS "Processor: " ${CMAKE_HOST_SYSTEM_PROCESSOR})
@@ -28,12 +35,11 @@ message(STATUS "CMake generates: " ${CMAKE_GENERATOR})
 set(USE_STATIC_LIBRARY OFF CACHE BOOL "Build as static library. Otherwise - shared")
 
 #3dparty libraries
-set(USE_SYSTEM_ZLIB ON CACHE BOOL "Use system zlib")
 set(USE_SYSTEM_FREETYPE ON CACHE BOOL "Use system freetype")
-set(USE_SYSTEM_JPEG ON CACHE BOOL "Use system libjpeg")
 set(USE_SYSTEM_LCMS2 ON CACHE BOOL "Use system lcms2")
 set(USE_SYSTEM_OPENJPEG OFF CACHE BOOL "Use system openjpeg")
 set(USE_SYSTEM_FAST_FLOAT OFF CACHE BOOL "Use system fast_float")
+set(USE_TURBO_JPEG OFF CACHE BOOL "Use libjpeg-turbo instead of libjpeg")
 
 #hieroglyphs support
 set(USE_GB1_MAPS OFF CACHE BOOL "use GB1 maps")
@@ -41,15 +47,12 @@ set(USE_CNS1_MAPS OFF CACHE BOOL "use CNS1 maps")
 set(USE_JAPAN1_MAPS OFF CACHE BOOL "use JAPAN1 maps")
 set(USE_KOREA1_MAPS OFF CACHE BOOL "use KOREA1 maps")
 
-find_package(ICU COMPONENTS uc REQUIRED)
-add_definitions(-DUSE_SYSTEM_ICUUC)
-
 add_subdirectory(third_party/agg23)
 
 if(USE_SYSTEM_FAST_FLOAT)
     find_package(FastFloat 8.0.0 REQUIRED)
 else()
-    message(STATUS "Use fast_float lbrary from subrepo")
+    message(STATUS "Use fast_float library from subrepo")
     add_library(FastFloat::fast_float INTERFACE IMPORTED)
     set_target_properties(FastFloat::fast_float PROPERTIES
       INTERFACE_COMPILE_FEATURES "cxx_std_11"
@@ -67,24 +70,6 @@ if(USE_SYSTEM_FREETYPE)
 #   include_directories(third_party/freetype/include third_party/freetype/include/freetype)
 endif(USE_SYSTEM_FREETYPE)
 
-if(USE_SYSTEM_JPEG)
-  find_package(JPEG REQUIRED)
-  include_directories(${JPEG_INCLUDE_DIRS})
-  add_definitions(-DUSE_SYSTEM_JPEG)
-#   add_library(internal_jpeg OBJECT empty.c)
-# else(USE_SYSTEM_JPEG)
-#   add_subdirectory(third_party/libjpeg)
-endif(USE_SYSTEM_JPEG)
-
-if(USE_SYSTEM_ZLIB)
-  find_package(ZLIB REQUIRED)
-  include_directories(${ZLIB_INCLUDE_DIRS})
-  add_definitions(-DUSE_SYSTEM_ZLIB)
-#   add_library(internal_zlib OBJECT empty.c)
-# else(USE_SYSTEM_ZLIB)
-#   add_subdirectory(third_party/zlib_v128)
-endif(USE_SYSTEM_ZLIB)
-
 if(USE_SYSTEM_LCMS2)
   find_package(LCMS2 2.15 REQUIRED)
   include_directories(${LCMS2_INCLUDE_DIRS})
@@ -100,6 +85,28 @@ if(USE_SYSTEM_OPENJPEG)
 else(USE_SYSTEM_OPENJPEG)
    add_subdirectory(third_party/libopenjpeg)
 endif(USE_SYSTEM_OPENJPEG)
+
+if(USE_TURBO_JPEG)
+   find_package(libjpeg-turbo REQUIRED)
+   add_definitions(-DUSE_SYSTEM_JPEG)
+   add_library(JPEG::JPEG ALIAS libjpeg-turbo::jpeg)
+else()
+   find_package(JPEG REQUIRED)
+   add_definitions(-DUSE_SYSTEM_JPEG)
+endif()
+
+find_package(ZLIB REQUIRED)
+include_directories(${ZLIB_INCLUDE_DIRS})
+add_definitions(-DUSE_SYSTEM_ZLIB)
+
+if(WIN32)
+    # WA for ICU inlclude path. Under Windows it is a part of Windows SDK
+    set(ICU_INCLUDE_DIR $ENV{WindowsSdkDir}/Include/$ENV{WindowsSDKLibVersion})
+    message(STATUS "ICU_INCLUDE_DIR = ${ICU_INCLUDE_DIR}")
+endif()
+
+find_package(ICU COMPONENTS uc REQUIRED)
+add_definitions(-DUSE_SYSTEM_ICUUC)
 
 set(CONSTANTS_SOURCES
     constants/access_permissions.h
@@ -464,6 +471,16 @@ set(FPDFAPI_RENDER_SOURCES
     core/fpdfapi/render/cpdf_type3glyphmap.h
 )
 
+if(WIN32)
+    set(FPDFAPI_RENDER_SOURCES
+        ${FPDFAPI_RENDER_SOURCES}
+        core/fpdfapi/render/cpdf_scaledrenderbuffer.cpp
+        core/fpdfapi/render/cpdf_scaledrenderbuffer.h
+        core/fpdfapi/render/cpdf_windowsrenderdevice.cpp
+        core/fpdfapi/render/cpdf_windowsrenderdevice.h
+    )
+endif()
+
 set(FPDFDOC_SOURCES
     core/fpdfdoc/cpdf_aaction.cpp
     core/fpdfdoc/cpdf_aaction.h
@@ -732,11 +749,27 @@ set(FXCRT_SOURCES
     core/fxcrt/xml/cfx_xmltext.h
     core/fxcrt/zip.h
     core/fxcrt/fx_memory_malloc.cpp
-    #POSIX only
-    core/fxcrt/cfx_fileaccess_posix.cpp
-    core/fxcrt/cfx_fileaccess_posix.h
-    core/fxcrt/fx_folder_posix.cpp
 )
+
+if(WIN32)
+set(FXCRT_SOURCES
+    ${FXCRT_SOURCES}
+    core/fxcrt/cfx_fileaccess_windows.cpp
+    core/fxcrt/cfx_fileaccess_windows.h
+    #core/fxcrt/code_point_view.cpp
+    core/fxcrt/fx_folder_windows.cpp
+    core/fxcrt/win/scoped_select_object.h
+    core/fxcrt/win/win_util.cc
+    core/fxcrt/win/win_util.h
+)
+else()
+    set(FXCRT_SOURCES
+        ${FXCRT_SOURCES}
+        core/fxcrt/cfx_fileaccess_posix.cpp
+        core/fxcrt/cfx_fileaccess_posix.h
+        core/fxcrt/fx_folder_posix.cpp
+    )
+endif()
 
 set(FXGE_SOURCES
     core/fxge/agg/cfx_agg_bitmapcomposer.cpp
@@ -840,9 +873,43 @@ set(FXGE_SOURCES
     core/fxge/text_char_pos.h
     core/fxge/text_glyph_pos.cpp
     core/fxge/text_glyph_pos.h
-    # Linux specific
-    core/fxge/linux/fx_linux_impl.cpp
 )
+
+if(WIN32)
+    set(
+        FXGE_SOURCES
+        ${FXGE_SOURCES}
+        core/fxge/cfx_windowsrenderdevice.cpp
+        core/fxge/cfx_windowsrenderdevice.h
+        core/fxge/win32/cfx_psfonttracker.cpp
+        core/fxge/win32/cfx_psfonttracker.h
+        core/fxge/win32/cfx_psrenderer.cpp
+        core/fxge/win32/cfx_psrenderer.h
+        core/fxge/win32/cgdi_device_driver.cpp
+        core/fxge/win32/cgdi_device_driver.h
+        core/fxge/win32/cgdi_display_driver.cpp
+        core/fxge/win32/cgdi_display_driver.h
+        core/fxge/win32/cgdi_plus_ext.cpp
+        core/fxge/win32/cgdi_plus_ext.h
+        core/fxge/win32/cgdi_printer_driver.cpp
+        core/fxge/win32/cgdi_printer_driver.h
+        core/fxge/win32/cps_printer_driver.cpp
+        core/fxge/win32/cps_printer_driver.h
+        core/fxge/win32/cpsoutput.cpp
+        core/fxge/win32/cpsoutput.h
+        core/fxge/win32/ctext_only_printer_driver.cpp
+        core/fxge/win32/ctext_only_printer_driver.h
+        core/fxge/win32/cwin32_platform.cpp
+        core/fxge/win32/cwin32_platform.h
+    )
+else()
+    set(
+        FXGE_SOURCES
+        ${FXGE_SOURCES}
+        # Linux specific
+        core/fxge/linux/fx_linux_impl.cpp
+    )
+endif()
 
 set(FPDF_SDK_SOURCES
     fpdfsdk/cpdfsdk_annot.cpp
@@ -1042,13 +1109,22 @@ target_link_libraries(pdfium
 PRIVATE
     AGG::agg
     FastFloat::fast_float
-    ICU::uc
     JPEG::JPEG
     LCMS::lcms
     OpenJpeg::OpenJpeg
     ${ZLIB_LIBRARY}
     ${FREETYPE_LIBRARIES}
+    ICU::uc
 )
+
+if(WIN32)
+    target_link_libraries(pdfium
+        PRIVATE
+        advapi32.lib
+        gdi32.lib
+        user32.lib
+    )
+endif()
 
 set_property(TARGET pdfium
     PROPERTY PUBLIC_HEADER ${PDFIUM_PUBLIC_HEADERS}

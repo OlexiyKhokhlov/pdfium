@@ -13,7 +13,7 @@
 #include "build/build_config.h"
 #include "core/fxcrt/numerics/safe_conversions.h"
 
-#if defined(__asmjs__) || defined(__wasm__)
+#if defined(__asmjs__) || defined(__wasm__) || defined(COMPILER_MSVC)
 // Optimized safe math instructions are incompatible with asmjs.
 #define BASE_HAS_OPTIMIZED_SAFE_MATH (0)
 #else
