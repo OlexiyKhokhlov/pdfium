@@ -48,6 +48,8 @@ namespace {
 constexpr size_t kBlockSize = 4096;
 
 #ifdef PDF_ENABLE_XFA_PNG
+using PngDecodedColorType = fxcodec::PngDecoder::Delegate::DecodedColorType;
+using PngEncodedColorType = fxcodec::PngDecoder::Delegate::EncodedColorType;
 #if BUILDFLAG(IS_APPLE)
 const double kPngGamma = 1.7;
 #else
@@ -70,6 +72,23 @@ void RGB2BGR(uint8_t* buffer, int width = 1) {
   }
 }
 
+#ifdef PDF_ENABLE_XFA_PNG
+int GetNumberOfSrcComponents(PngEncodedColorType color_type) {
+  switch (color_type) {
+    case PngEncodedColorType::kGrayscale:
+      return 1;
+    case PngEncodedColorType::kGrayscaleWithAlpha:
+      return 2;
+    case PngEncodedColorType::kTruecolor:
+      return 3;
+    case PngEncodedColorType::kIndexedColor:
+    case PngEncodedColorType::kTruecolorWithAlpha:
+      return 4;
+  }
+  NOTREACHED();
+}
+#endif
+
 }  // namespace
 
 ProgressiveDecoder::ProgressiveDecoder() = default;
@@ -81,31 +100,15 @@ bool ProgressiveDecoder::PngReadHeader(int width,
                                        int height,
                                        int bpc,
                                        int pass,
-                                       int* color_type,
+                                       PngEncodedColorType src_color_type,
+                                       PngDecodedColorType* dst_color_type,
                                        double* gamma) {
   if (!device_bitmap_) {
     src_width_ = width;
     src_height_ = height;
     src_bpc_ = bpc;
     src_pass_number_ = pass;
-    switch (*color_type) {
-      case 0:
-        src_components_ = 1;
-        break;
-      case 4:
-        src_components_ = 2;
-        break;
-      case 2:
-        src_components_ = 3;
-        break;
-      case 3:
-      case 6:
-        src_components_ = 4;
-        break;
-      default:
-        src_components_ = 0;
-        break;
-    }
+    src_components_ = GetNumberOfSrcComponents(src_color_type);
     return false;
   }
   switch (device_bitmap_->GetFormat()) {
@@ -116,11 +119,11 @@ bool ProgressiveDecoder::PngReadHeader(int width,
     case FXDIB_Format::k8bppRgb:
       NOTREACHED();
     case FXDIB_Format::kBgr:
-      *color_type = 2;
+      *dst_color_type = DecodedColorType::kBgr;
       break;
     case FXDIB_Format::kBgrx:
     case FXDIB_Format::kBgra:
-      *color_type = 6;
+      *dst_color_type = DecodedColorType::kBgra;
       break;
 #if defined(PDF_USE_SKIA)
     case FXDIB_Format::kBgraPremul:
@@ -146,7 +149,7 @@ uint8_t* ProgressiveDecoder::PngAskScanlineBuf(int line) {
   return decode_buf_.data();
 }
 
-void ProgressiveDecoder::PngFillScanlineBufCompleted(int pass, int line) {
+void ProgressiveDecoder::PngFillScanlineBufCompleted(int line) {
   if (line < 0 || line >= src_height_) {
     return;
   }

@@ -367,6 +367,8 @@ set(FPDFAPI_PAGE_SOURCES
     core/fpdfapi/page/cpdf_transparency.cpp
     core/fpdfapi/page/cpdf_transparency.h
     core/fpdfapi/page/ipdf_page.h
+    core/fpdfapi/page/jpx_decode_conversion.cpp
+    core/fpdfapi/page/jpx_decode_conversion.h
 )
 
 set(FPDFAPI_PARSER_SOURCE

@@ -46,7 +46,7 @@ namespace {
 
 // A limit on the size of the xref table. Theoretical limits are higher, but
 // this may be large enough in practice. The max size should always be 1 more
-// than the max object number.
+// than the max object number. Thus the valid range is [1, kMaxXRefSize).
 constexpr int32_t kMaxXRefSize = CPDF_Parser::kMaxObjectNumber + 1;
 
 // "%PDF-1.7\n"
@@ -415,7 +415,7 @@ bool CPDF_Parser::LoadAllCrossRefTablesAndStreams(FX_FILESIZE xref_offset) {
     cross_ref_table_->SetTrailer(std::move(trailer), kNoTrailerObjectNumber);
 
     const int32_t xrefsize = GetTrailer()->GetDirectIntegerFor("Size");
-    if (xrefsize > 0 && xrefsize <= kMaxXRefSize) {
+    if (xrefsize > 0 && xrefsize < kMaxXRefSize) {
       cross_ref_table_->SetObjectMapSize(xrefsize);
     }
   }
@@ -559,7 +559,7 @@ bool CPDF_Parser::ParseAndAppendCrossRefSubsectionData(
     return false;
   }
 
-  if (new_size.ValueOrDie() > kMaxXRefSize) {
+  if (new_size.ValueOrDie() >= kMaxXRefSize) {
     return false;
   }
 
@@ -844,13 +844,19 @@ bool CPDF_Parser::LoadCrossRefStream(FX_FILESIZE* pos, bool is_main_xref) {
   }
 
   RetainPtr<const CPDF_Dictionary> dict = pStream->GetDict();
-  int32_t prev = dict->GetIntegerFor("Prev");
+  const int32_t prev = dict->GetIntegerFor("Prev");
   if (prev < 0) {
     return false;
   }
 
-  int32_t size = dict->GetIntegerFor("Size");
-  if (size < 0) {
+  // If /Size is negative or way too big, then it is obvious wrong.
+  // Immediately reject these cases, so `cross_ref_table_` does not get into a
+  // bad state.
+  //
+  // For a /Size of 0 or other issues, just ignore them. See comments in the
+  // for-loop below.
+  const int32_t size = dict->GetIntegerFor("Size");
+  if (size < 0 || size >= kMaxXRefSize) {
     return false;
   }
 
@@ -913,11 +919,11 @@ bool CPDF_Parser::LoadCrossRefStream(FX_FILESIZE* pos, bool is_main_xref) {
     // also ignores incorrect size in trailers for cross reference tables.
     const uint32_t current_size =
         cross_ref_table_->objects_info().empty() ? 0 : GetLastObjNum() + 1;
-    // So allow `new_size` to be greater than `current_size`, but avoid going
-    // over `kMaxXRefSize`. This works just fine because the loop below checks
+    // So allow `new_size` to be greater than `current_size`, but avoid reaching
+    // `kMaxXRefSize`. This works just fine because the loop below checks
     // against `kMaxObjectNumber`, and the two "max" constants are in sync.
     const uint32_t new_size =
-        std::min<uint32_t>(safe_new_size.ValueOrDie(), kMaxXRefSize);
+        std::min<uint32_t>(safe_new_size.ValueOrDie(), kMaxXRefSize - 1);
     if (new_size > current_size) {
       cross_ref_table_->SetObjectMapSize(new_size);
     }
