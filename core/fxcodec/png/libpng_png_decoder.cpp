@@ -4,7 +4,7 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fxcodec/png/png_decoder.h"
+#include "core/fxcodec/png/libpng_png_decoder.h"
 
 #include <setjmp.h>
 #include <string.h>
@@ -12,6 +12,7 @@
 #include "core/fxcodec/cfx_codec_memory.h"
 #include "core/fxcodec/fx_codec.h"
 #include "core/fxcodec/fx_codec_def.h"
+#include "core/fxcodec/png/png_decoder_delegate.h"
 #include "core/fxcrt/compiler_specific.h"
 #include "core/fxcrt/notreached.h"
 #include "core/fxcrt/unowned_ptr.h"
@@ -24,17 +25,18 @@
 
 #define PNG_ERROR_SIZE 256
 
-using DecodedColorType = fxcodec::PngDecoder::Delegate::DecodedColorType;
-using EncodedColorType = fxcodec::PngDecoder::Delegate::EncodedColorType;
+using PngDecoderDelegate = fxcodec::PngDecoderDelegate;
+using DecodedColorType = PngDecoderDelegate::DecodedColorType;
+using EncodedColorType = PngDecoderDelegate::EncodedColorType;
 
 class CPngContext final : public ProgressiveDecoderIface::Context {
  public:
-  explicit CPngContext(PngDecoder::Delegate* pDelegate);
+  explicit CPngContext(PngDecoderDelegate* pDelegate);
   ~CPngContext() override;
 
   png_structp png_ = nullptr;
   png_infop info_ = nullptr;
-  UnownedPtr<PngDecoder::Delegate> const delegate_;
+  UnownedPtr<PngDecoderDelegate> const delegate_;
   char last_error_[PNG_ERROR_SIZE] = {};
 };
 
@@ -50,40 +52,6 @@ void _png_error_data(png_structp png_ptr, png_const_charp error_msg) {
 }
 
 void _png_warning_data(png_structp png_ptr, png_const_charp error_msg) {}
-
-void _png_load_bmp_attribute(png_structp png_ptr,
-                             png_infop info_ptr,
-                             CFX_DIBAttribute* pAttribute) {
-  if (pAttribute) {
-#if defined(PNG_pHYs_SUPPORTED)
-    pAttribute->x_dpi_ = png_get_x_pixels_per_meter(png_ptr, info_ptr);
-    pAttribute->y_dpi_ = png_get_y_pixels_per_meter(png_ptr, info_ptr);
-    png_uint_32 res_x, res_y;
-    int unit_type;
-    png_get_pHYs(png_ptr, info_ptr, &res_x, &res_y, &unit_type);
-    switch (unit_type) {
-      case PNG_RESOLUTION_METER:
-        pAttribute->dpi_unit_ = CFX_DIBAttribute::kResUnitMeter;
-        break;
-      default:
-        pAttribute->dpi_unit_ = CFX_DIBAttribute::kResUnitNone;
-    }
-#endif
-#if defined(PNG_iCCP_SUPPORTED)
-    png_charp icc_name;
-    png_bytep icc_profile;
-    png_uint_32 icc_proflen;
-    int compress_type;
-    png_get_iCCP(png_ptr, info_ptr, &icc_name, &compress_type, &icc_profile,
-                 &icc_proflen);
-#endif
-#if defined(PNG_TEXT_SUPPORTED)
-    int num_text;
-    png_textp text = nullptr;
-    png_get_text(png_ptr, info_ptr, &text, &num_text);
-#endif
-  }
-}
 
 void _png_get_header_func(png_structp png_ptr, png_infop info_ptr) {
   auto* pContext =
@@ -203,7 +171,7 @@ int _png_continue_decode(png_structrp png_ptr,
 
 }  // extern "C"
 
-CPngContext::CPngContext(PngDecoder::Delegate* pDelegate)
+CPngContext::CPngContext(PngDecoderDelegate* pDelegate)
     : delegate_(pDelegate) {}
 
 CPngContext::~CPngContext() {
@@ -214,8 +182,8 @@ CPngContext::~CPngContext() {
 namespace fxcodec {
 
 // static
-std::unique_ptr<ProgressiveDecoderIface::Context> PngDecoder::StartDecode(
-    Delegate* pDelegate) {
+std::unique_ptr<ProgressiveDecoderIface::Context> LibpngPngDecoder::StartDecode(
+    PngDecoderDelegate* pDelegate) {
   auto p = std::make_unique<CPngContext>(pDelegate);
   p->png_ =
       png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
@@ -233,20 +201,13 @@ std::unique_ptr<ProgressiveDecoderIface::Context> PngDecoder::StartDecode(
 }
 
 // static
-bool PngDecoder::ContinueDecode(ProgressiveDecoderIface::Context* pContext,
-                                RetainPtr<CFX_CodecMemory> codec_memory,
-                                CFX_DIBAttribute* pAttribute) {
+bool LibpngPngDecoder::ContinueDecode(
+    ProgressiveDecoderIface::Context* pContext,
+    RetainPtr<CFX_CodecMemory> codec_memory) {
   auto* ctx = static_cast<CPngContext*>(pContext);
   pdfium::span<uint8_t> src_buf = codec_memory->GetUnconsumedSpan();
-  if (!_png_continue_decode(ctx->png_, ctx->info_, src_buf.data(),
-                            src_buf.size())) {
-    if (pAttribute && UNSAFE_TODO(strcmp(ctx->last_error_,
-                                         "Read Header Callback Error")) == 0) {
-      _png_load_bmp_attribute(ctx->png_, ctx->info_, pAttribute);
-    }
-    return false;
-  }
-  return true;
+  return _png_continue_decode(ctx->png_, ctx->info_, src_buf.data(),
+                              src_buf.size());
 }
 
 }  // namespace fxcodec

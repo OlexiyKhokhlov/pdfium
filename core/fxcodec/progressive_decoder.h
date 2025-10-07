@@ -32,7 +32,7 @@
 #endif  // PDF_ENABLE_XFA_GIF
 
 #ifdef PDF_ENABLE_XFA_PNG
-#include "core/fxcodec/png/png_decoder.h"
+#include "core/fxcodec/png/png_decoder_delegate.h"
 #endif  // PDF_ENABLE_XFA_PNG
 
 class CFX_DIBitmap;
@@ -52,7 +52,7 @@ class ProgressiveDecoder final :
     public GifDecoder::Delegate,
 #endif  // PDF_ENABLE_XFA_GIF
 #ifdef PDF_ENABLE_XFA_PNG
-    public PngDecoder::Delegate,
+    public PngDecoderDelegate,
 #endif  // PDF_ENABLE_XFA_PNG
     public Dummy {
  public:
@@ -85,13 +85,13 @@ class ProgressiveDecoder final :
   FXCODEC_STATUS ContinueDecode();
 
 #ifdef PDF_ENABLE_XFA_PNG
-  // PngDecoder::Delegate
+  // PngDecoderDelegate
   bool PngReadHeader(int width,
                      int height,
                      int bpc,
                      int pass,
-                     PngDecoder::Delegate::EncodedColorType src_color_type,
-                     PngDecoder::Delegate::DecodedColorType* dst_color_type,
+                     PngDecoderDelegate::EncodedColorType src_color_type,
+                     PngDecoderDelegate::DecodedColorType* dst_color_type,
                      double* gamma) override;
   uint8_t* PngAskScanlineBuf(int line) override;
   void PngFillScanlineBufCompleted(int line) override;
@@ -144,7 +144,7 @@ class ProgressiveDecoder final :
 #endif  // PDF_ENABLE_XFA_GIF
 
 #ifdef PDF_ENABLE_XFA_PNG
-  bool PngDetectImageTypeInBuffer(CFX_DIBAttribute* pAttribute);
+  bool PngDetectImageTypeInBuffer();
   FXCODEC_STATUS PngStartDecode();
   FXCODEC_STATUS PngContinueDecode();
 #endif  // PDF_ENABLE_XFA_PNG

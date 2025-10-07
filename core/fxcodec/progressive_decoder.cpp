@@ -37,6 +37,11 @@
 #include "core/fxcodec/gif/gif_progressive_decoder.h"
 #endif  // PDF_ENABLE_XFA_GIF
 
+#ifdef PDF_ENABLE_XFA_PNG
+#include "core/fxcodec/png/libpng_png_decoder.h"
+#include "core/fxcodec/png/png_decoder_delegate.h"
+#endif  // PDF_ENABLE_XFA_PNG
+
 #ifdef PDF_ENABLE_XFA_TIFF
 #include "core/fxcodec/tiff/tiff_decoder.h"
 #endif  // PDF_ENABLE_XFA_TIFF
@@ -48,8 +53,8 @@ namespace {
 constexpr size_t kBlockSize = 4096;
 
 #ifdef PDF_ENABLE_XFA_PNG
-using PngDecodedColorType = fxcodec::PngDecoder::Delegate::DecodedColorType;
-using PngEncodedColorType = fxcodec::PngDecoder::Delegate::EncodedColorType;
+using PngDecodedColorType = fxcodec::PngDecoderDelegate::DecodedColorType;
+using PngEncodedColorType = fxcodec::PngDecoderDelegate::EncodedColorType;
 #if BUILDFLAG(IS_APPLE)
 const double kPngGamma = 1.7;
 #else
@@ -72,23 +77,6 @@ void RGB2BGR(uint8_t* buffer, int width = 1) {
   }
 }
 
-#ifdef PDF_ENABLE_XFA_PNG
-int GetNumberOfSrcComponents(PngEncodedColorType color_type) {
-  switch (color_type) {
-    case PngEncodedColorType::kGrayscale:
-      return 1;
-    case PngEncodedColorType::kGrayscaleWithAlpha:
-      return 2;
-    case PngEncodedColorType::kTruecolor:
-      return 3;
-    case PngEncodedColorType::kIndexedColor:
-    case PngEncodedColorType::kTruecolorWithAlpha:
-      return 4;
-  }
-  NOTREACHED();
-}
-#endif
-
 }  // namespace
 
 ProgressiveDecoder::ProgressiveDecoder() = default;
@@ -108,7 +96,7 @@ bool ProgressiveDecoder::PngReadHeader(int width,
     src_height_ = height;
     src_bpc_ = bpc;
     src_pass_number_ = pass;
-    src_components_ = GetNumberOfSrcComponents(src_color_type);
+    src_components_ = PngDecoderDelegate::GetNumberOfComponents(src_color_type);
     return false;
   }
   switch (device_bitmap_->GetFormat()) {
@@ -602,15 +590,13 @@ FXCODEC_STATUS ProgressiveDecoder::JpegContinueDecode() {
 }
 
 #ifdef PDF_ENABLE_XFA_PNG
-bool ProgressiveDecoder::PngDetectImageTypeInBuffer(
-    CFX_DIBAttribute* pAttribute) {
+bool ProgressiveDecoder::PngDetectImageTypeInBuffer() {
   png_context_ = PngDecoder::StartDecode(this);
   if (!png_context_) {
     status_ = FXCODEC_STATUS::kError;
     return false;
   }
-  while (PngDecoder::ContinueDecode(png_context_.get(), codec_memory_,
-                                    pAttribute)) {
+  while (PngDecoder::ContinueDecode(png_context_.get(), codec_memory_)) {
     uint32_t remain_size = static_cast<uint32_t>(file_->GetSize()) - offset_;
     uint32_t input_size = std::min<uint32_t>(remain_size, kBlockSize);
     if (input_size == 0) {
@@ -680,8 +666,7 @@ FXCODEC_STATUS ProgressiveDecoder::PngContinueDecode() {
       return status_;
     }
     offset_ += input_size;
-    bResult =
-        PngDecoder::ContinueDecode(png_context_.get(), codec_memory_, nullptr);
+    bResult = PngDecoder::ContinueDecode(png_context_.get(), codec_memory_);
     if (!bResult) {
       device_bitmap_ = nullptr;
       file_ = nullptr;
@@ -762,7 +747,7 @@ bool ProgressiveDecoder::DetectImageType(FXCODEC_IMAGE_TYPE imageType,
 
 #ifdef PDF_ENABLE_XFA_PNG
   if (imageType == FXCODEC_IMAGE_PNG) {
-    return PngDetectImageTypeInBuffer(pAttribute);
+    return PngDetectImageTypeInBuffer();
   }
 #endif  // PDF_ENABLE_XFA_PNG
 
