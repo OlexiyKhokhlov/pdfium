@@ -9,51 +9,6 @@
 
 namespace pdfium {
 
-const char* AnnotationStampWithApChecksum() {
-  if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
-#if BUILDFLAG(IS_WIN)
-    return "10425299f19e223eda9a3930ef4bed3c";
-#elif BUILDFLAG(IS_APPLE)
-    return "71c46babfe48a5a0dff03ad3edeb2918";
-#else
-    return "50f53c0a869ad33a8dd2b580740a63c8";
-#endif
-  }
-#if BUILDFLAG(IS_APPLE)
-  return "587311ad93447614cbe5887df14caa78";
-#else
-  return "2908fd6166f795dfd73c607ec12c5356";
-#endif
-}
-
-const char kBlankPage200By200Checksum[] = "eee4600ac08b458ac7ac2320e225674c";
-
-const char kBlankPage612By792Checksum[] = "1940568c9ba33bac5d0b1ee9558c76b3";
-
-const char* Bug890322Checksum() {
-  if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
-    return "793689536cf64fe792c2f241888c0cf3";
-  }
-  return "6c674642154408e877d88c6c082d67e9";
-}
-
-const char* HelloWorldChecksum() {
-  if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
-#if BUILDFLAG(IS_WIN)
-    return "6023c7d8b7258cc686a1d1dbd0f4d6d0";
-#elif BUILDFLAG(IS_APPLE)
-    return "b110924c4af6e87232249ea2a564f0e4";
-#else
-    return "d1decde2de1c07b5274cc8cb44f92427";
-#endif
-  }
-#if BUILDFLAG(IS_APPLE)
-  return "6eef7237f7591f07616e238422086737";
-#else
-  return "c1c548442e0e0f949c5550d89bf8ae3b";
-#endif
-}
-
 const char* HelloWorldRemovedChecksum() {
   if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
 #if BUILDFLAG(IS_WIN)
@@ -69,20 +24,6 @@ const char* HelloWorldRemovedChecksum() {
 #else
   return "4a9b80f675f7f3bf2da1b02f12449e4b";
 #endif
-}
-
-const char* ManyRectanglesChecksum() {
-  if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
-    return "4e7e280c1597222afcb0ee3bb90ec119";
-  }
-  return "b0170c575b65ecb93ebafada0ff0f038";
-}
-
-const char* RectanglesChecksum() {
-  if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
-    return "b4e411a6b5ffa59a50efede2efece597";
-  }
-  return "0a90de37f52127619c3dfb642b5fa2fe";
 }
 
 const char* TextFormChecksum() {

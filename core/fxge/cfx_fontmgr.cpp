@@ -43,12 +43,6 @@ constexpr std::array<pdfium::span<const uint8_t>,
 constexpr pdfium::span<const uint8_t> kGenericSansFont = kFoxitSansMMFontData;
 constexpr pdfium::span<const uint8_t> kGenericSerifFont = kFoxitSerifMMFontData;
 
-FXFT_LibraryRec* FTLibraryInitHelper() {
-  FXFT_LibraryRec* pLibrary = nullptr;
-  FT_Init_FreeType(&pLibrary);
-  return pLibrary;
-}
-
 }  // namespace
 
 CFX_FontMgr::FontDesc::FontDesc(FixedSizeDataVector<uint8_t> data)
@@ -56,21 +50,22 @@ CFX_FontMgr::FontDesc::FontDesc(FixedSizeDataVector<uint8_t> data)
 
 CFX_FontMgr::FontDesc::~FontDesc() = default;
 
-void CFX_FontMgr::FontDesc::SetFace(size_t index, CFX_Face* face) {
-  CHECK_LT(index, std::size(ttc_faces_));
-  ttc_faces_[index].Reset(face);
+void CFX_FontMgr::FontDesc::SetFace(uint32_t face_index, CFX_Face* face) {
+  CHECK_LT(face_index, std::size(ttc_faces_));
+  ttc_faces_[face_index].Reset(face);
 }
 
-CFX_Face* CFX_FontMgr::FontDesc::GetFace(size_t index) const {
-  CHECK_LT(index, std::size(ttc_faces_));
-  return ttc_faces_[index].Get();
+CFX_Face* CFX_FontMgr::FontDesc::GetFace(uint32_t face_index) const {
+  CHECK_LT(face_index, std::size(ttc_faces_));
+  return ttc_faces_[face_index].Get();
 }
 
 CFX_FontMgr::CFX_FontMgr()
-    : ft_library_(FTLibraryInitHelper()),
+    : ft_library_(InitializeFreeType()),
       builtin_mapper_(std::make_unique<CFX_FontMapper>(this)),
-      ft_library_supports_hinting_(SetLcdFilterMode() ||
-                                   FreeTypeVersionSupportsHinting()) {}
+      ft_library_supports_hinting_(
+          FreeTypeSetLcdFilterMode(ft_library_.get()) ||
+          FreeTypeVersionSupportsHinting(ft_library_.get())) {}
 
 CFX_FontMgr::~CFX_FontMgr() = default;
 
@@ -109,17 +104,10 @@ RetainPtr<CFX_FontMgr::FontDesc> CFX_FontMgr::AddCachedTTCFontDesc(
   return pNewDesc;
 }
 
-RetainPtr<CFX_Face> CFX_FontMgr::NewFixedFace(RetainPtr<FontDesc> pDesc,
+RetainPtr<CFX_Face> CFX_FontMgr::NewFixedFace(RetainPtr<FontDesc> desc,
                                               pdfium::span<const uint8_t> span,
-                                              size_t face_index) {
-  RetainPtr<CFX_Face> face =
-      CFX_Face::New(ft_library_.get(), std::move(pDesc), span,
-                    static_cast<FT_Long>(face_index));
-  if (!face || !face->SetPixelSize(64, 64)) {
-    return nullptr;
-  }
-
-  return face;
+                                              uint32_t face_index) {
+  return CFX_Face::New(ft_library_.get(), std::move(desc), span, face_index);
 }
 
 // static
@@ -135,20 +123,4 @@ pdfium::span<const uint8_t> CFX_FontMgr::GetGenericSansFont() {
 // static
 pdfium::span<const uint8_t> CFX_FontMgr::GetGenericSerifFont() {
   return kGenericSerifFont;
-}
-
-bool CFX_FontMgr::FreeTypeVersionSupportsHinting() const {
-  FT_Int major;
-  FT_Int minor;
-  FT_Int patch;
-  FT_Library_Version(ft_library_.get(), &major, &minor, &patch);
-  // Freetype versions >= 2.8.1 support hinting even if subpixel rendering is
-  // disabled. https://sourceforge.net/projects/freetype/files/freetype2/2.8.1/
-  return major > 2 || (major == 2 && minor > 8) ||
-         (major == 2 && minor == 8 && patch >= 1);
-}
-
-bool CFX_FontMgr::SetLcdFilterMode() const {
-  return FT_Library_SetLcdFilter(ft_library_.get(), FT_LCD_FILTER_DEFAULT) !=
-         FT_Err_Unimplemented_Feature;
 }

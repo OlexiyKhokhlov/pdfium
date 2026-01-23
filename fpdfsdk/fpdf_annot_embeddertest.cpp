@@ -35,7 +35,7 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "testing/utils/hash.h"
 
-using pdfium::AnnotationStampWithApChecksum;
+using pdfium::kAnnotationStampWithApPng;
 
 namespace {
 
@@ -399,7 +399,8 @@ TEST_F(FPDFAnnotEmbedderTest, RenderAnnotWithOnlyRolloverAP) {
   // normal appearance should be generated, allowing the highlight annotation to
   // still display.
   ScopedFPDFBitmap bitmap = RenderLoadedPageWithFlags(page.get(), FPDF_ANNOT);
-  CompareBitmap(bitmap.get(), 612, 792, "dc98f06da047bd8aabfa99562d2cbd1e");
+  CompareBitmapToPng(bitmap.get(),
+                     "fpdf_annot_render_annot_with_only_rollover_ap");
 }
 
 TEST_F(FPDFAnnotEmbedderTest, RenderMultilineMarkupAnnotWithoutAP) {
@@ -548,7 +549,9 @@ TEST_F(FPDFAnnotEmbedderTest, ExtractInkMultiple) {
       if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
 #if BUILDFLAG(IS_WIN)
         return "42e03089ef2392579d73bf9065896488";
-#elif BUILDFLAG(IS_APPLE)
+#elif BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
+        return "3084f8664692e192406d0a296350b581";
+#elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
         return "5891aa346046c3f5b8c3cd8607f0d256";
 #else
         return "d02d468d9022ddf35014daa50191a895";
@@ -663,7 +666,8 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndSaveLinkAnnotation) {
   ASSERT_TRUE(page);
   {
     ScopedFPDFBitmap bitmap = RenderLoadedPageWithFlags(page.get(), FPDF_ANNOT);
-    CompareBitmap(bitmap.get(), 200, 200, pdfium::HelloWorldChecksum());
+    CompareBitmapToPngWithExpectationSuffix(bitmap.get(),
+                                            pdfium::kHelloWorldPng);
   }
   EXPECT_EQ(0, FPDFPage_GetAnnotCount(page.get()));
 
@@ -721,8 +725,8 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndSaveLinkAnnotation) {
     ASSERT_TRUE(saved_doc);
     ScopedSavedPage saved_page = LoadScopedSavedPage(0);
     ASSERT_TRUE(saved_page);
-    VerifySavedRendering(saved_page.get(), 200, 200,
-                         pdfium::HelloWorldChecksum());
+    VerifySavedRenderingToPngWithExpectationSuffix(saved_page.get(),
+                                                   pdfium::kHelloWorldPng);
     EXPECT_EQ(1, FPDFPage_GetAnnotCount(saved_page.get()));
 
     ScopedFPDFAnnotation annot(FPDFPage_GetAnnot(saved_page.get(), 0));
@@ -772,7 +776,9 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndSaveUnderlineAnnotation) {
     if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
 #if BUILDFLAG(IS_WIN)
       return "c50012ab122cd3706d39f371ca7462ee";
-#elif BUILDFLAG(IS_APPLE)
+#elif BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
+      return "94b17973cf98c56cde2c3a6847c82371";
+#elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
       return "24994ad69aa612a66d183eaf9a92aa06";
 #else
       return "798fa41303381c9ba6d99092f5cd4d2b";
@@ -894,7 +900,9 @@ TEST_F(FPDFAnnotEmbedderTest, ModifyRectQuadpointsWithAP) {
     if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
 #if BUILDFLAG(IS_WIN)
       return "31e091a5f6c54059e643b1bdcd344534";
-#elif BUILDFLAG(IS_APPLE)
+#elif BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
+      return "6aa0d85c5aa0ad304a04daf3124e74bb";
+#elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
       return "2975a3f6710dc2b86f766b07edeaaf06";
 #else
       return "377ee6496bd87d90056691ba5a13d13f";
@@ -910,7 +918,9 @@ TEST_F(FPDFAnnotEmbedderTest, ModifyRectQuadpointsWithAP) {
     if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
 #if BUILDFLAG(IS_WIN)
       return "45bad83ebcee8cc85fa5dd3e98aaaf0a";
-#elif BUILDFLAG(IS_APPLE)
+#elif BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
+      return "2ee6444fc5f9404c123bf2329b975a44";
+#elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
       return "d7e6b8535dce105ebbb1fa2c7942c64e";
 #else
       return "17fc1c964d0252a87ddfcc8db960c69a";
@@ -926,7 +936,9 @@ TEST_F(FPDFAnnotEmbedderTest, ModifyRectQuadpointsWithAP) {
     if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
 #if BUILDFLAG(IS_WIN)
       return "7d3b20c8a0d0899b9e1d208317fdd246";
-#elif BUILDFLAG(IS_APPLE)
+#elif BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
+      return "06ca188c4f0e153d4b512169cc29904d";
+#elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
       return "8a6d9357d93595be326a30223d5ffda4";
 #else
       return "e5f192fd7c4711ea1ba9a69674c1aa27";
@@ -1184,7 +1196,8 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndModifyPath) {
   // Check that the page renders correctly.
   {
     ScopedFPDFBitmap bitmap = RenderLoadedPageWithFlags(page.get(), FPDF_ANNOT);
-    CompareBitmap(bitmap.get(), 595, 842, AnnotationStampWithApChecksum());
+    CompareBitmapToPngWithExpectationSuffix(bitmap.get(),
+                                            kAnnotationStampWithApPng);
   }
 
   {
@@ -1344,7 +1357,7 @@ TEST_F(FPDFAnnotEmbedderTest, ModifyAnnotationFlags) {
     {
       ScopedFPDFBitmap bitmap =
           RenderLoadedPageWithFlags(page.get(), FPDF_ANNOT);
-      CompareBitmap(bitmap.get(), 612, 792, pdfium::kBlankPage612By792Checksum);
+      CompareBitmapToPng(bitmap.get(), pdfium::kBlankPage612By792Png);
     }
 
     // Unset the HIDDEN flag.
@@ -1370,7 +1383,9 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndModifyImage) {
     if (CFX_DefaultRenderDevice::UseSkiaRenderer()) {
 #if BUILDFLAG(IS_WIN)
       return "067c891d5c5f3add0779798f2f5d20d0";
-#elif BUILDFLAG(IS_APPLE)
+#elif BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
+      return "3d5b2cdad126e5daa7c1de43a4282433";
+#elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
       return "b2b09967e4aed8faf8218f44650a836d";
 #else
       return "bc49737f97f2119799be8deb347249fe";
@@ -1408,7 +1423,8 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndModifyImage) {
   // Check that the page renders correctly.
   {
     ScopedFPDFBitmap bitmap = RenderLoadedPageWithFlags(page.get(), FPDF_ANNOT);
-    CompareBitmap(bitmap.get(), 595, 842, AnnotationStampWithApChecksum());
+    CompareBitmapToPngWithExpectationSuffix(bitmap.get(),
+                                            kAnnotationStampWithApPng);
   }
 
   static constexpr int kBitmapSize = 200;
@@ -1485,7 +1501,7 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndModifyText) {
 #endif
     }
 #if BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
-    return "8eabf79dcdcfc6474c593bc60d996def";
+    return "0db8fd3a229c07a478f2709d483663dd";
 #elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
     return "8cfa6f61f5a03b3f2306d0924ef6c000";
 #else
@@ -1503,7 +1519,7 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndModifyText) {
 #endif
     }
 #if BUILDFLAG(IS_APPLE) && defined(ARCH_CPU_ARM64)
-    return "704f3eb56f82377753a816a43de250ea";
+    return "8bd9e9d3d4f6ba9e14e5703b16e7b5f3";
 #elif BUILDFLAG(IS_APPLE) && !defined(ARCH_CPU_ARM64)
     return "c39124df1815dd6fce3b2f113169c8c9";
 #else
@@ -1520,7 +1536,8 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndModifyText) {
   // Check that the page renders correctly.
   {
     ScopedFPDFBitmap bitmap = RenderLoadedPageWithFlags(page.get(), FPDF_ANNOT);
-    CompareBitmap(bitmap.get(), 595, 842, AnnotationStampWithApChecksum());
+    CompareBitmapToPngWithExpectationSuffix(bitmap.get(),
+                                            kAnnotationStampWithApPng);
   }
 
   {
@@ -1577,7 +1594,8 @@ TEST_F(FPDFAnnotEmbedderTest, AddAndModifyText) {
   EXPECT_TRUE(FPDFPage_RemoveAnnot(page.get(), 2));
   {
     ScopedFPDFBitmap bitmap = RenderLoadedPageWithFlags(page.get(), FPDF_ANNOT);
-    CompareBitmap(bitmap.get(), 595, 842, AnnotationStampWithApChecksum());
+    CompareBitmapToPngWithExpectationSuffix(bitmap.get(),
+                                            kAnnotationStampWithApPng);
   }
 }
 
@@ -1640,8 +1658,8 @@ TEST_F(FPDFAnnotEmbedderTest, GetSetStringValue) {
     ASSERT_TRUE(saved_doc);
     ScopedSavedPage saved_page = LoadScopedSavedPage(0);
     ASSERT_TRUE(saved_page);
-    VerifySavedRendering(saved_page.get(), 595, 842,
-                         AnnotationStampWithApChecksum());
+    VerifySavedRenderingToPngWithExpectationSuffix(saved_page.get(),
+                                                   kAnnotationStampWithApPng);
 
     ScopedFPDFAnnotation new_annot(FPDFPage_GetAnnot(saved_page.get(), 0));
 
@@ -2192,7 +2210,7 @@ TEST_F(FPDFAnnotEmbedderTest, Bug1212) {
     EXPECT_EQ(FPDF_ANNOT_TEXT, FPDFAnnot_GetSubtype(annot.get()));
 
     // Make sure there is no test key, add set a value there, and read it back.
-    std::fill(buf.begin(), buf.end(), 'x');
+    std::ranges::fill(buf, 'x');
     ASSERT_EQ(2u, FPDFAnnot_GetStringValue(annot.get(), kTestKey, buf.data(),
                                            kBufSize));
     EXPECT_EQ(L"", GetPlatformWString(buf.data()));
@@ -2200,7 +2218,7 @@ TEST_F(FPDFAnnotEmbedderTest, Bug1212) {
     ScopedFPDFWideString text = GetFPDFWideString(kData);
     EXPECT_TRUE(FPDFAnnot_SetStringValue(annot.get(), kTestKey, text.get()));
 
-    std::fill(buf.begin(), buf.end(), 'x');
+    std::ranges::fill(buf, 'x');
     ASSERT_EQ(6u, FPDFAnnot_GetStringValue(annot.get(), kTestKey, buf.data(),
                                            kBufSize));
     EXPECT_EQ(kData, GetPlatformWString(buf.data()));
@@ -2215,7 +2233,7 @@ TEST_F(FPDFAnnotEmbedderTest, Bug1212) {
     EXPECT_EQ(2, FPDFPage_GetAnnotCount(page.get()));
     EXPECT_EQ(FPDF_ANNOT_STAMP, FPDFAnnot_GetSubtype(annot.get()));
     // Also do the same test for its appearance string.
-    std::fill(buf.begin(), buf.end(), 'x');
+    std::ranges::fill(buf, 'x');
     ASSERT_EQ(2u,
               FPDFAnnot_GetAP(annot.get(), FPDF_ANNOT_APPEARANCEMODE_ROLLOVER,
                               buf.data(), kBufSize));
@@ -2225,7 +2243,7 @@ TEST_F(FPDFAnnotEmbedderTest, Bug1212) {
     EXPECT_TRUE(FPDFAnnot_SetAP(annot.get(), FPDF_ANNOT_APPEARANCEMODE_ROLLOVER,
                                 text.get()));
 
-    std::fill(buf.begin(), buf.end(), 'x');
+    std::ranges::fill(buf, 'x');
     ASSERT_EQ(6u,
               FPDFAnnot_GetAP(annot.get(), FPDF_ANNOT_APPEARANCEMODE_ROLLOVER,
                               buf.data(), kBufSize));
@@ -2248,7 +2266,7 @@ TEST_F(FPDFAnnotEmbedderTest, Bug1212) {
       ASSERT_TRUE(annot);
       EXPECT_EQ(FPDF_ANNOT_TEXT, FPDFAnnot_GetSubtype(annot.get()));
 
-      std::fill(buf.begin(), buf.end(), 'x');
+      std::ranges::fill(buf, 'x');
       ASSERT_EQ(6u, FPDFAnnot_GetStringValue(annot.get(), kTestKey, buf.data(),
                                              kBufSize));
       EXPECT_EQ(kData, GetPlatformWString(buf.data()));
@@ -2260,7 +2278,7 @@ TEST_F(FPDFAnnotEmbedderTest, Bug1212) {
       // TODO(thestig): This return FPDF_ANNOT_UNKNOWN for some reason.
       // EXPECT_EQ(FPDF_ANNOT_TEXT, FPDFAnnot_GetSubtype(annot.get()));
 
-      std::fill(buf.begin(), buf.end(), 'x');
+      std::ranges::fill(buf, 'x');
       ASSERT_EQ(6u, FPDFAnnot_GetStringValue(annot.get(), kTestKey, buf.data(),
                                              kBufSize));
       EXPECT_EQ(kData, GetPlatformWString(buf.data()));
@@ -4028,4 +4046,44 @@ TEST_F(FPDFAnnotEmbedderTest, SetFormFieldFlags) {
   }
 
   UnloadPage(page);
+}
+
+TEST_F(FPDFAnnotEmbedderTest, SharedFormXObjectMatrix) {
+  ASSERT_TRUE(OpenDocument("shared_form_xobject_matrix.pdf"));
+  ScopedPage page = LoadScopedPage(0);
+  ASSERT_TRUE(page);
+  ASSERT_EQ(2, FPDFPage_GetAnnotCount(page.get()));
+
+  // The first annotation directly accesses a shared form XObject. Retrieve the
+  // page object to trigger crbug.com/475719025.
+  ScopedFPDFAnnotation annotation1(FPDFPage_GetAnnot(page.get(), 0));
+  FPDF_PAGEOBJECT page_object1 = FPDFAnnot_GetObject(annotation1.get(), 0);
+  ASSERT_TRUE(page_object1);
+
+  FS_MATRIX matrix1;
+  ASSERT_TRUE(FPDFPageObj_GetMatrix(page_object1, &matrix1));
+  EXPECT_FLOAT_EQ(1.0f, matrix1.a);
+  EXPECT_FLOAT_EQ(0.0f, matrix1.b);
+  EXPECT_FLOAT_EQ(0.0f, matrix1.c);
+  EXPECT_FLOAT_EQ(1.0f, matrix1.d);
+  EXPECT_FLOAT_EQ(156.1774f, matrix1.e);
+  EXPECT_FLOAT_EQ(681.1501f, matrix1.f);
+
+  // The second annotation indirectly accesses the shared form XObject through a
+  // wrapper XObject.
+  ScopedFPDFAnnotation annotation2(FPDFPage_GetAnnot(page.get(), 1));
+  ASSERT_TRUE(annotation2);
+  FPDF_PAGEOBJECT page_object2 = FPDFAnnot_GetObject(annotation2.get(), 0);
+  ASSERT_TRUE(page_object2);
+  FPDF_PAGEOBJECT form_object2 = FPDFFormObj_GetObject(page_object2, 0);
+  ASSERT_TRUE(form_object2);
+
+  FS_MATRIX matrix2;
+  ASSERT_TRUE(FPDFPageObj_GetMatrix(form_object2, &matrix2));
+  EXPECT_FLOAT_EQ(1.0f, matrix2.a);
+  EXPECT_FLOAT_EQ(0.0f, matrix2.b);
+  EXPECT_FLOAT_EQ(0.0f, matrix2.c);
+  EXPECT_FLOAT_EQ(1.0f, matrix2.d);
+  EXPECT_FLOAT_EQ(-10.395f, matrix2.e);
+  EXPECT_FLOAT_EQ(-5.42212f, matrix2.f);
 }

@@ -300,10 +300,10 @@ void CPDFSDK_InteractiveForm::OnCalculate(CPDF_FormField* pFormField) {
     WideString sOldValue = pField->GetValue();
     WideString sValue = sOldValue;
     bool bRC = true;
-    IJS_Runtime::ScopedEventContext pContext(pRuntime);
-    pContext->OnField_Calculate(pFormField, pField, &sValue, &bRC);
+    IJS_Runtime::ScopedEventContext context(pRuntime);
+    context->OnField_Calculate(pFormField, pField, &sValue, &bRC);
 
-    std::optional<IJS_Runtime::JS_Error> err = pContext->RunScript(csJS);
+    std::optional<IJS_Runtime::JS_Error> err = context->RunScript(csJS);
     if (!err.has_value() && bRC && sValue != sOldValue) {
       pField->SetValue(sValue, NotificationOption::kNotify);
     }
@@ -332,9 +332,9 @@ std::optional<WideString> CPDFSDK_InteractiveForm::OnFormat(
     if (action.HasDict()) {
       WideString script = action.GetJavaScript();
       if (!script.IsEmpty()) {
-        IJS_Runtime::ScopedEventContext pContext(pRuntime);
-        pContext->OnField_Format(pFormField, &sValue);
-        std::optional<IJS_Runtime::JS_Error> err = pContext->RunScript(script);
+        IJS_Runtime::ScopedEventContext context(pRuntime);
+        context->OnField_Format(pFormField, &sValue);
+        std::optional<IJS_Runtime::JS_Error> err = context->RunScript(script);
         if (!err.has_value()) {
           return sValue;
         }
@@ -640,9 +640,8 @@ bool CPDFSDK_InteractiveForm::IsNeedHighLight(FormFieldType fieldType) const {
 }
 
 void CPDFSDK_InteractiveForm::RemoveAllHighLights() {
-  std::fill(std::begin(highlight_color_), std::end(highlight_color_),
-            kWhiteBGR);
-  std::fill(std::begin(needs_highlight_), std::end(needs_highlight_), false);
+  std::ranges::fill(highlight_color_, kWhiteBGR);
+  std::ranges::fill(needs_highlight_, false);
 }
 
 void CPDFSDK_InteractiveForm::SetHighlightColor(FX_COLORREF clr,

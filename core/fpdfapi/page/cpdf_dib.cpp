@@ -39,7 +39,6 @@
 #include "core/fxcrt/check_op.h"
 #include "core/fxcrt/compiler_specific.h"
 #include "core/fxcrt/data_vector.h"
-#include "core/fxcrt/fx_memcpy_wrappers.h"
 #include "core/fxcrt/fx_safe_types.h"
 #include "core/fxcrt/span_util.h"
 #include "core/fxcrt/stl_util.h"
@@ -269,11 +268,12 @@ CPDF_DIB::LoadState CPDF_DIB::ContinueLoadDIBBase(PauseIndicatorIface* pPause) {
       pGlobalSpan = global_acc_->GetSpan();
       nGlobalKey = global_acc_->KeyForCache();
     }
+    const bool reject_large_regions_when_fuzzing = false;
     iDecodeStatus = Jbig2Decoder::StartDecode(
         jbig_2context_.get(), document_->GetOrCreateCodecContext(), GetWidth(),
         GetHeight(), pSrcSpan, nSrcKey, pGlobalSpan, nGlobalKey,
-        cached_bitmap_->GetWritableBuffer(), cached_bitmap_->GetPitch(),
-        pPause);
+        cached_bitmap_->GetWritableBuffer(), cached_bitmap_->GetPitch(), pPause,
+        reject_large_regions_when_fuzzing);
   } else {
     iDecodeStatus = Jbig2Decoder::ContinueDecode(jbig_2context_.get(), pPause);
   }
@@ -862,8 +862,7 @@ void CPDF_DIB::LoadPalette() {
       return;
     }
     float color_values[3];
-    std::fill(std::begin(color_values), std::end(color_values),
-              comp_data_[0].decode_min_);
+    std::ranges::fill(color_values, comp_data_[0].decode_min_);
 
     auto rgb = color_space_->GetRGBOrZerosOnError(color_values);
     FX_ARGB argb0 =

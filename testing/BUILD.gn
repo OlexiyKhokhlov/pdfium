@@ -33,6 +33,8 @@ source_set("test_support") {
     "utils/file_util.h",
     "utils/hash.cpp",
     "utils/hash.h",
+    "utils/png_encode.cpp",
+    "utils/png_encode.h",
   ]
   data = [ "resources/" ]
   public_deps = [
@@ -159,10 +161,7 @@ source_set("unit_test_support") {
         "fxgc_unittest.cpp",
         "fxgc_unittest.h",
       ]
-      deps += [
-        "../fxjs:gc",
-        "//testing/gtest",
-      ]
+      deps += [ "../fxjs:gc" ]
     }
   }
 }
@@ -190,8 +189,10 @@ source_set("embedder_test_support") {
     "../core/fdrm",
     "../core/fxge",
     "../fpdfsdk",
+    "image_diff",
     "//testing/gmock",
     "//testing/gtest",
+    "//third_party/simdutf",
   ]
   public_deps = [
     ":test_environments",
@@ -271,10 +272,10 @@ executable("pdfium_test") {
   # test program does not set a good example, and depends on PDFium internals,
   # as well as test support code, for convenience.
   deps = [
+    ":test_support",
     "../:pdfium_public_headers",
     "../fpdfsdk",
-    "../testing:test_support",
-    "../testing/image_diff",
+    "image_diff",
     "//build/win:default_exe_manifest",
   ]
   configs += [

@@ -13,8 +13,9 @@
 #include "core/fxcodec/fx_codec.h"
 #include "core/fxcodec/fx_codec_def.h"
 #include "core/fxcodec/png/png_decoder_delegate.h"
+#include "core/fxcodec/progressive_decoder_context.h"
+#include "core/fxcrt/check.h"
 #include "core/fxcrt/compiler_specific.h"
-#include "core/fxcrt/notreached.h"
 #include "core/fxcrt/unowned_ptr.h"
 
 #ifdef USE_SYSTEM_LIBPNG
@@ -23,13 +24,15 @@
 #include "third_party/libpng/png.h"
 #endif
 
+#ifdef PDF_ENABLE_RUST_PNG
+#error "If Rust PNG is enabled, then `libpng` should not be used."
+#endif
+
 #define PNG_ERROR_SIZE 256
 
 using PngDecoderDelegate = fxcodec::PngDecoderDelegate;
-using DecodedColorType = PngDecoderDelegate::DecodedColorType;
-using EncodedColorType = PngDecoderDelegate::EncodedColorType;
 
-class CPngContext final : public ProgressiveDecoderIface::Context {
+class CPngContext final : public ProgressiveDecoderContext {
  public:
   explicit CPngContext(PngDecoderDelegate* pDelegate);
   ~CPngContext() override;
@@ -38,6 +41,8 @@ class CPngContext final : public ProgressiveDecoderIface::Context {
   png_infop info_ = nullptr;
   UnownedPtr<PngDecoderDelegate> const delegate_;
   char last_error_[PNG_ERROR_SIZE] = {};
+  png_uint_32 height_ = 0;
+  int number_of_passes_ = 0;
 };
 
 extern "C" {
@@ -54,50 +59,35 @@ void _png_error_data(png_structp png_ptr, png_const_charp error_msg) {
 void _png_warning_data(png_structp png_ptr, png_const_charp error_msg) {}
 
 void _png_get_header_func(png_structp png_ptr, png_infop info_ptr) {
-  auto* pContext =
+  auto* context =
       reinterpret_cast<CPngContext*>(png_get_progressive_ptr(png_ptr));
-  if (!pContext) {
+  if (!context) {
     return;
   }
 
   png_uint_32 width = 0;
   png_uint_32 height = 0;
-  int bpc = 0;
+  int bits_per_component = 0;
   int libpng_color_type = 0;
-  png_get_IHDR(png_ptr, info_ptr, &width, &height, &bpc, &libpng_color_type,
-               nullptr, nullptr, nullptr);
-  if (bpc > 8) {
+  png_get_IHDR(png_ptr, info_ptr, &width, &height, &bits_per_component,
+               &libpng_color_type, nullptr, nullptr, nullptr);
+  if (bits_per_component > 8) {
     png_set_strip_16(png_ptr);
-  } else if (bpc < 8) {
+  } else if (bits_per_component < 8) {
     png_set_expand_gray_1_2_4_to_8(png_ptr);
   }
 
-  bpc = 8;
   if (libpng_color_type == PNG_COLOR_TYPE_PALETTE) {
     png_set_palette_to_rgb(png_ptr);
   }
 
-  int pass = png_set_interlace_handling(png_ptr);
+  context->number_of_passes_ = png_set_interlace_handling(png_ptr);
+  context->height_ = height;
 
-  static_assert(static_cast<int>(EncodedColorType::kGrayscale) ==
-                PNG_COLOR_TYPE_GRAY);
-  static_assert(static_cast<int>(EncodedColorType::kGrayscaleWithAlpha) ==
-                PNG_COLOR_TYPE_GRAY_ALPHA);
-  static_assert(static_cast<int>(EncodedColorType::kIndexedColor) ==
-                PNG_COLOR_TYPE_PALETTE);
-  static_assert(static_cast<int>(EncodedColorType::kTruecolor) ==
-                PNG_COLOR_TYPE_RGB);
-  static_assert(static_cast<int>(EncodedColorType::kTruecolorWithAlpha) ==
-                PNG_COLOR_TYPE_RGB_ALPHA);
-  static_assert(sizeof(EncodedColorType) == sizeof(int));
-  auto src_color_type = static_cast<EncodedColorType>(libpng_color_type);
-
-  DecodedColorType dst_color_type;
   double gamma = 1.0;
-  if (!pContext->delegate_->PngReadHeader(
-          width, height, bpc, pass, src_color_type, &dst_color_type, &gamma)) {
+  if (!context->delegate_->PngReadHeader(width, height, &gamma)) {
     // Note that `png_error` function is marked as `PNG_NORETURN`.
-    png_error(pContext->png_, "Read Header Callback Error");
+    png_error(context->png_, "Read Header Callback Error");
   }
   int intent;
   if (png_get_sRGB(png_ptr, info_ptr, &intent)) {
@@ -114,15 +104,8 @@ void _png_get_header_func(png_structp png_ptr, png_infop info_ptr) {
     png_set_gray_to_rgb(png_ptr);
   }
   png_set_bgr(png_ptr);
-  switch (dst_color_type) {
-    case DecodedColorType::kBgr:
-      png_set_strip_alpha(png_ptr);
-      break;
-    case DecodedColorType::kBgra:
-      if (!(libpng_color_type & PNG_COLOR_MASK_ALPHA)) {
-        png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
-      }
-      break;
+  if (!(libpng_color_type & PNG_COLOR_MASK_ALPHA)) {
+    png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
   }
   png_read_update_info(png_ptr, info_ptr);
 }
@@ -133,17 +116,21 @@ void _png_get_row_func(png_structp png_ptr,
                        png_bytep new_row,
                        png_uint_32 row_num,
                        int pass) {
-  auto* pContext =
+  auto* context =
       reinterpret_cast<CPngContext*>(png_get_progressive_ptr(png_ptr));
-  if (!pContext) {
+  if (!context) {
     return;
   }
 
-  uint8_t* src_buf = pContext->delegate_->PngAskScanlineBuf(row_num);
-  CHECK(src_buf);
-  png_progressive_combine_row(png_ptr, src_buf, new_row);
+  pdfium::span<uint8_t> dst_buf =
+      context->delegate_->PngAskScanlineBuf(row_num);
+  CHECK(!dst_buf.empty());
+  png_progressive_combine_row(png_ptr, dst_buf.data(), new_row);
 
-  pContext->delegate_->PngFillScanlineBufCompleted(row_num);
+  if ((pass == (context->number_of_passes_ - 1)) &&
+      (row_num == (context->height_ - 1))) {
+    context->delegate_->PngFinishedDecoding();
+  }
 }
 
 int _png_set_read_and_error_fns(png_structrp png_ptr,
@@ -182,7 +169,7 @@ CPngContext::~CPngContext() {
 namespace fxcodec {
 
 // static
-std::unique_ptr<ProgressiveDecoderIface::Context> LibpngPngDecoder::StartDecode(
+std::unique_ptr<ProgressiveDecoderContext> LibpngPngDecoder::StartDecode(
     PngDecoderDelegate* pDelegate) {
   auto p = std::make_unique<CPngContext>(pDelegate);
   p->png_ =
@@ -201,13 +188,19 @@ std::unique_ptr<ProgressiveDecoderIface::Context> LibpngPngDecoder::StartDecode(
 }
 
 // static
-bool LibpngPngDecoder::ContinueDecode(
-    ProgressiveDecoderIface::Context* pContext,
-    RetainPtr<CFX_CodecMemory> codec_memory) {
-  auto* ctx = static_cast<CPngContext*>(pContext);
+bool LibpngPngDecoder::ContinueDecode(ProgressiveDecoderContext* context,
+                                      RetainPtr<CFX_CodecMemory> codec_memory) {
+  auto* ctx = static_cast<CPngContext*>(context);
   pdfium::span<uint8_t> src_buf = codec_memory->GetUnconsumedSpan();
-  return _png_continue_decode(ctx->png_, ctx->info_, src_buf.data(),
-                              src_buf.size());
+  bool result = _png_continue_decode(ctx->png_, ctx->info_, src_buf.data(),
+                                     src_buf.size());
+
+  // `libpng` always consumes all the data from `src_buf`, so
+  // advance/seek `codec_memory` to the end of the buffer.
+  codec_memory->Seek(codec_memory->GetSize());
+  CHECK(codec_memory->GetUnconsumedSpan().empty());
+
+  return result;
 }
 
 }  // namespace fxcodec

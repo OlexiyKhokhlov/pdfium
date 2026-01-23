@@ -38,8 +38,11 @@ size_t GetRefAggContextSize(bool val) {
   return val ? 1024 : 8192;
 }
 
-JBig2ComposeOp GetRegionInfoComposeOp(const JBig2RegionInfo& ri) {
-  return static_cast<JBig2ComposeOp>(ri.flags & 0x03);
+JBig2ComposeOp GetComposeOp(uint8_t flags) {
+  if ((flags & 0x07) == 4) {
+    return JBig2ComposeOp::JBIG2_COMPOSE_REPLACE;
+  }
+  return static_cast<JBig2ComposeOp>(flags & 0x03);
 }
 
 }  // namespace
@@ -231,6 +234,9 @@ JBig2_Result CJBig2_Context::ParseSegmentHeader(CJBig2_Segment* pSegment) {
     if (pSegment->referred_to_segment_count_ > kJBig2MaxReferredSegmentCount) {
       return JBig2_Result::kFailure;
     }
+
+    int number_of_bits_to_skip = 1 + pSegment->referred_to_segment_count_;
+    stream_->addOffset((number_of_bits_to_skip + 7) / 8);
   } else {
     if (stream_->read1Byte(&cTemp) != 0) {
       return JBig2_Result::kFailure;
@@ -367,7 +373,7 @@ JBig2_Result CJBig2_Context::ProcessingParseSegmentData(
         page_ = std::make_unique<CJBig2_Image>(pPageInfo->width_, height);
       }
 
-      if (!page_->data()) {
+      if (!page_->has_data()) {
         processing_status_ = FXCODEC_STATUS::kError;
         return JBig2_Result::kFailure;
       }
@@ -633,7 +639,7 @@ JBig2_Result CJBig2_Context::ParseTextRegion(CJBig2_Segment* pSegment) {
   pTRD->SBSTRIPS = 1 << dwTemp;
   pTRD->REFCORNER = (JBig2Corner)((wFlags >> 4) & 0x0003);
   pTRD->TRANSPOSED = (wFlags >> 6) & 0x0001;
-  pTRD->SBCOMBOP = (JBig2ComposeOp)((wFlags >> 7) & 0x0003);
+  pTRD->SBCOMBOP = static_cast<JBig2ComposeOp>((wFlags >> 7) & 0x0003);
   pTRD->SBDEFPIXEL = (wFlags >> 9) & 0x0001;
   pTRD->SBDSOFFSET = (wFlags >> 10) & 0x001f;
   if (pTRD->SBDSOFFSET >= 0x0010) {
@@ -700,6 +706,7 @@ JBig2_Result CJBig2_Context::ParseTextRegion(CJBig2_Segment* pSegment) {
   }
   pTRD->SBSYMS = std::move(SBSYMS);
 
+  uint8_t SBSYMCODELEN = 0;
   if (pTRD->SBHUFF) {
     std::vector<JBig2HuffmanCode> SBSYMCODES =
         DecodeSymbolIDHuffmanTable(pTRD->SBNUMSYMS);
@@ -714,7 +721,7 @@ JBig2_Result CJBig2_Context::ParseTextRegion(CJBig2_Segment* pSegment) {
     while ((uint32_t)(1 << dwTemp) < pTRD->SBNUMSYMS) {
       ++dwTemp;
     }
-    pTRD->SBSYMCODELEN = (uint8_t)dwTemp;
+    SBSYMCODELEN = static_cast<uint8_t>(dwTemp);
   }
 
   if (pTRD->SBHUFF) {
@@ -844,8 +851,8 @@ JBig2_Result CJBig2_Context::ParseTextRegion(CJBig2_Segment* pSegment) {
     stream_->alignByte();
   } else {
     auto pArithDecoder = std::make_unique<CJBig2_ArithDecoder>(stream_.get());
-    pSegment->image_ =
-        pTRD->DecodeArith(pArithDecoder.get(), grContexts, nullptr);
+    JBig2IntDecoderState ids(SBSYMCODELEN);
+    pSegment->image_ = pTRD->DecodeArith(pArithDecoder.get(), grContexts, ids);
     if (!pSegment->image_) {
       return JBig2_Result::kFailure;
     }
@@ -860,7 +867,7 @@ JBig2_Result CJBig2_Context::ParseTextRegion(CJBig2_Segment* pSegment) {
       }
     }
     page_->ComposeFrom(ri.x, ri.y, pSegment->image_.get(),
-                       GetRegionInfoComposeOp(ri));
+                       GetComposeOp(ri.flags));
     pSegment->image_.reset();
   }
   return JBig2_Result::kSuccess;
@@ -934,7 +941,7 @@ JBig2_Result CJBig2_Context::ParseHalftoneRegion(CJBig2_Segment* pSegment,
   pHRD->HMMR = cFlags & 0x01;
   pHRD->HTEMPLATE = (cFlags >> 1) & 0x03;
   pHRD->HENABLESKIP = (cFlags >> 3) & 0x01;
-  pHRD->HCOMBOP = (JBig2ComposeOp)((cFlags >> 4) & 0x07);
+  pHRD->HCOMBOP = GetComposeOp(cFlags >> 4);
   pHRD->HDEFPIXEL = (cFlags >> 7) & 0x01;
   if (pSegment->referred_to_segment_count_ != 1) {
     return JBig2_Result::kFailure;
@@ -983,7 +990,7 @@ JBig2_Result CJBig2_Context::ParseHalftoneRegion(CJBig2_Segment* pSegment,
       }
     }
     page_->ComposeFrom(ri.x, ri.y, pSegment->image_.get(),
-                       GetRegionInfoComposeOp(ri));
+                       GetComposeOp(ri.flags));
     pSegment->image_.reset();
   }
   return JBig2_Result::kSuccess;
@@ -1063,11 +1070,12 @@ JBig2_Result CJBig2_Context::ParseGenericRegion(CJBig2_Segment* pSegment,
           const FX_RECT& rect = grd_->GetReplaceRect();
           page_->ComposeFromWithRect(ri_.x + rect.left, ri_.y + rect.top,
                                      pSegment->image_.get(), rect,
-                                     GetRegionInfoComposeOp(ri_));
+                                     GetComposeOp(ri_.flags));
         }
         return JBig2_Result::kSuccess;
       }
     }
+    grd_->FinishDecode();
     arith_decoder_.reset();
     gb_contexts_.clear();
     if (!pSegment->image_) {
@@ -1088,7 +1096,7 @@ JBig2_Result CJBig2_Context::ParseGenericRegion(CJBig2_Segment* pSegment,
     const FX_RECT& rect = grd_->GetReplaceRect();
     page_->ComposeFromWithRect(ri_.x + rect.left, ri_.y + rect.top,
                                pSegment->image_.get(), rect,
-                               GetRegionInfoComposeOp(ri_));
+                               GetComposeOp(ri_.flags));
     pSegment->image_.reset();
   }
   grd_.reset();
@@ -1107,6 +1115,7 @@ JBig2_Result CJBig2_Context::ParseGenericRefinementRegion(
     return JBig2_Result::kFailure;
   }
 
+  std::unique_ptr<CJBig2_Image> page_subimage;
   auto pGRRD = std::make_unique<CJBig2_GRRDProc>();
   pGRRD->GRW = ri.width;
   pGRRD->GRH = ri.height;
@@ -1139,7 +1148,8 @@ JBig2_Result CJBig2_Context::ParseGenericRefinementRegion(
 
     pGRRD->GRREFERENCE = pSeg->image_.get();
   } else {
-    pGRRD->GRREFERENCE = page_.get();
+    page_subimage = page_->SubImage(ri.x, ri.y, ri.width, ri.height);
+    pGRRD->GRREFERENCE = page_subimage.get();
   }
   pGRRD->GRREFERENCEDX = 0;
   pGRRD->GRREFERENCEDY = 0;
@@ -1162,7 +1172,7 @@ JBig2_Result CJBig2_Context::ParseGenericRefinementRegion(
       }
     }
     page_->ComposeFrom(ri.x, ri.y, pSegment->image_.get(),
-                       GetRegionInfoComposeOp(ri));
+                       GetComposeOp(ri.flags));
     pSegment->image_.reset();
   }
   return JBig2_Result::kSuccess;
@@ -1189,6 +1199,12 @@ JBig2_Result CJBig2_Context::ParseRegionInfo(JBig2RegionInfo* pRI) {
       stream_->read1Byte(&pRI->flags) != 0) {
     return JBig2_Result::kFailure;
   }
+
+  if (reject_large_regions_when_fuzzing_ &&
+      (pRI->width > 4096 || pRI->height > 4096)) {
+    return JBig2_Result::kFailure;
+  }
+
   return JBig2_Result::kSuccess;
 }
 

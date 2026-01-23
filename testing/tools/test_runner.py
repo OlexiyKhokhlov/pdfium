@@ -24,11 +24,13 @@ import suppressor
 pdfium_root.add_source_directory_to_import_path(os.path.join('build', 'util'))
 from lib.results import result_sink, result_types
 
-
 # Arbitrary timestamp, expressed in seconds since the epoch, used to make sure
 # that tests that depend on the current time are stable. Happens to be the
 # timestamp of the first commit to repo, 2014/5/9 17:48:50.
 TEST_SEED_TIME = '1399672130'
+
+# Time zone used to make sure tests that depend on the current time are stable.
+TEST_DEFAULT_TIMEZONE = 'America/Los_Angeles'
 
 # List of test types that should run text tests instead of pixel tests.
 TEXT_TESTS = ['javascript']
@@ -194,6 +196,11 @@ class TestRunner:
         help='Sets whether to use the oneshot renderer.')
 
     parser.add_argument(
+        '--render-premultiplied',
+        action='store_true',
+        help='Sets whether to render using premultiplied alpha.')
+
+    parser.add_argument(
         '--run-skia-gold',
         action='store_true',
         default=False,
@@ -302,6 +309,10 @@ class TestRunner:
       assert self.options.gold_output_dir
       # Clear out and create top level gold output directory before starting
       skia_gold.clear_gold_output_dir(self.options.gold_output_dir)
+
+    # TODO(crbug.com/461544934): Check timezone behavior on Windows.
+    if common.os_name() != 'win':
+      os.environ['TZ'] = TEST_DEFAULT_TIMEZONE
 
     with multiprocessing.Pool(
         processes=self.options.num_workers,
@@ -736,6 +747,9 @@ class _TestCaseRunner:
 
     if self.options.render_oneshot:
       cmd_to_run.append('--render-oneshot')
+
+    if self.options.render_premultiplied:
+      cmd_to_run.append('--render-premultiplied')
 
     if self.options.reverse_byte_order:
       cmd_to_run.append('--reverse-byte-order')

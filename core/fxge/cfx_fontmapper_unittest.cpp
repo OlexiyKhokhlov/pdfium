@@ -113,8 +113,6 @@ TEST(CFXFontMapperTest, MakeTag) {
             CFX_FontMapper::MakeTag(g_maybe_changes, '\xff', '\xff', '\xff'));
   EXPECT_EQ(0x6e616d65u, CFX_FontMapper::MakeTag('n', 'a', 'm', 'e'));
   EXPECT_EQ(0x4f532f32u, CFX_FontMapper::MakeTag('O', 'S', '/', '2'));
-  EXPECT_EQ(FT_MAKE_TAG('G', 'S', 'U', 'B'),
-            CFX_FontMapper::MakeTag('G', 'S', 'U', 'B'));
 }
 
 TEST(CFXFontMapperTest, AddInstalledFontBasic) {
@@ -227,9 +225,9 @@ TEST_F(CFXFontMapperSystemFontInfoTest, GetCachedFaceFailToGetData) {
 }
 
 TEST_F(CFXFontMapperSystemFontInfoTest, SetSubstFontNameWhenGetFaceNameFails) {
-  std::string font_path;
-  ASSERT_TRUE(PathService::GetThirdPartyFilePath(
-      "NotoSansCJK/NotoSansSC-Regular.subset.otf", &font_path));
+  std::string font_path = PathService::GetThirdPartyFilePath(
+      "NotoSansCJK/NotoSansSC-Regular.subset.otf");
+  ASSERT_FALSE(font_path.empty());
   const std::vector<uint8_t> font_data = GetFileContents(font_path.c_str());
   ASSERT_FALSE(font_data.empty());
 
@@ -266,4 +264,43 @@ TEST_F(CFXFontMapperSystemFontInfoTest, SetSubstFontNameWhenGetFaceNameFails) {
                                              kItalic, kItalicAngle, kCharset,
                                              &subst_font));
   EXPECT_EQ("Noto Sans SC Regular", subst_font.family_);
+}
+
+TEST(CFXFontMapperTest, LoadInstalledFontsWithEnumeration) {
+  CFX_FontMapper font_mapper(nullptr);
+  auto system_font_info = std::make_unique<MockSystemFontInfo>();
+  auto* mock_font_info = system_font_info.get();
+  font_mapper.SetSystemFontInfo(std::move(system_font_info));
+
+  // Default behavior: EnumFontList should be called
+  EXPECT_CALL(*mock_font_info, EnumFontList(&font_mapper)).Times(1);
+  font_mapper.LoadInstalledFonts();
+}
+
+TEST(CFXFontMapperTest, LoadInstalledFontsSkipEnumeration) {
+  CFX_FontMapper font_mapper(nullptr);
+  auto system_font_info = std::make_unique<MockSystemFontInfo>();
+  auto* mock_font_info = system_font_info.get();
+  font_mapper.SetSystemFontInfo(std::move(system_font_info));
+
+  // Enable skip enumeration
+  font_mapper.SetSkipFontEnumeration(true);
+
+  // EnumFontList should NOT be called when skip_enumeration is enabled
+  EXPECT_CALL(*mock_font_info, EnumFontList(_)).Times(0);
+  font_mapper.LoadInstalledFonts();
+}
+
+TEST(CFXFontMapperTest, LoadInstalledFontsCalledOnlyOnce) {
+  CFX_FontMapper font_mapper(nullptr);
+  auto system_font_info = std::make_unique<MockSystemFontInfo>();
+  auto* mock_font_info = system_font_info.get();
+  font_mapper.SetSystemFontInfo(std::move(system_font_info));
+
+  // EnumFontList should be called only once even if LoadInstalledFonts is
+  // called multiple times
+  EXPECT_CALL(*mock_font_info, EnumFontList(&font_mapper)).Times(1);
+  font_mapper.LoadInstalledFonts();
+  font_mapper.LoadInstalledFonts();
+  font_mapper.LoadInstalledFonts();
 }

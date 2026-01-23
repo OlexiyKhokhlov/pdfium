@@ -32,8 +32,8 @@ class CFX_FontMgr {
     CONSTRUCT_VIA_MAKE_RETAIN;
 
     pdfium::span<const uint8_t> FontData() const { return font_data_; }
-    void SetFace(size_t index, CFX_Face* face);
-    CFX_Face* GetFace(size_t index) const;
+    void SetFace(uint32_t face_index, CFX_Face* face);
+    CFX_Face* GetFace(uint32_t face_index) const;
 
    private:
     explicit FontDesc(FixedSizeDataVector<uint8_t> data);
@@ -64,9 +64,9 @@ class CFX_FontMgr {
                                            uint32_t checksum,
                                            FixedSizeDataVector<uint8_t> data);
 
-  RetainPtr<CFX_Face> NewFixedFace(RetainPtr<FontDesc> pDesc,
+  RetainPtr<CFX_Face> NewFixedFace(RetainPtr<FontDesc> desc,
                                    pdfium::span<const uint8_t> span,
-                                   size_t face_index);
+                                   uint32_t face_index);
 
   // Always present.
   CFX_FontMapper* GetBuiltinMapper() const { return builtin_mapper_.get(); }
@@ -75,9 +75,6 @@ class CFX_FontMgr {
   bool FTLibrarySupportsHinting() const { return ft_library_supports_hinting_; }
 
  private:
-  bool FreeTypeVersionSupportsHinting() const;
-  bool SetLcdFilterMode() const;
-
   // Must come before |builtin_mapper_| and |face_map_|.
   ScopedFXFTLibraryRec const ft_library_;
   std::unique_ptr<CFX_FontMapper> builtin_mapper_;

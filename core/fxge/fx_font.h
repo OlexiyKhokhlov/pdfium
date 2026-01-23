@@ -49,6 +49,12 @@ enum FontWeight {
 
 }  // namespace pdfium
 
+enum class FontAntiAliasingMode : int {
+  kNormal,
+  kMono,
+  kLcd,
+};
+
 /* Other font flags */
 #define FXFONT_USEEXTERNATTR 0x80000
 
@@ -65,10 +71,11 @@ using CFX_TypeFace = SkTypeface;
 
 class TextGlyphPos;
 
-FX_RECT GetGlyphsBBox(const std::vector<TextGlyphPos>& glyphs, int anti_alias);
+FX_RECT GetGlyphsBBox(const std::vector<TextGlyphPos>& glyphs,
+                      bool anti_alias_is_lcd);
 
 ByteString GetNameFromTT(pdfium::span<const uint8_t> name_table, uint32_t name);
-size_t GetTTCIndex(pdfium::span<const uint8_t> font_data, size_t font_offset);
+uint32_t GetTTCIndex(pdfium::span<const uint8_t> font_data, size_t font_offset);
 
 inline bool FontStyleIsForceBold(uint32_t style) {
   return !!(style & pdfium::kFontStyleForceBold);

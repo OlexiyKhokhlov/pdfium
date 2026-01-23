@@ -12,25 +12,18 @@
 #include <algorithm>
 #include <memory>
 
+#include "core/fxcrt/byteorder.h"
 #include "core/fxcrt/check.h"
 #include "core/fxcrt/compiler_specific.h"
 #include "core/fxcrt/fx_2d_size.h"
 #include "core/fxcrt/fx_coordinates.h"
-#include "core/fxcrt/fx_memcpy_wrappers.h"
 #include "core/fxcrt/fx_memory.h"
 #include "core/fxcrt/fx_safe_types.h"
+#include "core/fxcrt/notreached.h"
+#include "core/fxcrt/span_util.h"
 
-#define JBIG2_GETDWORD(buf)                  \
-  ((static_cast<uint32_t>((buf)[0]) << 24) | \
-   (static_cast<uint32_t>((buf)[1]) << 16) | \
-   (static_cast<uint32_t>((buf)[2]) << 8) |  \
-   (static_cast<uint32_t>((buf)[3]) << 0))
-
-#define JBIG2_PUTDWORD(buf, val)                 \
-  ((buf)[0] = static_cast<uint8_t>((val) >> 24), \
-   (buf)[1] = static_cast<uint8_t>((val) >> 16), \
-   (buf)[2] = static_cast<uint8_t>((val) >> 8),  \
-   (buf)[3] = static_cast<uint8_t>((val) >> 0))
+using fxcrt::GetUInt32MSBFirst;
+using fxcrt::PutUInt32MSBFirst;
 
 namespace {
 
@@ -43,6 +36,29 @@ int BitIndexToByte(int index) {
 
 int BitIndexToAlignedByte(int index) {
   return index / 32 * 4;
+}
+
+uint32_t DoCompose(JBig2ComposeOp op, uint32_t val1, uint32_t val2) {
+  switch (op) {
+    case JBIG2_COMPOSE_OR:
+      return val1 | val2;
+    case JBIG2_COMPOSE_AND:
+      return val1 & val2;
+    case JBIG2_COMPOSE_XOR:
+      return val1 ^ val2;
+    case JBIG2_COMPOSE_XNOR:
+      return ~(val1 ^ val2);
+    case JBIG2_COMPOSE_REPLACE:
+      return val1;
+  }
+  NOTREACHED();
+}
+
+uint32_t DoComposeWithMask(JBig2ComposeOp op,
+                           uint32_t val1,
+                           uint32_t val2,
+                           uint32_t mask) {
+  return (val2 & ~mask) | (DoCompose(op, val1, val2) & mask);
 }
 
 }  // namespace
@@ -60,6 +76,7 @@ CJBig2_Image::CJBig2_Image(int32_t w, int32_t h) {
   width_ = w;
   height_ = h;
   stride_ = stride_pixels / 8;
+  CHECK_GE(stride_, 0);
   data_.Reset(std::unique_ptr<uint8_t, FxFreeDeleter>(
       FX_Alloc2D(uint8_t, stride_, height_)));
 }
@@ -82,19 +99,27 @@ CJBig2_Image::CJBig2_Image(int32_t w,
     return;
   }
 
+  if (stride > 0 && h > 0 && pBuf.empty()) {
+    return;
+  }
+
   width_ = w;
   height_ = h;
   stride_ = stride;
+  CHECK_GE(stride_, 0);
   data_.Reset(pBuf.data());
 }
 
 CJBig2_Image::CJBig2_Image(const CJBig2_Image& other)
     : width_(other.width_), height_(other.height_), stride_(other.stride_) {
-  if (other.data_) {
-    data_.Reset(std::unique_ptr<uint8_t, FxFreeDeleter>(
-        FX_Alloc2D(uint8_t, stride_, height_)));
-    UNSAFE_TODO(FXSYS_memcpy(data(), other.data(), stride_ * height_));
+  auto other_span = other.span();
+  if (other_span.empty()) {
+    return;
   }
+
+  data_.Reset(std::unique_ptr<uint8_t, FxFreeDeleter>(
+      FX_Alloc2D(uint8_t, stride_, height_)));
+  fxcrt::spancpy(span(), other_span);
 }
 
 CJBig2_Image::~CJBig2_Image() = default;
@@ -104,75 +129,76 @@ bool CJBig2_Image::IsValidImageSize(int32_t w, int32_t h) {
   return w > 0 && w <= kJBig2MaxImageSize && h > 0 && h <= kJBig2MaxImageSize;
 }
 
-int CJBig2_Image::GetPixel(int32_t x, int32_t y) const {
-  if (!data_) {
-    return 0;
-  }
+pdfium::span<const uint8_t> CJBig2_Image::span() const {
+  // SAFETY: If `data_` is owned, then `this` must have allocate the right
+  // amount. If `data_` is not owned, then safety requires correctness from the
+  // caller that constructed `this`.
+  return UNSAFE_BUFFERS(
+      pdfium::span(data_.Get(), Fx2DSizeOrDie(stride_, height_)));
+}
 
-  if (x < 0 || x >= width_) {
-    return 0;
-  }
+pdfium::span<uint8_t> CJBig2_Image::span() {
+  // SAFETY: Same as const-version of span() above.
+  return UNSAFE_BUFFERS(
+      pdfium::span(data_.Get(), Fx2DSizeOrDie(stride_, height_)));
+}
 
-  const uint8_t* pLine = GetLine(y);
-  if (!pLine) {
+int CJBig2_Image::GetPixel(int32_t x, pdfium::span<const uint8_t> line) const {
+  if (line.empty() || x < 0 || x >= width_) {
     return 0;
   }
 
   int32_t m = BitIndexToByte(x);
   int32_t n = x & 7;
-  return UNSAFE_TODO((pLine[m] >> (7 - n)) & 1);
+  return (line[m] >> (7 - n)) & 1;
 }
 
-void CJBig2_Image::SetPixel(int32_t x, int32_t y, int v) {
-  if (!data_) {
-    return;
-  }
-
-  if (x < 0 || x >= width_) {
-    return;
-  }
-
-  uint8_t* pLine = GetLine(y);
-  if (!pLine) {
+void CJBig2_Image::SetPixel(int32_t x, pdfium::span<uint8_t> line, int v) {
+  if (line.empty() || x < 0 || x >= width_) {
     return;
   }
 
   int32_t m = BitIndexToByte(x);
   int32_t n = 1 << (7 - (x & 7));
   if (v) {
-    UNSAFE_TODO(pLine[m]) |= n;
+    line[m] |= n;
   } else {
-    UNSAFE_TODO(pLine[m]) &= ~n;
+    line[m] &= ~n;
   }
 }
 
-void CJBig2_Image::CopyLine(int32_t hTo, int32_t hFrom) {
-  if (!data_) {
+pdfium::span<const uint8_t> CJBig2_Image::GetLine(int32_t y) const {
+  std::optional<size_t> offset = GetLineOffset(y);
+  if (!offset.has_value()) {
+    return {};
+  }
+  return span().subspan(offset.value(), static_cast<size_t>(stride_));
+}
+
+pdfium::span<uint8_t> CJBig2_Image::GetLine(int32_t y) {
+  std::optional<size_t> offset = GetLineOffset(y);
+  if (!offset.has_value()) {
+    return {};
+  }
+  return span().subspan(offset.value(), static_cast<size_t>(stride_));
+}
+
+void CJBig2_Image::CopyLine(int32_t dest_y, int32_t src_y) {
+  pdfium::span<uint8_t> dest = GetLine(dest_y);
+  if (dest.empty()) {
     return;
   }
 
-  uint8_t* pDst = GetLine(hTo);
-  if (!pDst) {
+  pdfium::span<const uint8_t> src = GetLine(src_y);
+  if (src.empty()) {
+    std::ranges::fill(dest, 0);
     return;
   }
-
-  const uint8_t* pSrc = GetLine(hFrom);
-  UNSAFE_TODO({
-    if (!pSrc) {
-      FXSYS_memset(pDst, 0, stride_);
-      return;
-    }
-    FXSYS_memcpy(pDst, pSrc, stride_);
-  });
+  fxcrt::spancpy(dest, src);
 }
 
 void CJBig2_Image::Fill(bool v) {
-  if (!data_) {
-    return;
-  }
-
-  UNSAFE_TODO(
-      FXSYS_memset(data(), v ? 0xff : 0, Fx2DSizeOrDie(stride_, height_)));
+  std::ranges::fill(span(), v ? 0xff : 0);
 }
 
 bool CJBig2_Image::ComposeTo(CJBig2_Image* pDst,
@@ -209,37 +235,48 @@ bool CJBig2_Image::ComposeFromWithRect(int64_t x,
 std::unique_ptr<CJBig2_Image> CJBig2_Image::SubImage(int32_t x,
                                                      int32_t y,
                                                      int32_t w,
-                                                     int32_t h) {
-  auto pImage = std::make_unique<CJBig2_Image>(w, h);
-  if (!pImage->data() || !data_) {
-    return pImage;
+                                                     int32_t h) const {
+  auto image = std::make_unique<CJBig2_Image>(w, h);
+  if (!image->has_data() || !has_data()) {
+    return image;
   }
 
   if (x < 0 || x >= width_ || y < 0 || y >= height_) {
-    return pImage;
+    return image;
   }
 
   // Fast case when byte-aligned, normal slow case otherwise.
   if ((x & 7) == 0) {
-    SubImageFast(x, y, w, h, pImage.get());
+    SubImageFast(x, y, w, h, image.get());
   } else {
-    SubImageSlow(x, y, w, h, pImage.get());
+    SubImageSlow(x, y, w, h, image.get());
   }
 
-  return pImage;
+  return image;
+}
+
+std::optional<size_t> CJBig2_Image::GetLineOffset(int32_t y) const {
+  if (!has_data() || y < 0 || y >= height_) {
+    return std::nullopt;
+  }
+
+  FX_SAFE_SIZE_T size = stride_;
+  size *= y;
+  return size.ValueOrDie();
 }
 
 void CJBig2_Image::SubImageFast(int32_t x,
                                 int32_t y,
                                 int32_t w,
                                 int32_t h,
-                                CJBig2_Image* pImage) {
+                                CJBig2_Image* image) const {
   int32_t m = BitIndexToByte(x);
-  int32_t bytes_to_copy = std::min(pImage->stride_, stride_ - m);
-  int32_t lines_to_copy = std::min(pImage->height_, height_ - y);
-  for (int32_t j = 0; j < lines_to_copy; j++) {
-    UNSAFE_TODO(FXSYS_memcpy(pImage->GetLineUnsafe(j), GetLineUnsafe(y + j) + m,
-                             bytes_to_copy));
+  size_t bytes_to_copy = std::min(image->stride_, stride_ - m);
+  int32_t lines_to_copy = std::min(image->height_, height_ - y);
+  for (int32_t i = 0; i < lines_to_copy; ++i) {
+    pdfium::span<const uint8_t> src =
+        GetLine(y + i).subspan(static_cast<size_t>(m), bytes_to_copy);
+    fxcrt::spancpy(image->GetLine(i), src);
   }
 }
 
@@ -247,31 +284,29 @@ void CJBig2_Image::SubImageSlow(int32_t x,
                                 int32_t y,
                                 int32_t w,
                                 int32_t h,
-                                CJBig2_Image* pImage) {
+                                CJBig2_Image* image) const {
   int32_t m = BitIndexToAlignedByte(x);
   int32_t n = x & 31;
-  int32_t bytes_to_copy = std::min(pImage->stride_, stride_ - m);
-  int32_t lines_to_copy = std::min(pImage->height_, height_ - y);
-  UNSAFE_TODO({
-    for (int32_t j = 0; j < lines_to_copy; j++) {
-      const uint8_t* pLineSrc = GetLineUnsafe(y + j);
-      uint8_t* pLineDst = pImage->GetLineUnsafe(j);
-      const uint8_t* pSrc = pLineSrc + m;
-      const uint8_t* pSrcEnd = pLineSrc + stride_;
-      uint8_t* pDstEnd = pLineDst + bytes_to_copy;
-      for (uint8_t* pDst = pLineDst; pDst < pDstEnd; pSrc += 4, pDst += 4) {
-        uint32_t wTmp = JBIG2_GETDWORD(pSrc) << n;
-        if (pSrc + 4 < pSrcEnd) {
-          wTmp |= (JBIG2_GETDWORD(pSrc + 4) >> (32 - n));
-        }
-        JBIG2_PUTDWORD(pDst, wTmp);
+  size_t bytes_to_copy = std::min(image->stride_, stride_ - m);
+  int32_t lines_to_copy = std::min(image->height_, height_ - y);
+  for (int32_t i = 0; i < lines_to_copy; ++i) {
+    pdfium::span<const uint8_t> src =
+        GetLine(y + i).subspan(static_cast<size_t>(m));
+    pdfium::span<uint8_t> dest = image->GetLine(i).first(bytes_to_copy);
+    while (!dest.empty()) {
+      auto src_bytes = src.take_first<4u>();
+      auto dest_bytes = dest.take_first<4u>();
+      uint32_t val = GetUInt32MSBFirst(src_bytes) << n;
+      if (src.size() >= 4) {
+        val |= (GetUInt32MSBFirst(src.first<4u>()) >> (32 - n));
       }
+      PutUInt32MSBFirst(val, dest_bytes);
     }
-  });
+  }
 }
 
 void CJBig2_Image::Expand(int32_t h, bool v) {
-  if (!data_ || h <= height_ || h > kMaxImageBytes / stride_) {
+  if (!has_data() || h <= height_ || h > kMaxImageBytes / stride_) {
     return;
   }
 
@@ -283,14 +318,16 @@ void CJBig2_Image::Expand(int32_t h, bool v) {
     data_.Reset(std::unique_ptr<uint8_t, FxFreeDeleter>(
         FX_Realloc(uint8_t, data_.ReleaseAndClear().release(), desired_size)));
   } else {
-    uint8_t* pExternalBuffer = data();
+    pdfium::span<const uint8_t> external_buffer = span();
     data_.Reset(std::unique_ptr<uint8_t, FxFreeDeleter>(
         FX_Alloc(uint8_t, desired_size)));
-    UNSAFE_TODO(FXSYS_memcpy(data(), pExternalBuffer, current_size));
+    fxcrt::spancpy(span(), external_buffer);
   }
-  UNSAFE_TODO(FXSYS_memset(data() + current_size, v ? 0xff : 0,
-                           desired_size - current_size));
+  // NOTE: Must update `height_` first, so a subsequent span() call will create
+  // a span that includes the expanded portion of memory, which needs to be
+  // filled. Do not reuse other spans here.
   height_ = h;
+  std::ranges::fill(span().subspan(current_size), v ? 0xff : 0);
 }
 
 bool CJBig2_Image::ComposeToInternal(CJBig2_Image* pDst,
@@ -298,19 +335,19 @@ bool CJBig2_Image::ComposeToInternal(CJBig2_Image* pDst,
                                      int64_t y_in,
                                      JBig2ComposeOp op,
                                      const FX_RECT& rtSrc) {
-  DCHECK(data_);
+  DCHECK(has_data());
 
   // TODO(weili): Check whether the range check is correct. Should x>=1048576?
   if (x_in < -1048576 || x_in > 1048576 || y_in < -1048576 || y_in > 1048576) {
     return false;
   }
-  int32_t x = static_cast<int32_t>(x_in);
-  int32_t y = static_cast<int32_t>(y_in);
+  const int32_t x = static_cast<int32_t>(x_in);
+  const int32_t y = static_cast<int32_t>(y_in);
 
-  int32_t sw = rtSrc.Width();
-  int32_t sh = rtSrc.Height();
+  const int32_t sw = rtSrc.Width();
+  const int32_t sh = rtSrc.Height();
 
-  int32_t xs0 = x < 0 ? -x : 0;
+  const int32_t xs0 = x < 0 ? -x : 0;
   int32_t xs1;
   FX_SAFE_INT32 iChecked = pDst->width_;
   iChecked -= x;
@@ -320,7 +357,7 @@ bool CJBig2_Image::ComposeToInternal(CJBig2_Image* pDst,
     xs1 = sw;
   }
 
-  int32_t ys0 = y < 0 ? -y : 0;
+  const int32_t ys0 = y < 0 ? -y : 0;
   int32_t ys1;
   iChecked = pDst->height_;
   iChecked -= y;
@@ -334,387 +371,238 @@ bool CJBig2_Image::ComposeToInternal(CJBig2_Image* pDst,
     return false;
   }
 
-  int32_t xd0 = std::max(x, 0);
-  int32_t yd0 = std::max(y, 0);
-  int32_t w = xs1 - xs0;
-  int32_t h = ys1 - ys0;
-  int32_t xd1 = xd0 + w;
-  int32_t yd1 = yd0 + h;
-  uint32_t d1 = xd0 & 31;
-  uint32_t d2 = xd1 & 31;
-  uint32_t s1 = xs0 & 31;
-  uint32_t maskL = 0xffffffff >> d1;
-  uint32_t maskR = 0xffffffff << ((32 - (xd1 & 31)) % 32);
-  uint32_t maskM = maskL & maskR;
-  UNSAFE_TODO({
-    const uint8_t* lineSrc = GetLineUnsafe(rtSrc.top + ys0) +
-                             BitIndexToAlignedByte(xs0 + rtSrc.left);
-    const uint8_t* lineSrcEnd = data() + Fx2DSizeOrDie(height_, stride_);
-    int32_t lineLeft = stride_ - BitIndexToAlignedByte(xs0);
-    uint8_t* lineDst = pDst->GetLineUnsafe(yd0) + BitIndexToAlignedByte(xd0);
-    if ((xd0 & ~31) == ((xd1 - 1) & ~31)) {
-      if ((xs0 & ~31) == ((xs1 - 1) & ~31)) {
-        if (s1 > d1) {
-          uint32_t shift = s1 - d1;
-          for (int32_t yy = yd0; yy < yd1; yy++) {
-            if (lineSrc >= lineSrcEnd) {
-              return false;
-            }
-            uint32_t tmp1 = JBIG2_GETDWORD(lineSrc) << shift;
-            uint32_t tmp2 = JBIG2_GETDWORD(lineDst);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskM) | ((tmp1 | tmp2) & maskM);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskM) | ((tmp1 & tmp2) & maskM);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskM) | ((tmp1 ^ tmp2) & maskM);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskM) | ((~(tmp1 ^ tmp2)) & maskM);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskM) | (tmp1 & maskM);
-                break;
-            }
-            JBIG2_PUTDWORD(lineDst, tmp);
-            lineSrc += stride_;
-            lineDst += pDst->stride_;
-          }
-        } else {
-          uint32_t shift = d1 - s1;
-          for (int32_t yy = yd0; yy < yd1; yy++) {
-            if (lineSrc >= lineSrcEnd) {
-              return false;
-            }
-            uint32_t tmp1 = JBIG2_GETDWORD(lineSrc) >> shift;
-            uint32_t tmp2 = JBIG2_GETDWORD(lineDst);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskM) | ((tmp1 | tmp2) & maskM);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskM) | ((tmp1 & tmp2) & maskM);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskM) | ((tmp1 ^ tmp2) & maskM);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskM) | ((~(tmp1 ^ tmp2)) & maskM);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskM) | (tmp1 & maskM);
-                break;
-            }
-            JBIG2_PUTDWORD(lineDst, tmp);
-            lineSrc += stride_;
-            lineDst += pDst->stride_;
-          }
-        }
-      } else {
-        uint32_t shift1 = s1 - d1;
-        uint32_t shift2 = 32 - shift1;
-        for (int32_t yy = yd0; yy < yd1; yy++) {
-          if (lineSrc >= lineSrcEnd) {
-            return false;
-          }
-          uint32_t tmp1 = (JBIG2_GETDWORD(lineSrc) << shift1) |
-                          (JBIG2_GETDWORD(lineSrc + 4) >> shift2);
-          uint32_t tmp2 = JBIG2_GETDWORD(lineDst);
-          uint32_t tmp = 0;
-          switch (op) {
-            case JBIG2_COMPOSE_OR:
-              tmp = (tmp2 & ~maskM) | ((tmp1 | tmp2) & maskM);
-              break;
-            case JBIG2_COMPOSE_AND:
-              tmp = (tmp2 & ~maskM) | ((tmp1 & tmp2) & maskM);
-              break;
-            case JBIG2_COMPOSE_XOR:
-              tmp = (tmp2 & ~maskM) | ((tmp1 ^ tmp2) & maskM);
-              break;
-            case JBIG2_COMPOSE_XNOR:
-              tmp = (tmp2 & ~maskM) | ((~(tmp1 ^ tmp2)) & maskM);
-              break;
-            case JBIG2_COMPOSE_REPLACE:
-              tmp = (tmp2 & ~maskM) | (tmp1 & maskM);
-              break;
-          }
-          JBIG2_PUTDWORD(lineDst, tmp);
-          lineSrc += stride_;
-          lineDst += pDst->stride_;
-        }
-      }
+  const int32_t xd0 = std::max(x, 0);
+  const int32_t yd0 = std::max(y, 0);
+  const int32_t w = xs1 - xs0;
+  const int32_t h = ys1 - ys0;
+  const int32_t xd1 = xd0 + w;
+  const uint32_t d1 = xd0 & 31;
+  const uint32_t d2 = xd1 & 31;
+  const uint32_t s1 = xs0 & 31;
+  const uint32_t maskL = 0xffffffff >> d1;
+  const uint32_t maskR = 0xffffffff << ((32 - (xd1 & 31)) % 32);
+  const uint32_t maskM = maskL & maskR;
+
+  const int src_start_line = rtSrc.top + ys0;
+  const int dest_start_line = yd0;
+  const size_t src_offset =
+      pdfium::checked_cast<size_t>(BitIndexToAlignedByte(xs0 + rtSrc.left));
+  const size_t dest_offset =
+      pdfium::checked_cast<size_t>(BitIndexToAlignedByte(xd0));
+  const size_t line_size =
+      pdfium::checked_cast<size_t>(stride_ - BitIndexToAlignedByte(xs0));
+
+  enum class ComposeToOp {
+    kDestAlignedSrcAlignedSrcGreaterThanDest,
+    kDestAlignedSrcAlignedSrcLessThanEqualDest,
+    kDestAlignedSrcNotAligned,
+    kDestNotAlignedSrcGreaterThanDest,
+    kDestNotAlignedSrcEqualToDest,
+    kDestNotAlignedSrcLessThanDest
+  };
+
+  ComposeToOp compose_to_op;
+  if ((xd0 & ~31) == ((xd1 - 1) & ~31)) {
+    if ((xs0 & ~31) == ((xs1 - 1) & ~31)) {
+      compose_to_op =
+          s1 > d1 ? ComposeToOp::kDestAlignedSrcAlignedSrcGreaterThanDest
+                  : ComposeToOp::kDestAlignedSrcAlignedSrcLessThanEqualDest;
     } else {
-      if (s1 > d1) {
-        uint32_t shift1 = s1 - d1;
-        uint32_t shift2 = 32 - shift1;
-        int32_t middleDwords = (xd1 >> 5) - ((xd0 + 31) >> 5);
-        for (int32_t yy = yd0; yy < yd1; yy++) {
-          if (lineSrc >= lineSrcEnd) {
-            return false;
-          }
-          const uint8_t* sp = lineSrc;
-          uint8_t* dp = lineDst;
-          if (d1 != 0) {
-            uint32_t tmp1 = (JBIG2_GETDWORD(sp) << shift1) |
-                            (JBIG2_GETDWORD(sp + 4) >> shift2);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskL) | ((tmp1 | tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskL) | ((tmp1 & tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskL) | ((tmp1 ^ tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskL) | ((~(tmp1 ^ tmp2)) & maskL);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskL) | (tmp1 & maskL);
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-            sp += 4;
-            dp += 4;
-          }
-          for (int32_t xx = 0; xx < middleDwords; xx++) {
-            uint32_t tmp1 = (JBIG2_GETDWORD(sp) << shift1) |
-                            (JBIG2_GETDWORD(sp + 4) >> shift2);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = tmp1 | tmp2;
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = tmp1 & tmp2;
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = tmp1 ^ tmp2;
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = ~(tmp1 ^ tmp2);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = tmp1;
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-            sp += 4;
-            dp += 4;
-          }
-          if (d2 != 0) {
-            uint32_t tmp1 =
-                (JBIG2_GETDWORD(sp) << shift1) |
-                (((sp + 4) < lineSrc + lineLeft ? JBIG2_GETDWORD(sp + 4) : 0) >>
-                 shift2);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskR) | ((tmp1 | tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskR) | ((tmp1 & tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskR) | ((tmp1 ^ tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskR) | ((~(tmp1 ^ tmp2)) & maskR);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskR) | (tmp1 & maskR);
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-          }
-          lineSrc += stride_;
-          lineDst += pDst->stride_;
+      compose_to_op = ComposeToOp::kDestAlignedSrcNotAligned;
+    }
+  } else {
+    if (s1 > d1) {
+      compose_to_op = ComposeToOp::kDestNotAlignedSrcGreaterThanDest;
+    } else if (s1 == d1) {
+      compose_to_op = ComposeToOp::kDestNotAlignedSrcEqualToDest;
+    } else {
+      compose_to_op = ComposeToOp::kDestNotAlignedSrcLessThanDest;
+    }
+  }
+
+  switch (compose_to_op) {
+    case ComposeToOp::kDestAlignedSrcAlignedSrcGreaterThanDest: {
+      const uint32_t shift = s1 - d1;
+      for (int32_t i = 0; i < h; ++i) {
+        pdfium::span<const uint8_t> src = GetLine(src_start_line + i);
+        pdfium::span<uint8_t> dest = pDst->GetLine(dest_start_line + i);
+        if (src.empty() || dest.empty()) {
+          return false;
         }
-      } else if (s1 == d1) {
-        int32_t middleDwords = (xd1 >> 5) - ((xd0 + 31) >> 5);
-        for (int32_t yy = yd0; yy < yd1; yy++) {
-          if (lineSrc >= lineSrcEnd) {
-            return false;
-          }
-          const uint8_t* sp = lineSrc;
-          uint8_t* dp = lineDst;
-          if (d1 != 0) {
-            uint32_t tmp1 = JBIG2_GETDWORD(sp);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskL) | ((tmp1 | tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskL) | ((tmp1 & tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskL) | ((tmp1 ^ tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskL) | ((~(tmp1 ^ tmp2)) & maskL);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskL) | (tmp1 & maskL);
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-            sp += 4;
-            dp += 4;
-          }
-          for (int32_t xx = 0; xx < middleDwords; xx++) {
-            uint32_t tmp1 = JBIG2_GETDWORD(sp);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = tmp1 | tmp2;
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = tmp1 & tmp2;
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = tmp1 ^ tmp2;
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = ~(tmp1 ^ tmp2);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = tmp1;
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-            sp += 4;
-            dp += 4;
-          }
-          if (d2 != 0) {
-            uint32_t tmp1 = JBIG2_GETDWORD(sp);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskR) | ((tmp1 | tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskR) | ((tmp1 & tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskR) | ((tmp1 ^ tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskR) | ((~(tmp1 ^ tmp2)) & maskR);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskR) | (tmp1 & maskR);
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-          }
-          lineSrc += stride_;
-          lineDst += pDst->stride_;
+
+        auto src_bytes = src.subspan(src_offset).first<4u>();
+        auto dest_bytes = dest.subspan(dest_offset).first<4u>();
+        uint32_t tmp1 = GetUInt32MSBFirst(src_bytes) << shift;
+        uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+        PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskM), dest_bytes);
+      }
+      return true;
+    }
+    case ComposeToOp::kDestAlignedSrcAlignedSrcLessThanEqualDest: {
+      const uint32_t shift = d1 - s1;
+      for (int32_t i = 0; i < h; ++i) {
+        pdfium::span<const uint8_t> src = GetLine(src_start_line + i);
+        pdfium::span<uint8_t> dest = pDst->GetLine(dest_start_line + i);
+        if (src.empty() || dest.empty()) {
+          return false;
         }
-      } else {
-        uint32_t shift1 = d1 - s1;
-        uint32_t shift2 = 32 - shift1;
-        int32_t middleDwords = (xd1 >> 5) - ((xd0 + 31) >> 5);
-        for (int32_t yy = yd0; yy < yd1; yy++) {
-          if (lineSrc >= lineSrcEnd) {
-            return false;
+
+        auto src_bytes = src.subspan(src_offset).first<4u>();
+        auto dest_bytes = dest.subspan(dest_offset).first<4u>();
+        uint32_t tmp1 = GetUInt32MSBFirst(src_bytes) >> shift;
+        uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+        PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskM), dest_bytes);
+      }
+      return true;
+    }
+    case ComposeToOp::kDestAlignedSrcNotAligned: {
+      const uint32_t shift1 = s1 - d1;
+      const uint32_t shift2 = 32 - shift1;
+      for (int32_t i = 0; i < h; ++i) {
+        pdfium::span<const uint8_t> src = GetLine(src_start_line + i);
+        pdfium::span<uint8_t> dest = pDst->GetLine(dest_start_line + i);
+        if (src.empty() || dest.empty()) {
+          return false;
+        }
+
+        src = src.subspan(src_offset);
+        auto src_bytes1 = src.first<4u>();
+        auto src_bytes2 = src.subspan<4u, 4u>();
+        auto dest_bytes = dest.subspan(dest_offset).first<4u>();
+        uint32_t tmp1 = (GetUInt32MSBFirst(src_bytes1) << shift1) |
+                        (GetUInt32MSBFirst(src_bytes2) >> shift2);
+        uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+        PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskM), dest_bytes);
+      }
+      return true;
+    }
+    case ComposeToOp::kDestNotAlignedSrcGreaterThanDest: {
+      const uint32_t shift1 = s1 - d1;
+      const uint32_t shift2 = 32 - shift1;
+      const int32_t middleDwords = (xd1 >> 5) - ((xd0 + 31) >> 5);
+      for (int32_t i = 0; i < h; ++i) {
+        pdfium::span<const uint8_t> src = GetLine(src_start_line + i);
+        pdfium::span<uint8_t> dest = pDst->GetLine(dest_start_line + i);
+        if (src.empty() || dest.empty()) {
+          return false;
+        }
+
+        src = src.subspan(src_offset);
+        if (d2 != 0) {
+          src = src.first(line_size);
+        }
+        dest = dest.subspan(dest_offset);
+        if (d1 != 0) {
+          auto src_bytes1 = src.first<4u>();
+          auto src_bytes2 = src.first<4u>();
+          uint32_t tmp1 = (GetUInt32MSBFirst(src_bytes1) << shift1) |
+                          (GetUInt32MSBFirst(src_bytes2) >> shift2);
+          auto dest_bytes = dest.take_first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskL),
+                            dest_bytes);
+        }
+        for (int32_t xx = 0; xx < middleDwords; xx++) {
+          auto src_bytes1 = src.take_first<4u>();
+          auto src_bytes2 = src.first<4u>();
+          uint32_t tmp1 = (GetUInt32MSBFirst(src_bytes1) << shift1) |
+                          (GetUInt32MSBFirst(src_bytes2) >> shift2);
+          auto dest_bytes = dest.take_first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoCompose(op, tmp1, tmp2), dest_bytes);
+        }
+        if (d2 != 0) {
+          uint32_t tmp1 = (GetUInt32MSBFirst(src.take_first<4u>()) << shift1);
+          if (!src.empty()) {
+            tmp1 |= (GetUInt32MSBFirst(src.first<4u>()) >> shift2);
           }
-          const uint8_t* sp = lineSrc;
-          uint8_t* dp = lineDst;
-          if (d1 != 0) {
-            uint32_t tmp1 = JBIG2_GETDWORD(sp) >> shift1;
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskL) | ((tmp1 | tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskL) | ((tmp1 & tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskL) | ((tmp1 ^ tmp2) & maskL);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskL) | ((~(tmp1 ^ tmp2)) & maskL);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskL) | (tmp1 & maskL);
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-            dp += 4;
-          }
-          for (int32_t xx = 0; xx < middleDwords; xx++) {
-            uint32_t tmp1 = (JBIG2_GETDWORD(sp) << shift2) |
-                            ((JBIG2_GETDWORD(sp + 4)) >> shift1);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = tmp1 | tmp2;
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = tmp1 & tmp2;
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = tmp1 ^ tmp2;
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = ~(tmp1 ^ tmp2);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = tmp1;
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-            sp += 4;
-            dp += 4;
-          }
-          if (d2 != 0) {
-            uint32_t tmp1 =
-                (JBIG2_GETDWORD(sp) << shift2) |
-                (((sp + 4) < lineSrc + lineLeft ? JBIG2_GETDWORD(sp + 4) : 0) >>
-                 shift1);
-            uint32_t tmp2 = JBIG2_GETDWORD(dp);
-            uint32_t tmp = 0;
-            switch (op) {
-              case JBIG2_COMPOSE_OR:
-                tmp = (tmp2 & ~maskR) | ((tmp1 | tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_AND:
-                tmp = (tmp2 & ~maskR) | ((tmp1 & tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_XOR:
-                tmp = (tmp2 & ~maskR) | ((tmp1 ^ tmp2) & maskR);
-                break;
-              case JBIG2_COMPOSE_XNOR:
-                tmp = (tmp2 & ~maskR) | ((~(tmp1 ^ tmp2)) & maskR);
-                break;
-              case JBIG2_COMPOSE_REPLACE:
-                tmp = (tmp2 & ~maskR) | (tmp1 & maskR);
-                break;
-            }
-            JBIG2_PUTDWORD(dp, tmp);
-          }
-          lineSrc += stride_;
-          lineDst += pDst->stride_;
+          auto dest_bytes = dest.first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskR),
+                            dest_bytes);
         }
       }
+      return true;
     }
-  });
-  return true;
+    case ComposeToOp::kDestNotAlignedSrcEqualToDest: {
+      const int32_t middleDwords = (xd1 >> 5) - ((xd0 + 31) >> 5);
+      for (int32_t i = 0; i < h; ++i) {
+        pdfium::span<const uint8_t> src = GetLine(src_start_line + i);
+        pdfium::span<uint8_t> dest = pDst->GetLine(dest_start_line + i);
+        if (src.empty() || dest.empty()) {
+          return false;
+        }
+
+        src = src.subspan(src_offset);
+        dest = dest.subspan(dest_offset);
+        if (d1 != 0) {
+          uint32_t tmp1 = GetUInt32MSBFirst(src.take_first<4u>());
+          auto dest_bytes = dest.take_first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskL),
+                            dest_bytes);
+        }
+        for (int32_t xx = 0; xx < middleDwords; xx++) {
+          uint32_t tmp1 = GetUInt32MSBFirst(src.take_first<4u>());
+          auto dest_bytes = dest.take_first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoCompose(op, tmp1, tmp2), dest_bytes);
+        }
+        if (d2 != 0) {
+          uint32_t tmp1 = GetUInt32MSBFirst(src.first<4u>());
+          auto dest_bytes = dest.first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskR),
+                            dest_bytes);
+        }
+      }
+      return true;
+    }
+    case ComposeToOp::kDestNotAlignedSrcLessThanDest: {
+      const uint32_t shift1 = d1 - s1;
+      const uint32_t shift2 = 32 - shift1;
+      const int32_t middleDwords = (xd1 >> 5) - ((xd0 + 31) >> 5);
+      for (int32_t i = 0; i < h; ++i) {
+        pdfium::span<const uint8_t> src = GetLine(src_start_line + i);
+        pdfium::span<uint8_t> dest = pDst->GetLine(dest_start_line + i);
+        if (src.empty() || dest.empty()) {
+          return false;
+        }
+
+        src = src.subspan(src_offset);
+        if (d2 != 0) {
+          src = src.first(line_size);
+        }
+        dest = dest.subspan(dest_offset);
+        if (d1 != 0) {
+          uint32_t tmp1 = GetUInt32MSBFirst(src.first<4u>()) >> shift1;
+          auto dest_bytes = dest.take_first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskL),
+                            dest_bytes);
+        }
+        for (int32_t xx = 0; xx < middleDwords; xx++) {
+          auto src_bytes1 = src.take_first<4u>();
+          auto src_bytes2 = src.first<4u>();
+          uint32_t tmp1 = (GetUInt32MSBFirst(src_bytes1) << shift2) |
+                          (GetUInt32MSBFirst(src_bytes2) >> shift1);
+          auto dest_bytes = dest.take_first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoCompose(op, tmp1, tmp2), dest_bytes);
+        }
+        if (d2 != 0) {
+          uint32_t tmp1 = (GetUInt32MSBFirst(src.take_first<4u>()) << shift2);
+          if (!src.empty()) {
+            tmp1 |= (GetUInt32MSBFirst(src.first<4u>()) >> shift1);
+          }
+          auto dest_bytes = dest.first<4u>();
+          uint32_t tmp2 = GetUInt32MSBFirst(dest_bytes);
+          PutUInt32MSBFirst(DoComposeWithMask(op, tmp1, tmp2, maskR),
+                            dest_bytes);
+        }
+      }
+      return true;
+    }
+  }
+  NOTREACHED();
 }

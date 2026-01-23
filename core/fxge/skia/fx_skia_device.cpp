@@ -62,6 +62,7 @@
 #include "third_party/skia/include/core/SkMaskFilter.h"
 #include "third_party/skia/include/core/SkPaint.h"
 #include "third_party/skia/include/core/SkPath.h"
+#include "third_party/skia/include/core/SkPathBuilder.h"
 #include "third_party/skia/include/core/SkPathEffect.h"
 #include "third_party/skia/include/core/SkPathUtils.h"
 #include "third_party/skia/include/core/SkPixmap.h"
@@ -76,7 +77,7 @@
 #include "third_party/skia/include/core/SkTileMode.h"
 #include "third_party/skia/include/core/SkTypeface.h"
 #include "third_party/skia/include/effects/SkDashPathEffect.h"
-#include "third_party/skia/include/effects/SkGradientShader.h"
+#include "third_party/skia/include/effects/SkGradient.h"
 #include "third_party/skia/include/pathops/SkPathOps.h"
 
 namespace {
@@ -205,27 +206,31 @@ bool IsPathAPoint(const SkPath& path) {
   return true;
 }
 
-SkPath BuildPath(const CFX_Path& path) {
-  SkPath sk_path;
+SkPathBuilder BuildPath(const CFX_Path& path) {
+  SkPathBuilder builder;
   pdfium::span<const CFX_Path::Point> points = path.GetPoints();
   for (size_t i = 0; i < points.size(); ++i) {
     const CFX_PointF& point = points[i].point_;
     CFX_Path::Point::Type point_type = points[i].type_;
     if (point_type == CFX_Path::Point::Type::kMove) {
-      sk_path.moveTo(point.x, point.y);
+      builder.moveTo(point.x, point.y);
     } else if (point_type == CFX_Path::Point::Type::kLine) {
-      sk_path.lineTo(point.x, point.y);
+      builder.lineTo(point.x, point.y);
     } else if (point_type == CFX_Path::Point::Type::kBezier) {
       const CFX_PointF& point2 = points[i + 1].point_;
       const CFX_PointF& point3 = points[i + 2].point_;
-      sk_path.cubicTo(point.x, point.y, point2.x, point2.y, point3.x, point3.y);
+      builder.cubicTo(point.x, point.y, point2.x, point2.y, point3.x, point3.y);
       i += 2;
     }
     if (points[i].close_figure_) {
-      sk_path.close();
+      builder.close();
     }
   }
-  return sk_path;
+  return builder;
+}
+
+SkPath BuildAndFinishPath(const CFX_Path& path) {
+  return BuildPath(path).detach();
 }
 
 SkMatrix ToSkMatrix(const CFX_Matrix& m) {
@@ -279,9 +284,24 @@ SkBlendMode GetSkiaBlendMode(BlendMode blend_type) {
   }
 }
 
-// Clamps and scales a float in range [0.0, 1.0] to 0-255.
-uint8_t ClampFloatToByte(float f) {
-  return static_cast<uint8_t>(std::clamp(f, 0.0f, 1.0f) * 255.f + 0.5f);
+SkColor4f MakeColor4f(float r, float g, float b) {
+  r = std::clamp(r, 0.0f, 1.0f);
+  g = std::clamp(g, 0.0f, 1.0f);
+  b = std::clamp(b, 0.0f, 1.0f);
+
+  // For temporary compatibility with the previous implementation, we round
+  // the color components to a byte, and then redivide back to a normalized
+  // float. When we can update the expected images in the test suite, this
+  // rounding step should be eliminated, since it only throws away
+  // information from the PDF (and is slower).
+  auto legacy_round = [](float x) {
+    return std::floor(x * 255.f + 0.5f) * (1.0f / 255);
+  };
+  r = legacy_round(r);
+  g = legacy_round(g);
+  b = legacy_round(b);
+
+  return {r, g, b, 1};
 }
 
 // Add begin & end colors into `colors` array for each gradient transition.
@@ -290,7 +310,7 @@ uint8_t ClampFloatToByte(float f) {
 // has an Encode array, and the matching pair of encode values for `func` are
 // in decreasing order.
 bool AddColors(const CPDF_ExpIntFunc* func,
-               DataVector<SkColor>& colors,
+               DataVector<SkColor4f>& colors,
                bool is_encode_reversed) {
   if (func->InputCount() != 1) {
     return false;
@@ -308,24 +328,14 @@ bool AddColors(const CPDF_ExpIntFunc* func,
     std::swap(begin_values, end_values);
   }
 
-  colors.push_back(SkColorSetRGB(ClampFloatToByte(begin_values[0]),
-                                 ClampFloatToByte(begin_values[1]),
-                                 ClampFloatToByte(begin_values[2])));
-  colors.push_back(SkColorSetRGB(ClampFloatToByte(end_values[0]),
-                                 ClampFloatToByte(end_values[1]),
-                                 ClampFloatToByte(end_values[2])));
+  colors.push_back(
+      MakeColor4f(begin_values[0], begin_values[1], begin_values[2]));
+  colors.push_back(MakeColor4f(end_values[0], end_values[1], end_values[2]));
   return true;
 }
 
-// Scale a float in range [0.0, 1.0] to 0-255.
-uint8_t FloatToByte(float f) {
-  DCHECK(f >= 0);
-  DCHECK(f <= 1);
-  return static_cast<uint8_t>(f * 255.99f);
-}
-
 bool AddSamples(const CPDF_SampledFunc* func,
-                DataVector<SkColor>& colors,
+                DataVector<SkColor4f>& colors,
                 DataVector<float>& pos) {
   if (func->InputCount() != 1) {
     return false;
@@ -369,16 +379,14 @@ bool AddSamples(const CPDF_SampledFunc* func,
       float_colors[j] =
           colors_min[j] + (colors_max[j] - colors_min[j]) * interp;
     }
-    colors.push_back(SkColorSetRGB(FloatToByte(float_colors[0]),
-                                   FloatToByte(float_colors[1]),
-                                   FloatToByte(float_colors[2])));
+    colors.push_back({float_colors[0], float_colors[1], float_colors[2], 1});
     pos.push_back(static_cast<float>(i) / (sample_count - 1));
   }
   return true;
 }
 
 bool AddStitching(const CPDF_StitchFunc* func,
-                  DataVector<SkColor>& colors,
+                  DataVector<SkColor4f>& colors,
                   DataVector<float>& pos) {
   float bounds_start = func->GetDomain(0);
 
@@ -434,7 +442,7 @@ void ClipAngledGradient(pdfium::span<const SkPoint, 2> pts,
                         pdfium::span<const SkPoint, 4> rect_pts,
                         bool clip_start,
                         bool clip_end,
-                        SkPath* clip) {
+                        SkPathBuilder* clip) {
   // find the corners furthest from the gradient perpendiculars
   float minPerpDist = std::numeric_limits<float>::max();
   float maxPerpDist = std::numeric_limits<float>::lowest();
@@ -518,13 +526,13 @@ void ClipAngledGradient(pdfium::span<const SkPoint, 2> pts,
   clip->lineTo(IntersectSides(rect_pts[maxBounds], slope, startEdgePt));
 }
 
-// Converts a stroking path to scanlines
-void PaintStroke(SkPaint* spaint,
-                 const CFX_GraphStateData* graph_state,
-                 const SkMatrix& matrix,
-                 const CFX_FillRenderOptions& fill_options) {
+// Converts CFX_GraphStateData+CFX_FillRenderOptions into SkPaint
+void SetupStrokePaint(SkPaint* stroke_paint,
+                      const CFX_GraphStateData* stroke_options,
+                      const SkMatrix& transform_matrix,
+                      const CFX_FillRenderOptions& fill_options) {
   SkPaint::Cap cap;
-  switch (graph_state->line_cap()) {
+  switch (stroke_options->line_cap()) {
     case CFX_GraphStateData::LineCap::kRound:
       cap = SkPaint::kRound_Cap;
       break;
@@ -536,7 +544,7 @@ void PaintStroke(SkPaint* spaint,
       break;
   }
   SkPaint::Join join;
-  switch (graph_state->line_join()) {
+  switch (stroke_options->line_join()) {
     case CFX_GraphStateData::LineJoin::kRound:
       join = SkPaint::kRound_Join;
       break;
@@ -548,43 +556,47 @@ void PaintStroke(SkPaint* spaint,
       break;
   }
   SkMatrix inverse;
-  if (!matrix.invert(&inverse)) {
-    return;  // give up if the matrix is degenerate, and not invertable
+  if (!transform_matrix.invert(&inverse)) {
+    // give up if the transform_matrix is degenerate, and not invertable
+    return;
   }
   inverse.set(SkMatrix::kMTransX, 0);
   inverse.set(SkMatrix::kMTransY, 0);
-  SkVector deviceUnits[2] = {{0, 1}, {1, 0}};
-  inverse.mapPoints(deviceUnits);
+  SkVector device_units[2] = {{0, 1}, {1, 0}};
+  inverse.mapPoints(device_units);
 
   float width = fill_options.zero_area
                     ? 0.0f
-                    : std::max(graph_state->line_width(),
-                               std::min(deviceUnits[0].length(),
-                                        deviceUnits[1].length()));
-  const std::vector<float>& dash_array = graph_state->dash_array();
+                    : std::max(stroke_options->line_width(),
+                               std::min(device_units[0].length(),
+                                        device_units[1].length()));
+  const std::vector<float>& dash_array = stroke_options->dash_array();
   if (!dash_array.empty()) {
-    size_t count = (dash_array.size() + 1) / 2;
-    DataVector<float> intervals(count * 2);
-    // Set dash pattern
-    for (size_t i = 0; i < count; i++) {
-      float on = dash_array[i * 2];
-      if (on <= 0.000001f) {
-        on = 0.1f;
+    // `SkDashPathEffect` only takes even-sized interval arrays. Support
+    // odd-sized arrays by just doubling the size of `dash_array` and repeating
+    // its contents, e.g. [2, 1, 3] becomes [2, 1, 3, 2, 1, 3].
+    size_t count = dash_array.size();
+    bool is_even_sized = count % 2 == 0;
+    DataVector<float> intervals;
+    intervals.reserve(is_even_sized ? count : count * 2);
+    for (float dash_len : dash_array) {
+      if (dash_len <= 0.000001f) {
+        dash_len = 0.1f;
       }
-      float off = i * 2 + 1 == dash_array.size() ? on : dash_array[i * 2 + 1];
-      off = std::max(off, 0.0f);
-      intervals[i * 2] = on;
-      intervals[i * 2 + 1] = off;
+      intervals.push_back(dash_len);
     }
-    spaint->setPathEffect(
-        SkDashPathEffect::Make(intervals, graph_state->dash_phase()));
+    if (!is_even_sized) {
+      intervals.insert(intervals.end(), intervals.begin(), intervals.end());
+    }
+    stroke_paint->setPathEffect(
+        SkDashPathEffect::Make(intervals, stroke_options->dash_phase()));
   }
-  spaint->setStyle(SkPaint::kStroke_Style);
-  spaint->setAntiAlias(!fill_options.aliased_path);
-  spaint->setStrokeWidth(width);
-  spaint->setStrokeMiter(graph_state->miter_limit());
-  spaint->setStrokeCap(cap);
-  spaint->setStrokeJoin(join);
+  stroke_paint->setStyle(SkPaint::kStroke_Style);
+  stroke_paint->setAntiAlias(!fill_options.aliased_path);
+  stroke_paint->setStrokeWidth(width);
+  stroke_paint->setStrokeMiter(stroke_options->miter_limit());
+  stroke_paint->setStrokeCap(cap);
+  stroke_paint->setStrokeJoin(join);
 }
 
 void SetBitmapMatrix(const CFX_Matrix& m,
@@ -671,6 +683,19 @@ bool HasRSX(pdfium::span<const TextCharPos> char_pos,
   *oneAtATimePtr = oneAtATime;
   *scaleXPtr = oneAtATime ? 1 : scaleX;
   return oneAtATime ? false : useRSXform;
+}
+
+SkFont SkFontFromCFXFont(const CFX_Font* cfx_font,
+                         float font_size,
+                         const CFX_TextRenderOptions& options) {
+  SkFont font;
+  font.setEmbolden(cfx_font->IsSubstFontBold());
+  font.setHinting(SkFontHinting::kNone);
+  font.setSkewX(tanf(cfx_font->GetSubstFontItalicAngle() * FXSYS_PI / 180.0));
+  font.setSize(SkTAbs(font_size));
+  font.setSubpixel(true);
+  font.setEdging(GetFontEdgingType(options));
+  return font;
 }
 
 }  // namespace
@@ -801,14 +826,8 @@ bool CFX_SkiaDeviceDriver::DrawDeviceText(
   paint.setAntiAlias(true);
   paint.setColor(color);
 
-  SkFont font;
+  SkFont font = SkFontFromCFXFont(pFont, font_size, options);
   font.setTypeface(typeface);
-  font.setEmbolden(pFont->IsSubstFontBold());
-  font.setHinting(SkFontHinting::kNone);
-  font.setSize(SkTAbs(font_size));
-  font.setSubpixel(true);
-  font.setSkewX(tanf(pFont->GetSubstFontItalicAngle() * FXSYS_PI / 180.0));
-  font.setEdging(GetFontEdgingType(options));
 
   SkAutoCanvasRestore scoped_save_restore(canvas_, /*doSave=*/true);
   const float horizontal_flip = font_size < 0 ? -1.f : 1.f;
@@ -867,7 +886,7 @@ bool CFX_SkiaDeviceDriver::DrawDeviceText(
   return true;
 }
 
-// TODO(crbug.com/pdfium/1999): Merge with `DrawDeviceText()` and refactor
+// TODO(crbug.com/42271005): Merge with `DrawDeviceText()` and refactor
 // common logic.
 // TODO(crbug.com/pdfium/1774): Sometimes the thickness of the glyphs is not
 // ideal. Improve text rendering results regarding different font weight.
@@ -928,17 +947,11 @@ bool CFX_SkiaDeviceDriver::TryDrawText(pdfium::span<const TextCharPos> char_pos,
   skPaint.setAntiAlias(true);
   skPaint.setColor(color);
 
-  SkFont font;
+  SkFont font = SkFontFromCFXFont(pFont, font_size, options);
   if (pFont->HasFaceRec()) {  // exclude placeholder test fonts
     font.setTypeface(sk_ref_sp(pFont->GetDeviceCache()));
   }
-  font.setEmbolden(pFont->IsSubstFontBold());
-  font.setHinting(SkFontHinting::kNone);
   font.setScaleX(scaleX);
-  font.setSkewX(tanf(pFont->GetSubstFontItalicAngle() * FXSYS_PI / 180.0));
-  font.setSize(SkTAbs(font_size));
-  font.setSubpixel(true);
-  font.setEdging(GetFontEdgingType(options));
 
   SkAutoCanvasRestore scoped_save_restore(canvas_, /*doSave=*/true);
   canvas_->concat(ToFlippedSkMatrix(matrix, horizontal_flip));
@@ -1050,7 +1063,7 @@ bool CFX_SkiaDeviceDriver::SetClip_PathFill(
   const CFX_Matrix& deviceMatrix =
       pObject2Device ? *pObject2Device : CFX_Matrix();
 
-  SkPath skClipPath;
+  SkPathBuilder skClipPathBuilder;
   if (path.GetPoints().size() == 5 || path.GetPoints().size() == 4) {
     std::optional<CFX_FloatRect> maybe_rectf = path.GetRect(&deviceMatrix);
     if (maybe_rectf.has_value()) {
@@ -1060,16 +1073,22 @@ bool CFX_SkiaDeviceDriver::SetClip_PathFill(
                                     (float)GetDeviceCaps(FXDC_PIXEL_HEIGHT)));
       FX_RECT outer = rectf.GetOuterRect();
       // note that PDF's y-axis goes up; Skia's y-axis goes down
-      skClipPath.addRect({(float)outer.left, (float)outer.bottom,
-                          (float)outer.right, (float)outer.top});
+      skClipPathBuilder.addRect({(float)outer.left, (float)outer.bottom,
+                                 (float)outer.right, (float)outer.top});
     }
   }
-  if (skClipPath.isEmpty()) {
-    skClipPath = BuildPath(path);
-    skClipPath.setFillType(GetAlternateOrWindingFillType(fill_options));
-    skClipPath.transform(ToSkMatrix(deviceMatrix));
+
+  SkPath skClipPath;
+  if (skClipPathBuilder.isEmpty()) {
+    skClipPathBuilder = BuildPath(path);
+    skClipPathBuilder.setFillType(GetAlternateOrWindingFillType(fill_options));
+    skClipPathBuilder.transform(ToSkMatrix(deviceMatrix));
+    skClipPath = skClipPathBuilder.detach();
     DebugShowSkiaPath(skClipPath);
+  } else {
+    skClipPath = skClipPathBuilder.detach();
   }
+
   canvas_->clipPath(skClipPath, SkClipOp::kIntersect, true);
   DebugShowCanvasClip(this, canvas_);
   return true;
@@ -1080,78 +1099,109 @@ bool CFX_SkiaDeviceDriver::SetClip_PathStroke(
     const CFX_Matrix* pObject2Device,      // required transformation
     const CFX_GraphStateData* pGraphState  // graphic state, for pen attributes
 ) {
-  SkPath skPath = BuildPath(path);
+  SkPath skPath = BuildAndFinishPath(path);
   SkMatrix skMatrix = ToSkMatrix(*pObject2Device);
   SkPaint skPaint;
-  PaintStroke(&skPaint, pGraphState, skMatrix, CFX_FillRenderOptions());
-  SkPath dst_path;
+  SetupStrokePaint(&skPaint, pGraphState, skMatrix, CFX_FillRenderOptions());
+  SkPathBuilder dst_path;
   skpathutils::FillPathWithPaint(skPath, skPaint, &dst_path);
   dst_path.transform(skMatrix);
-  canvas_->clipPath(dst_path, SkClipOp::kIntersect, true);
+  canvas_->clipPath(dst_path.detach(), SkClipOp::kIntersect, true);
   DebugShowCanvasClip(this, canvas_);
   return true;
 }
 
-bool CFX_SkiaDeviceDriver::DrawPath(const CFX_Path& path,
-                                    const CFX_Matrix* pObject2Device,
-                                    const CFX_GraphStateData* pGraphState,
+bool CFX_SkiaDeviceDriver::DrawPath(const CFX_Path& cfx_path,
+                                    const CFX_Matrix* cfx_transform_matrix,
+                                    const CFX_GraphStateData* stroke_options,
                                     uint32_t fill_color,
                                     uint32_t stroke_color,
                                     const CFX_FillRenderOptions& fill_options) {
   fill_options_ = fill_options;
 
-  SkPath skia_path = BuildPath(path);
-  skia_path.setFillType(GetAlternateOrWindingFillType(fill_options));
+  SkPath path = BuildAndFinishPath(cfx_path);
+  path.setFillType(GetAlternateOrWindingFillType(fill_options));
 
-  SkMatrix skMatrix = pObject2Device ? ToSkMatrix(*pObject2Device) : SkMatrix();
-  SkPaint skPaint;
-  skPaint.setAntiAlias(!fill_options.aliased_path);
+  SkMatrix transform_matrix =
+      cfx_transform_matrix ? ToSkMatrix(*cfx_transform_matrix) : SkMatrix();
+  SkPaint path_paint;
+  path_paint.setAntiAlias(!fill_options.aliased_path);
   if (fill_options.full_cover) {
-    skPaint.setBlendMode(SkBlendMode::kPlus);
+    path_paint.setBlendMode(SkBlendMode::kPlus);
   }
+
+  SkPaint stroke_paint = path_paint;
   int stroke_alpha = FXARGB_A(stroke_color);
   if (stroke_alpha) {
-    const CFX_GraphStateData& graph_state =
-        pGraphState ? *pGraphState : CFX_GraphStateData();
-    PaintStroke(&skPaint, &graph_state, skMatrix, fill_options);
+    const CFX_GraphStateData stroke_options_copy =
+        stroke_options ? *stroke_options : CFX_GraphStateData();
+    SetupStrokePaint(&stroke_paint, &stroke_options_copy, transform_matrix,
+                     fill_options);
   }
 
   SkAutoCanvasRestore scoped_save_restore(canvas_, /*doSave=*/true);
-  canvas_->concat(skMatrix);
-  bool do_stroke = true;
-  if (fill_options.fill_type != CFX_FillRenderOptions::FillType::kNoFill &&
+  canvas_->concat(transform_matrix);
+
+  // Draw the fill (and the stroke if it's a knockout group)
+  const bool is_point_path = IsPathAPoint(path);
+  if (!is_point_path &&
+      fill_options.fill_type != CFX_FillRenderOptions::FillType::kNoFill &&
       fill_color) {
-    SkPath strokePath;
-    const SkPath* fillPath = &skia_path;
-    if (stroke_alpha) {
-      if (group_knockout_) {
-        skpathutils::FillPathWithPaint(skia_path, skPaint, &strokePath);
-        if (stroke_color == fill_color &&
-            Op(skia_path, strokePath, SkPathOp::kUnion_SkPathOp, &strokePath)) {
-          fillPath = &strokePath;
-          do_stroke = false;
-        } else if (Op(skia_path, strokePath, SkPathOp::kDifference_SkPathOp,
-                      &strokePath)) {
-          fillPath = &strokePath;
-        }
-      }
+    // Knockout Group is a PDF feature that means the elements of the group
+    // should not affect each other with transparency.
+    //
+    // See section 11.4.6 of in ISO 32000-1:2008:
+    // "At any given point, only the topmost object enclosing the point shall
+    // contribute to the result colour and opacity of the group as a whole"
+    if (stroke_alpha && group_knockout_) {
+      // Draw the knockout group path on a separate layer so blend modes can be
+      // adjusted. When restore() is called path_paint is used to composite the
+      // layer.
+      canvas_->saveLayer(nullptr, &path_paint);
+      SkPaint layer_paint = stroke_paint;
+
+      // kSrc means the top-most object fully overwrites any pixels it draws.
+      // See https://skia.org/docs/user/api/skblendmode_overview/
+      layer_paint.setBlendMode(SkBlendMode::kSrc);
+      layer_paint.setStyle(SkPaint::kFill_Style);
+
+      layer_paint.setColor(fill_color);
+      DrawPathImpl(path, layer_paint);
+
+      // Compute the stroke outline and draw with fill style so that if the
+      // path self-intersects the anti-aliasing pixels won't stack their
+      // transparency.
+      //
+      // Drawing it as a stroke normally already operates in the knockout way
+      // but not for the AA pixels in some cases.
+      SkPathBuilder stroke_outline_builder;
+      skpathutils::FillPathWithPaint(path, stroke_paint, &stroke_outline_builder);
+      SkPath stroke_outline = stroke_outline_builder.detach();
+      layer_paint.setColor(stroke_color);
+      DrawPathImpl(stroke_outline, layer_paint);
+
+      return true;  // `scoped_save_restore` restores two layers here
     }
-    skPaint.setStyle(SkPaint::kFill_Style);
-    skPaint.setColor(fill_color);
-    DrawPathImpl(*fillPath, skPaint);
+
+    // Draw the fill normally if it isn't a knockout group
+    stroke_paint.setStyle(SkPaint::kFill_Style);
+    stroke_paint.setColor(fill_color);
+    DrawPathImpl(path, stroke_paint);
   }
-  if (stroke_alpha && do_stroke) {
-    skPaint.setStyle(SkPaint::kStroke_Style);
-    skPaint.setColor(stroke_color);
-    if (!skia_path.isLastContourClosed() && IsPathAPoint(skia_path)) {
-      DCHECK_GE(skia_path.countPoints(), 1);
-      canvas_->drawPoint(skia_path.getPoint(0), skPaint);
-    } else if (IsPathAPoint(skia_path) &&
-               skPaint.getStrokeCap() != SkPaint::kRound_Cap) {
+
+  // Draw the stroke
+  if (stroke_alpha) {
+    stroke_paint.setStyle(SkPaint::kStroke_Style);
+    stroke_paint.setColor(stroke_color);
+    if (!path.isLastContourClosed() && is_point_path) {
+      CHECK_GE(path.countPoints(), 1);
+      canvas_->drawPoint(path.getPoint(0), stroke_paint);
+    } else if (is_point_path &&
+               stroke_paint.getStrokeCap() != SkPaint::kRound_Cap) {
       // Do nothing. A closed 0-length closed path can be rendered only if
       // its line cap type is round.
     } else {
-      DrawPathImpl(skia_path, skPaint);
+      DrawPathImpl(path, stroke_paint);
     }
   }
   return true;
@@ -1195,7 +1245,7 @@ bool CFX_SkiaDeviceDriver::DrawShading(const CPDF_ShadingPattern& pattern,
   }
   // TODO(caryclark) Respect Domain[0], Domain[1]. (Don't know what they do
   // yet.)
-  DataVector<SkColor> sk_colors;
+  DataVector<SkColor4f> sk_colors;
   DataVector<float> sk_pos;
   for (size_t j = 0; j < nFuncs; j++) {
     if (!pFuncs[j]) {
@@ -1233,8 +1283,8 @@ bool CFX_SkiaDeviceDriver::DrawShading(const CPDF_ShadingPattern& pattern,
   SkMatrix skMatrix = ToSkMatrix(matrix);
   SkRect skRect = SkRect::MakeLTRB(clip_rect.left, clip_rect.top,
                                    clip_rect.right, clip_rect.bottom);
-  SkPath skClip;
-  SkPath skPath;
+  SkPathBuilder skClip;
+  SkPathBuilder skPath;
   if (shading_type == kAxialShading) {
     float start_x = pCoords->GetFloatAt(0);
     float start_y = pCoords->GetFloatAt(1);
@@ -1242,9 +1292,8 @@ bool CFX_SkiaDeviceDriver::DrawShading(const CPDF_ShadingPattern& pattern,
     float end_y = pCoords->GetFloatAt(3);
     SkPoint pts[] = {{start_x, start_y}, {end_x, end_y}};
     skMatrix.mapPoints(pts);
-    paint.setShader(SkGradientShader::MakeLinear(
-        pts, sk_colors.data(), sk_pos.data(),
-        fxcrt::CollectionSize<int>(sk_colors), SkTileMode::kClamp));
+    paint.setShader(SkShaders::LinearGradient(
+        pts, {{sk_colors, sk_pos, SkTileMode::kClamp}, {}}));
     if (clipStart || clipEnd) {
       // if the gradient is horizontal or vertical, modify the draw rectangle
       if (pts[0].fX == pts[1].fX) {  // vertical
@@ -1281,23 +1330,20 @@ bool CFX_SkiaDeviceDriver::DrawShading(const CPDF_ShadingPattern& pattern,
     skMatrix.setIdentity();
   } else {
     CHECK_EQ(shading_type, kRadialShading);
-    float start_x = pCoords->GetFloatAt(0);
-    float start_y = pCoords->GetFloatAt(1);
+    SkPoint start = {pCoords->GetFloatAt(0), pCoords->GetFloatAt(1)};
     float start_r = pCoords->GetFloatAt(2);
-    float end_x = pCoords->GetFloatAt(3);
-    float end_y = pCoords->GetFloatAt(4);
+    SkPoint end = {pCoords->GetFloatAt(3), pCoords->GetFloatAt(4)};
     float end_r = pCoords->GetFloatAt(5);
-    SkPoint pts[] = {{start_x, start_y}, {end_x, end_y}};
 
-    paint.setShader(SkGradientShader::MakeTwoPointConical(
-        pts[0], start_r, pts[1], end_r, sk_colors.data(), sk_pos.data(),
-        fxcrt::CollectionSize<int>(sk_colors), SkTileMode::kClamp));
+    paint.setShader(SkShaders::TwoPointConicalGradient(
+        start, start_r, end, end_r,
+        {{sk_colors, sk_pos, SkTileMode::kClamp}, {}}));
     if (clipStart || clipEnd) {
       if (clipStart && start_r) {
-        skClip.addCircle(pts[0].fX, pts[0].fY, start_r);
+        skClip.addCircle(start.fX, start.fY, start_r);
       }
       if (clipEnd) {
-        skClip.addCircle(pts[1].fX, pts[1].fY, end_r, SkPathDirection::kCCW);
+        skClip.addCircle(end.fX, end.fY, end_r, SkPathDirection::kCCW);
       } else {
         skClip.setFillType(SkPathFillType::kInverseWinding);
       }
@@ -1312,10 +1358,10 @@ bool CFX_SkiaDeviceDriver::DrawShading(const CPDF_ShadingPattern& pattern,
   }
   SkAutoCanvasRestore scoped_save_restore(canvas_, /*doSave=*/true);
   if (!skClip.isEmpty()) {
-    canvas_->clipPath(skClip, SkClipOp::kIntersect, true);
+    canvas_->clipPath(skClip.detach(), SkClipOp::kIntersect, true);
   }
   canvas_->concat(skMatrix);
-  DrawPathImpl(skPath, paint);
+  DrawPathImpl(skPath.detach(), paint);
   return true;
 }
 

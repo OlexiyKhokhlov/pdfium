@@ -16,7 +16,7 @@
 #include "core/fpdfapi/parser/cpdf_dictionary.h"
 #include "core/fpdfapi/parser/cpdf_name.h"
 #include "core/fxcrt/fx_codepage.h"
-#include "core/fxge/freetype/fx_freetype.h"
+#include "core/fxge/cfx_face.h"
 #include "core/fxge/fx_font.h"
 
 namespace {
@@ -86,19 +86,14 @@ void CPDF_SimpleFont::LoadCharMetrics(int charcode) {
     return;
   }
 
-  FXFT_FaceRec* face_rec = face->GetRec();
-  int err =
-      FT_Load_Glyph(face_rec, glyph_index,
-                    FT_LOAD_NO_SCALE | FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH);
+  int err = face->LoadGlyph(glyph_index, /*scale=*/false);
   if (err) {
     return;
   }
 
   char_bbox_[charcode] = face->GetGlyphBBox();
-
   if (use_font_width_) {
-    int TT_Width = NormalizeFontMetric(FXFT_Get_Glyph_HoriAdvance(face_rec),
-                                       face->GetUnitsPerEm());
+    int TT_Width = face->GetGlyphTTWidth();
     if (char_width_[charcode] == 0xffff) {
       char_width_[charcode] = TT_Width;
     } else if (TT_Width && !IsEmbedded()) {
@@ -119,7 +114,7 @@ void CPDF_SimpleFont::LoadCharWidths(const CPDF_Dictionary* font_desc) {
 
   if (font_desc && font_desc->KeyExist("MissingWidth")) {
     int missing_width = font_desc->GetIntegerFor("MissingWidth");
-    std::fill(std::begin(char_width_), std::end(char_width_), missing_width);
+    std::ranges::fill(char_width_, missing_width);
   }
 
   size_t width_start = font_dict_->GetIntegerFor("FirstChar", 0);
